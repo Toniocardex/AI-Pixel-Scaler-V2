@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using AiPixelScaler.Core.Pipeline.Imaging;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -7,6 +8,20 @@ namespace AiPixelScaler.Desktop.ViewModels;
 public sealed class PipelineViewModel
 {
     public enum PresetKind { None, Safe, AggressiveRecover }
+    public sealed record PipelineFormState(
+        bool EnableChroma,
+        bool EnableChromaSnapRgb,
+        string ChromaHex,
+        string ChromaTolerance,
+        bool EnableQuantize,
+        string MaxColors,
+        int QuantizerIndex,
+        bool EnableMajorityDenoise,
+        string MinIsland,
+        bool EnableOutline,
+        string OutlineHex,
+        bool EnableAlphaThreshold,
+        string AlphaThreshold);
 
     public bool EnableChroma { get; set; } = true;
     public bool ChromaSnapRgb { get; set; }
@@ -78,5 +93,108 @@ public sealed class PipelineViewModel
             EnableRecoverFill: EnableRecoverFill,
             RecoverIterations: Math.Max(1, RecoverIterations),
             RequantizeAfterRecover: true);
+    }
+
+    public PipelineFormState ToFormState()
+    {
+        return new PipelineFormState(
+            EnableChroma: EnableChroma,
+            EnableChromaSnapRgb: ChromaSnapRgb,
+            ChromaHex: ToHexRgb(ChromaHex, "#00FF00"),
+            ChromaTolerance: Math.Max(0, ChromaTolerance).ToString(CultureInfo.InvariantCulture),
+            EnableQuantize: EnableQuantize,
+            MaxColors: Math.Clamp(MaxColors, 2, 256).ToString(CultureInfo.InvariantCulture),
+            QuantizerIndex: Quantizer switch
+            {
+                PixelArtProcessor.QuantizerKind.Wu => 1,
+                PixelArtProcessor.QuantizerKind.Octree => 2,
+                _ => 0
+            },
+            EnableMajorityDenoise: EnableMajorityDenoise,
+            MinIsland: (IslandMinArea ?? 0).ToString(CultureInfo.InvariantCulture),
+            EnableOutline: EnableOutline,
+            OutlineHex: ToHexRgb(OutlineHex, "#000000"),
+            EnableAlphaThreshold: AlphaThreshold.HasValue,
+            AlphaThreshold: (AlphaThreshold ?? (byte)128).ToString(CultureInfo.InvariantCulture));
+    }
+
+    public bool TryBuildOptionsFromFormState(PipelineFormState formState, bool includeOutline, out PixelArtPipeline.Options options, out string error)
+    {
+        options = default!;
+        error = string.Empty;
+
+        var chromaEnabled = formState.EnableChroma || formState.EnableChromaSnapRgb;
+        var quantEnabled = formState.EnableQuantize;
+        var majorityEnabled = formState.EnableMajorityDenoise;
+        var alphaEnabled = formState.EnableAlphaThreshold;
+        var outlineEnabled = includeOutline && formState.EnableOutline;
+
+        if (!chromaEnabled && !quantEnabled && !majorityEnabled && !alphaEnabled && !outlineEnabled && ActivePreset == PresetKind.None)
+        {
+            error = "Nessuna trasformazione selezionata: spunta almeno una checkbox sopra.";
+            return false;
+        }
+
+        var chromaColor = new Rgba32(0, 255, 0, 255);
+        if (chromaEnabled && !TryParseHexRgb(formState.ChromaHex, out chromaColor))
+        {
+            error = "Chroma: hex colore non valido (es. #00FF00).";
+            return false;
+        }
+
+        var outlineColor = new Rgba32(0, 0, 0, 255);
+        if (outlineEnabled && !TryParseHexRgb(formState.OutlineHex, out outlineColor))
+        {
+            error = "Outline: hex bordo non valido.";
+            return false;
+        }
+
+        EnableChroma = chromaEnabled;
+        ChromaSnapRgb = formState.EnableChromaSnapRgb;
+        ChromaHex = ToHexRgb(formState.ChromaHex, "#00FF00");
+        ChromaTolerance = Math.Max(0, ParseInt(formState.ChromaTolerance, 0));
+        EnableQuantize = quantEnabled;
+        MaxColors = Math.Clamp(ParseInt(formState.MaxColors, 16), 2, 256);
+        Quantizer = formState.QuantizerIndex switch
+        {
+            1 => PixelArtProcessor.QuantizerKind.Wu,
+            2 => PixelArtProcessor.QuantizerKind.Octree,
+            _ => PixelArtProcessor.QuantizerKind.KMeansOklab,
+        };
+        EnableMajorityDenoise = majorityEnabled;
+        var defaultMinIsland = ActivePreset == PresetKind.AggressiveRecover ? 3 : 2;
+        IslandMinArea = majorityEnabled ? Math.Max(1, ParseInt(formState.MinIsland, defaultMinIsland)) : null;
+        EnableOutline = outlineEnabled;
+        OutlineHex = ToHexRgb(formState.OutlineHex, "#000000");
+        AlphaThreshold = alphaEnabled ? (byte)Math.Clamp(ParseInt(formState.AlphaThreshold, 128), 0, 255) : null;
+        EnableRecoverFill = ActivePreset == PresetKind.AggressiveRecover;
+
+        options = BuildOptions(chromaColor, outlineColor, includeOutline);
+        return true;
+    }
+
+    private static int ParseInt(string? s, int fallback)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return fallback;
+        return int.TryParse(s.Trim(), out var n) ? n : fallback;
+    }
+
+    private static bool TryParseHexRgb(string? s, out Rgba32 color)
+    {
+        color = default;
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        var t = s.Trim();
+        if (t.StartsWith("#", StringComparison.Ordinal)) t = t[1..];
+        if (t.Length != 6) return false;
+        if (!uint.TryParse(t, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var v)) return false;
+        color = new Rgba32((byte)(v >> 16), (byte)(v >> 8), (byte)v, 255);
+        return true;
+    }
+
+    private static string ToHexRgb(string? value, string fallback)
+    {
+        if (TryParseHexRgb(value, out var color))
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        return fallback;
     }
 }
