@@ -695,28 +695,23 @@ public partial class MainWindow : Window
     private void ExecutePipeline(PixelArtPipeline.Options options, string label)
     {
         if (_document is null) return;
-        var start = DateTime.UtcNow;
-        try
+        PushUndo();
+        var result = PipelineExecutionService.RunInPlace(_document, options, label, ToHexRgb);
+        TxtPipelineLastRun.Text = result.LastRunText;
+        if (!result.Succeeded)
         {
-            PushUndo();
-            var report = PixelArtPipeline.ApplyInPlace(_document, options);
-            TxtQuickColorsBefore.Text = report.UniqueColorsBefore.ToString(CultureInfo.InvariantCulture);
-            TxtQuickColorsAfter.Text = report.UniqueColorsAfter.ToString(CultureInfo.InvariantCulture);
-            TxtQuickPalette.Text = string.Join(" ", report.Palette.Select(ToHexRgb));
-            ClearSliceGrid();
-            _cells.Clear();
-            CellList.ItemsSource = null;
-            RefreshView();
-            var elapsed = (int)(DateTime.UtcNow - start).TotalMilliseconds;
-            TxtPipelineLastRun.Text =
-                $"Ultima esecuzione: {label}, {elapsed} ms, colori {report.UniqueColorsBefore}→{report.UniqueColorsAfter}.";
-            SetStatus($"{label} applicata: {string.Join(" → ", report.Steps)}.");
+            SetStatus(result.StatusText);
+            return;
         }
-        catch (Exception ex)
-        {
-            TxtPipelineLastRun.Text = $"Ultima esecuzione fallita: {label}.";
-            SetStatus($"{label}: {ex.Message}");
-        }
+
+        TxtQuickColorsBefore.Text = result.ColorsBeforeText;
+        TxtQuickColorsAfter.Text = result.ColorsAfterText;
+        TxtQuickPalette.Text = result.PaletteText;
+        ClearSliceGrid();
+        _cells.Clear();
+        CellList.ItemsSource = null;
+        RefreshView();
+        SetStatus(result.StatusText);
     }
 
     private PipelineViewModel.PipelineFormState ReadPipelineFormStateFromControls()
