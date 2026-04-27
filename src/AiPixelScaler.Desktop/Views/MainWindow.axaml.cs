@@ -14,6 +14,7 @@ using AiPixelScaler.Core.Pipeline.Slicing;
 using AiPixelScaler.Core.Pipeline.Templates;
 using AiPixelScaler.Core.Pipeline.Tiling;
 using AiPixelScaler.Desktop.Controls;
+using AiPixelScaler.Desktop.Utilities;
 using AiPixelScaler.Desktop.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -30,7 +31,6 @@ public partial class MainWindow : Window
 {
     private const int MaxUndo = 20;
     private const int SelectionCanvasTabIndex = 6;  // indice del tab "Selezione"
-    private enum CleanupPresetMode { None, Safe, AggressiveRecover }
 
     private Image<Rgba32>? _document;
     private Image<Rgba32>? _backup;
@@ -38,7 +38,6 @@ public partial class MainWindow : Window
     private (int w, int h) _lastGlobal;
     private bool _hasUserFile;
     private readonly List<WorkspaceSnapshot> _undoStack = new();
-    private CleanupPresetMode _activeCleanupPreset = CleanupPresetMode.None;
     private readonly PipelineViewModel _pipelineVm = new();
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
@@ -594,21 +593,7 @@ public partial class MainWindow : Window
     private void ApplySafePresetToControls()
     {
         _pipelineVm.ApplySafePreset();
-        ChkPipeChroma.IsChecked = true;
-        ChkPipeChromaSnapRgb.IsChecked = false;
-        TxtPipeChromaTol.Text = "6";
-
-        ChkPipeQuant.IsChecked = true;
-        TxtPipeQuantLevels.Text = "32";
-        CmbPipeQuantMethod.SelectedIndex = 0; // K-Means OKLab
-
-        TxtMinIsland.Text = "2";
-        ChkPipeMajorityDenoise.IsChecked = true;
-
-        ChkAlphaThreshold.IsChecked = true;
-        TxtAlphaThreshold.Text = "112";
-
-        _activeCleanupPreset = CleanupPresetMode.Safe;
+        ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
         SetStatus("Preset Sicuro impostato.");
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -617,21 +602,7 @@ public partial class MainWindow : Window
     private void ApplyAggressivePresetToControls()
     {
         _pipelineVm.ApplyAggressiveRecoverPreset();
-        ChkPipeChroma.IsChecked = true;
-        ChkPipeChromaSnapRgb.IsChecked = true;
-        TxtPipeChromaTol.Text = "18";
-
-        ChkPipeQuant.IsChecked = true;
-        TxtPipeQuantLevels.Text = "20";
-        CmbPipeQuantMethod.SelectedIndex = 1; // Wu
-
-        TxtMinIsland.Text = "3";
-        ChkPipeMajorityDenoise.IsChecked = true;
-
-        ChkAlphaThreshold.IsChecked = true;
-        TxtAlphaThreshold.Text = "144";
-
-        _activeCleanupPreset = CleanupPresetMode.AggressiveRecover;
+        ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
         SetStatus("Preset Aggressivo+Recupero impostato.");
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -678,24 +649,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private static int ParseInt(string? s, int fallback)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return fallback;
-        return int.TryParse(s.Trim(), out var n) ? n : fallback;
-    }
-
-    private static bool TryParseHexRgb(string? s, out Rgba32 color)
-    {
-        color = default;
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        var t = s.Trim();
-        if (t.StartsWith("#", StringComparison.Ordinal)) t = t[1..];
-        if (t.Length != 6) return false;
-        if (!uint.TryParse(t, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var v)) return false;
-        color = new Rgba32((byte)(v >> 16), (byte)(v >> 8), (byte)v, 255);
-        return true;
-    }
-
     private static double ParseDouble(string? s, double fallback)
     {
         if (string.IsNullOrWhiteSpace(s)) return fallback;
@@ -713,61 +666,8 @@ public partial class MainWindow : Window
             return false;
         }
 
-        var chroma = ChkPipeChroma.IsChecked == true || ChkPipeChromaSnapRgb.IsChecked == true;
-        var quant = ChkPipeQuant.IsChecked == true;
-        var majority = ChkPipeMajorityDenoise.IsChecked == true;
-        var alpha = ChkAlphaThreshold.IsChecked == true;
-        var outline = includeOutline && ChkPipeOutline.IsChecked == true;
-
-        if (!chroma && !quant && !majority && !alpha && !outline && _activeCleanupPreset == CleanupPresetMode.None)
-        {
-            error = "Nessuna trasformazione selezionata: spunta almeno una checkbox sopra.";
-            return false;
-        }
-
-        var key = new Rgba32(0, 255, 0, 255);
-        if (chroma && !TryParseHexRgb(TxtPipeChromaHex.Text, out key))
-        {
-            error = "Chroma: hex colore non valido (es. #00FF00).";
-            return false;
-        }
-
-        var line = new Rgba32(0, 0, 0, 255);
-        if (outline && !TryParseHexRgb(TxtPipeOutlineHex.Text, out line))
-        {
-            error = "Outline: hex bordo non valido.";
-            return false;
-        }
-
-        var quantizer = CmbPipeQuantMethod.SelectedIndex switch
-        {
-            1 => PixelArtProcessor.QuantizerKind.Wu,
-            2 => PixelArtProcessor.QuantizerKind.Octree,
-            _ => PixelArtProcessor.QuantizerKind.KMeansOklab,
-        };
-
-        var islandMin = _activeCleanupPreset switch
-        {
-            CleanupPresetMode.Safe => Math.Max(1, ParseInt(TxtMinIsland.Text, 2)),
-            CleanupPresetMode.AggressiveRecover => Math.Max(1, ParseInt(TxtMinIsland.Text, 3)),
-            _ => (int?)null
-        };
-
-        _pipelineVm.EnableChroma = chroma;
-        _pipelineVm.ChromaSnapRgb = ChkPipeChromaSnapRgb.IsChecked == true;
-        _pipelineVm.ChromaTolerance = Math.Max(0, ParseInt(TxtPipeChromaTol.Text, 0));
-        _pipelineVm.EnableQuantize = quant;
-        _pipelineVm.MaxColors = Math.Clamp(ParseInt(TxtPipeQuantLevels.Text, 16), 2, 256);
-        _pipelineVm.Quantizer = quantizer;
-        _pipelineVm.EnableMajorityDenoise = majority;
-        _pipelineVm.IslandMinArea = islandMin;
-        _pipelineVm.EnableOutline = outline;
-        _pipelineVm.AlphaThreshold = alpha ? (byte)Math.Clamp(ParseInt(TxtAlphaThreshold.Text, 128), 0, 255) : null;
-        _pipelineVm.EnableRecoverFill = _activeCleanupPreset == CleanupPresetMode.AggressiveRecover;
-
-        options = _pipelineVm.BuildOptions(key, line, includeOutline);
-
-        return true;
+        var formState = ReadPipelineFormStateFromControls();
+        return _pipelineVm.TryBuildOptionsFromFormState(formState, includeOutline, out options, out error);
     }
 
     private void ExecutePipeline(PixelArtPipeline.Options options, string label)
@@ -795,10 +695,41 @@ public partial class MainWindow : Window
             TxtPipelineLastRun.Text = $"Ultima esecuzione fallita: {label}.";
             SetStatus($"{label}: {ex.Message}");
         }
-        finally
-        {
-            _activeCleanupPreset = CleanupPresetMode.None;
-        }
+    }
+
+    private PipelineViewModel.PipelineFormState ReadPipelineFormStateFromControls()
+    {
+        return new PipelineViewModel.PipelineFormState(
+            EnableChroma: ChkPipeChroma.IsChecked == true,
+            EnableChromaSnapRgb: ChkPipeChromaSnapRgb.IsChecked == true,
+            ChromaHex: TxtPipeChromaHex.Text ?? "#00FF00",
+            ChromaTolerance: TxtPipeChromaTol.Text ?? "0",
+            EnableQuantize: ChkPipeQuant.IsChecked == true,
+            MaxColors: TxtPipeQuantLevels.Text ?? "16",
+            QuantizerIndex: CmbPipeQuantMethod.SelectedIndex,
+            EnableMajorityDenoise: ChkPipeMajorityDenoise.IsChecked == true,
+            MinIsland: TxtMinIsland.Text ?? "2",
+            EnableOutline: ChkPipeOutline.IsChecked == true,
+            OutlineHex: TxtPipeOutlineHex.Text ?? "#000000",
+            EnableAlphaThreshold: ChkAlphaThreshold.IsChecked == true,
+            AlphaThreshold: TxtAlphaThreshold.Text ?? "128");
+    }
+
+    private void ApplyPipelineFormStateToControls(PipelineViewModel.PipelineFormState formState)
+    {
+        ChkPipeChroma.IsChecked = formState.EnableChroma;
+        ChkPipeChromaSnapRgb.IsChecked = formState.EnableChromaSnapRgb;
+        TxtPipeChromaHex.Text = formState.ChromaHex;
+        TxtPipeChromaTol.Text = formState.ChromaTolerance;
+        ChkPipeQuant.IsChecked = formState.EnableQuantize;
+        TxtPipeQuantLevels.Text = formState.MaxColors;
+        CmbPipeQuantMethod.SelectedIndex = formState.QuantizerIndex;
+        ChkPipeMajorityDenoise.IsChecked = formState.EnableMajorityDenoise;
+        TxtMinIsland.Text = formState.MinIsland;
+        ChkPipeOutline.IsChecked = formState.EnableOutline;
+        TxtPipeOutlineHex.Text = formState.OutlineHex;
+        ChkAlphaThreshold.IsChecked = formState.EnableAlphaThreshold;
+        TxtAlphaThreshold.Text = formState.AlphaThreshold;
     }
 
     private void RunPixelPipeline()
@@ -860,8 +791,8 @@ public partial class MainWindow : Window
 
     private void RunNearestResize()
     {
-        var tw = Math.Max(1, ParseInt(TxtNnW.Text, 64));
-        var th = Math.Max(1, ParseInt(TxtNnH.Text, 64));
+        var tw = Math.Max(1, InputParsing.ParseInt(TxtNnW.Text, 64));
+        var th = Math.Max(1, InputParsing.ParseInt(TxtNnH.Text, 64));
         RunReplaceTransform(
             src => NearestNeighborResize.Resize(src, tw, th, 0, 0),
             $"Immagine ridimensionata a {tw}×{th} px.",
@@ -870,12 +801,12 @@ public partial class MainWindow : Window
 
     private void RunEdgeBackground()
     {
-        if (!TryParseHexRgb(TxtEdgeKeyHex.Text, out var key))
+        if (!InputParsing.TryParseHexRgb(TxtEdgeKeyHex.Text, out var key))
         {
             SetStatus("Edge BFS: key hex non valida.");
             return;
         }
-        var tol = Math.Max(0, ParseInt(TxtEdgeTol.Text, 8));
+        var tol = Math.Max(0, InputParsing.ParseInt(TxtEdgeTol.Text, 8));
         RunTransform(
             img => EdgeBackgroundFill.ApplyInPlace(img, key, tol),
             "Sfondo rimosso dal bordo dell'immagine.",
@@ -1032,7 +963,7 @@ public partial class MainWindow : Window
 
     private void RunDenoise()
     {
-        var minA = Math.Max(1, ParseInt(TxtMinIsland.Text, 2));
+        var minA = Math.Max(1, InputParsing.ParseInt(TxtMinIsland.Text, 2));
         RunTransform(
             img => IslandDenoise.ApplyInPlace(img, new IslandDenoise.Options(1, minA)),
             $"Pixel isolati rimossi (soglia: {minA} px).",
@@ -1045,8 +976,8 @@ public partial class MainWindow : Window
         if (_document is null) return;
         try
         {
-            var rows = Math.Max(1, ParseInt(TxtRows.Text, 2));
-            var cols = Math.Max(1, ParseInt(TxtCols.Text, 2));
+            var rows = Math.Max(1, InputParsing.ParseInt(TxtRows.Text, 2));
+            var cols = Math.Max(1, InputParsing.ParseInt(TxtCols.Text, 2));
             PushUndo();
             _cells = GridSlicer.Slice(_document.Width, _document.Height, rows, cols).ToList();
             Editor.SliceGridRows = rows;
@@ -1224,12 +1155,12 @@ public partial class MainWindow : Window
             PushUndo();
 
             // Legge i parametri attuali dall'UI dei pannelli sottostanti
-            TryParseHexRgb(TxtEdgeKeyHex.Text, out var bgKey);
-            var bgTol = Math.Max(0, ParseInt(TxtEdgeTol.Text, 8));
-            var alphaThr = (byte)Math.Clamp(ParseInt(TxtAlphaThreshold.Text, 128), 0, 255);
-            var defOpaque = (byte)Math.Clamp(ParseInt(TxtDefringeOpaque.Text, 250), 1, 255);
-            var minIsland = Math.Max(1, ParseInt(TxtMinIsland.Text, 4));
-            var palColors = Math.Clamp(ParseInt(TxtPaletteColors.Text, 16), 2, 64);
+            InputParsing.TryParseHexRgb(TxtEdgeKeyHex.Text, out var bgKey);
+            var bgTol = Math.Max(0, InputParsing.ParseInt(TxtEdgeTol.Text, 8));
+            var alphaThr = (byte)Math.Clamp(InputParsing.ParseInt(TxtAlphaThreshold.Text, 128), 0, 255);
+            var defOpaque = (byte)Math.Clamp(InputParsing.ParseInt(TxtDefringeOpaque.Text, 250), 1, 255);
+            var minIsland = Math.Max(1, InputParsing.ParseInt(TxtMinIsland.Text, 4));
+            var palColors = Math.Clamp(InputParsing.ParseInt(TxtPaletteColors.Text, 16), 2, 64);
 
             var report = AiCleanupWizard.Apply(_document, new AiCleanupWizard.Options
             {
@@ -1265,7 +1196,7 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            var opaque = (byte)Math.Clamp(ParseInt(TxtDefringeOpaque.Text, 250), 1, 255);
+            var opaque = (byte)Math.Clamp(InputParsing.ParseInt(TxtDefringeOpaque.Text, 250), 1, 255);
             // Pre-flight: defringe agisce solo su pixel semi-trasparenti (0 < α < opaque).
             // Se non ce ne sono, è no-op → avvisa l'utente esplicitamente.
             var semiCount = ImageUtils.CountSemiTransparent(_document, opaque);
@@ -1301,7 +1232,7 @@ public partial class MainWindow : Window
 
             if (presetIdx <= 0) // Auto AI (K-Means)
             {
-                var n = Math.Clamp(ParseInt(TxtPaletteColors.Text, 16), 2, 64);
+                var n = Math.Clamp(InputParsing.ParseInt(TxtPaletteColors.Text, 16), 2, 64);
                 palette = PaletteExtractor.Extract(_document, new PaletteExtractor.Options(Colors: n));
                 if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
                 label = $"Auto AI {palette.Count}";
@@ -1338,7 +1269,7 @@ public partial class MainWindow : Window
 
     private void RunMakeTileable()
     {
-        var blend = Math.Clamp(ParseInt(TxtSeamlessBlend.Text, 4), 1, 16);
+        var blend = Math.Clamp(InputParsing.ParseInt(TxtSeamlessBlend.Text, 4), 1, 16);
         RunReplaceTransform(
             src => SeamlessEdge.MakeTileable(src, blend),
             $"Tile ripetibile generato (banda dither {blend} px). Attiva 'Anteprima tile 3×3' per verificare.",
@@ -1358,7 +1289,7 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            var m = Math.Max(2, ParseInt(TxtPadMultiple.Text, 16));
+            var m = Math.Max(2, InputParsing.ParseInt(TxtPadMultiple.Text, 16));
             PushUndo();
             var padded = AutoPad.PadToMultiple(_document, m);
             _document.Dispose();

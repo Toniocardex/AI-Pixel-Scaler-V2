@@ -7,6 +7,16 @@ namespace AiPixelScaler.Core.Tests;
 public class Modulo6_ExportTests
 {
     [Fact]
+    public void AtlasPacker_empty_input_returns_transparent_min_atlas()
+    {
+        var pack = AtlasPacker.PackRow(Array.Empty<(string id, Image<Rgba32> img)>());
+        Assert.Equal(1, pack.Atlas.Width);
+        Assert.Equal(1, pack.Atlas.Height);
+        Assert.Empty(pack.Placements);
+        Assert.Equal(0, pack.Atlas[0, 0].A);
+    }
+
+    [Fact]
     public void AtlasPacker_row_and_json()
     {
         var a = new Image<Rgba32>(2, 2, new Rgba32(255, 0, 0, 255));
