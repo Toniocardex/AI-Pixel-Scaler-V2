@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     private bool _hasUserFile;
     private readonly List<WorkspaceSnapshot> _undoStack = new();
     private readonly PipelineViewModel _pipelineVm = new();
+    private bool _isApplyingPipelinePreset;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _selectionCanvasMode;   // true = tab Selezione attivo
@@ -135,6 +136,7 @@ public partial class MainWindow : Window
         BtnPresetSafe.Click += (_, _) => ApplySafePresetToControls();
         BtnPresetAggressiveRecover.Click += (_, _) => ApplyAggressivePresetToControls();
         BtnPipeApply.Click += (_, _) => RunPixelPipeline();
+        HookPipelinePresetResetOnManualChanges();
         ChkShowAdvancedCleaning.IsCheckedChanged += (_, _) =>
         {
             var show = ChkShowAdvancedCleaning.IsChecked == true;
@@ -592,8 +594,16 @@ public partial class MainWindow : Window
 
     private void ApplySafePresetToControls()
     {
-        _pipelineVm.ApplySafePreset();
-        ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
+        _isApplyingPipelinePreset = true;
+        try
+        {
+            _pipelineVm.ApplySafePreset();
+            ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
+        }
+        finally
+        {
+            _isApplyingPipelinePreset = false;
+        }
         SetStatus("Preset Sicuro impostato.");
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -601,8 +611,16 @@ public partial class MainWindow : Window
 
     private void ApplyAggressivePresetToControls()
     {
-        _pipelineVm.ApplyAggressiveRecoverPreset();
-        ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
+        _isApplyingPipelinePreset = true;
+        try
+        {
+            _pipelineVm.ApplyAggressiveRecoverPreset();
+            ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
+        }
+        finally
+        {
+            _isApplyingPipelinePreset = false;
+        }
         SetStatus("Preset Aggressivo+Recupero impostato.");
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -730,6 +748,29 @@ public partial class MainWindow : Window
         TxtPipeOutlineHex.Text = formState.OutlineHex;
         ChkAlphaThreshold.IsChecked = formState.EnableAlphaThreshold;
         TxtAlphaThreshold.Text = formState.AlphaThreshold;
+    }
+
+    private void HookPipelinePresetResetOnManualChanges()
+    {
+        ChkPipeChroma.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        ChkPipeChromaSnapRgb.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        ChkPipeQuant.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        ChkPipeMajorityDenoise.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        ChkPipeOutline.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        ChkAlphaThreshold.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        TxtPipeChromaHex.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        TxtPipeChromaTol.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        TxtPipeQuantLevels.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        TxtMinIsland.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        TxtPipeOutlineHex.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        TxtAlphaThreshold.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        CmbPipeQuantMethod.SelectionChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+    }
+
+    private void ResetPresetOnManualPipelineEdit()
+    {
+        if (_isApplyingPipelinePreset) return;
+        _pipelineVm.ActivePreset = PipelineViewModel.PresetKind.None;
     }
 
     private void RunPixelPipeline()
