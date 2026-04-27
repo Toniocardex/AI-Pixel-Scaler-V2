@@ -1396,6 +1396,7 @@ public partial class MainWindow : Window
     private async Task ExportJsonAsync()
     {
         if (_document is null) return;
+        var items = new List<(string id, Image<Rgba32> img)>();
         try
         {
             using var layout = ExportLayoutBuilder.Build(_document, _cells, SliderPivotX.Value, SliderPivotY.Value);
@@ -1426,6 +1427,10 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             SetStatus($"Errore export JSON: {ex.Message}");
+        }
+        finally
+        {
+            foreach (var t in items) t.img.Dispose();
         }
     }
 
