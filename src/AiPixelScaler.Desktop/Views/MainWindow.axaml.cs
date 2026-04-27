@@ -14,6 +14,7 @@ using AiPixelScaler.Core.Pipeline.Slicing;
 using AiPixelScaler.Core.Pipeline.Templates;
 using AiPixelScaler.Core.Pipeline.Tiling;
 using AiPixelScaler.Desktop.Controls;
+using AiPixelScaler.Desktop.Services;
 using AiPixelScaler.Desktop.Utilities;
 using AiPixelScaler.Desktop.ViewModels;
 using Avalonia.Controls;
@@ -137,6 +138,7 @@ public partial class MainWindow : Window
         BtnPresetAggressiveRecover.Click += (_, _) => ApplyAggressivePresetToControls();
         BtnPipeApply.Click += (_, _) => RunPixelPipeline();
         HookPipelinePresetResetOnManualChanges();
+        UpdatePipelinePresetBadge();
         ChkShowAdvancedCleaning.IsCheckedChanged += (_, _) =>
         {
             var show = ChkShowAdvancedCleaning.IsChecked == true;
@@ -605,6 +607,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Sicuro impostato.");
+        UpdatePipelinePresetBadge();
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
     }
@@ -622,6 +625,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Aggressivo+Recupero impostato.");
+        UpdatePipelinePresetBadge();
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
     }
@@ -771,6 +775,17 @@ public partial class MainWindow : Window
     {
         if (_isApplyingPipelinePreset) return;
         _pipelineVm.ActivePreset = PipelineViewModel.PresetKind.None;
+        UpdatePipelinePresetBadge();
+    }
+
+    private void UpdatePipelinePresetBadge()
+    {
+        TxtPipelinePresetBadge.Text = _pipelineVm.ActivePreset switch
+        {
+            PipelineViewModel.PresetKind.Safe => "Preset attivo: Sicuro",
+            PipelineViewModel.PresetKind.AggressiveRecover => "Preset attivo: Aggressivo + Recupero",
+            _ => "Preset attivo: Personalizzato"
+        };
     }
 
     private void RunPixelPipeline()
@@ -1350,26 +1365,12 @@ public partial class MainWindow : Window
     private async Task ExportPngAsync()
     {
         if (_document is null) return;
-        var items = new List<(string id, Image<Rgba32> img)>();
         try
         {
-            var cells = _cells.Count > 0 ? _cells : new List<SpriteCell> { new("full", new AxisAlignedBox(0, 0, _document.Width, _document.Height)) };
-            foreach (var c in cells)
-            {
-                var crop = AtlasCropper.Crop(_document, c.BoundsInAtlas);
-                if (crop.Width == 0) continue;
-                items.Add((c.Id, crop));
-            }
-            if (items.Count == 0)
+            using var layout = ExportLayoutBuilder.Build(_document, _cells, SliderPivotX.Value, SliderPivotY.Value);
+            if (layout is null)
             {
                 SetStatus("Niente da esportare.");
-                return;
-            }
-            var pack = AtlasPacker.PackRow(items);
-            if (pack.Atlas.Width == 0)
-            {
-                pack.Atlas.Dispose();
-                SetStatus("Atlas vuoto.");
                 return;
             }
 
@@ -1380,25 +1381,20 @@ public partial class MainWindow : Window
                 FileTypeChoices = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
                 SuggestedFileName = "atlas.png"
             });
-            if (file is null) { pack.Atlas.Dispose(); return; }
+            if (file is null) return;
             await using (var s = await file.OpenWriteAsync())
             {
                 if (ChkExportAtlasIndexedPng.IsChecked == true)
-                    IndexedPngExporter.SaveWithWuQuantize(pack.Atlas, s);
+                    IndexedPngExporter.SaveWithWuQuantize(layout.Pack.Atlas, s);
                 else
-                    pack.Atlas.Save(s, new PngEncoder());
+                    layout.Pack.Atlas.Save(s, new PngEncoder());
             }
-            pack.Atlas.Dispose();
             var mode = ChkExportAtlasIndexedPng.IsChecked == true ? " (palette 8-bit)" : "";
-            SetStatus($"Atlas PNG salvato{mode} ({pack.Placements.Count} sprite).");
+            SetStatus($"Atlas PNG salvato{mode} ({layout.Pack.Placements.Count} sprite).");
         }
         catch (Exception ex)
         {
             SetStatus($"Errore export PNG: {ex.Message}");
-        }
-        finally
-        {
-            foreach (var t in items) t.img.Dispose();
         }
     }
 
@@ -1408,34 +1404,14 @@ public partial class MainWindow : Window
         var items = new List<(string id, Image<Rgba32> img)>();
         try
         {
-            var cells = _cells.Count > 0 ? _cells : new List<SpriteCell> { new("full", new AxisAlignedBox(0, 0, _document.Width, _document.Height)) };
-            foreach (var c in cells)
-            {
-                var crop = AtlasCropper.Crop(_document, c.BoundsInAtlas);
-                if (crop.Width == 0) continue;
-                items.Add((c.Id, crop));
-            }
-            if (items.Count == 0)
+            using var layout = ExportLayoutBuilder.Build(_document, _cells, SliderPivotX.Value, SliderPivotY.Value);
+            if (layout is null)
             {
                 SetStatus("Niente da esportare.");
                 return;
             }
 
-            var pack = AtlasPacker.PackRow(items);
-            var px = SliderPivotX.Value;
-            var py = SliderPivotY.Value;
-            var entries = pack.Placements.Select(p => new SpriteCellEntry
-            {
-                Id = p.id,
-                X = p.x,
-                Y = p.y,
-                Width = p.w,
-                Height = p.h,
-                PivotNdcX = px,
-                PivotNdcY = py
-            }).ToList();
-            pack.Atlas.Dispose();
-            var meta = new SpriteSheetMetadata { Cells = entries };
+            var meta = new SpriteSheetMetadata { Cells = layout.Entries.ToList() };
             var json = JsonExport.Serialize(meta);
 
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
@@ -1451,7 +1427,7 @@ public partial class MainWindow : Window
                 using var w = new StreamWriter(s);
                 await w.WriteAsync(json);
             }
-            SetStatus($"JSON salvato ({entries.Count} celle).");
+            SetStatus($"JSON salvato ({layout.Entries.Count} celle).");
         }
         catch (Exception ex)
         {
