@@ -1405,21 +1405,36 @@ public partial class MainWindow : Window
     private async Task ExportJsonAsync()
     {
         if (_document is null) return;
+        var items = new List<(string id, Image<Rgba32> img)>();
         try
         {
             var cells = _cells.Count > 0 ? _cells : new List<SpriteCell> { new("full", new AxisAlignedBox(0, 0, _document.Width, _document.Height)) };
+            foreach (var c in cells)
+            {
+                var crop = AtlasCropper.Crop(_document, c.BoundsInAtlas);
+                if (crop.Width == 0) continue;
+                items.Add((c.Id, crop));
+            }
+            if (items.Count == 0)
+            {
+                SetStatus("Niente da esportare.");
+                return;
+            }
+
+            var pack = AtlasPacker.PackRow(items);
             var px = SliderPivotX.Value;
             var py = SliderPivotY.Value;
-            var entries = cells.Select(c => new SpriteCellEntry
+            var entries = pack.Placements.Select(p => new SpriteCellEntry
             {
-                Id = c.Id,
-                X = c.BoundsInAtlas.MinX,
-                Y = c.BoundsInAtlas.MinY,
-                Width = c.BoundsInAtlas.Width,
-                Height = c.BoundsInAtlas.Height,
+                Id = p.id,
+                X = p.x,
+                Y = p.y,
+                Width = p.w,
+                Height = p.h,
                 PivotNdcX = px,
                 PivotNdcY = py
             }).ToList();
+            pack.Atlas.Dispose();
             var meta = new SpriteSheetMetadata { Cells = entries };
             var json = JsonExport.Serialize(meta);
 
@@ -1441,6 +1456,10 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             SetStatus($"Errore export JSON: {ex.Message}");
+        }
+        finally
+        {
+            foreach (var t in items) t.img.Dispose();
         }
     }
 
