@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AiPixelScaler.Desktop.Views.AnimationPreviewWindow"
+        Title="🎬 Anteprima animazione"
+        Width="520" Height="520"
+        Background="#0a0a10"
+        MinWidth="400" MinHeight="380">
+
+  <Window.Styles>
+    <Style Selector="Button">
+      <Setter Property="Background" Value="#1e1e2e"/>
+      <Setter Property="Foreground" Value="#bbb"/>
+      <Setter Property="Padding" Value="10,6"/>
+      <Setter Property="CornerRadius" Value="5"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2a2a40"/>
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="#141420"/>
+      <Setter Property="Foreground" Value="#bbb"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+    <Style Selector="Slider">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="Foreground" Value="#888"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="0">
+
+    <!-- ═══ CONTROLLI (in basso) ════════════════════════════════════════ -->
+    <Border DockPanel.Dock="Bottom" Background="#13131c" Padding="12,10"
+            BorderThickness="0,1,0,0" BorderBrush="#1e1e2e">
+      <StackPanel Spacing="8">
+
+        <!-- Play / Frame slider / Frame counter -->
+        <Grid ColumnDefinitions="Auto,8,*,8,Auto">
+          <Button x:Name="BtnPlay" Grid.Column="0" Content="▶  Play" Width="92"/>
+          <Slider x:Name="SliderFrame" Grid.Column="2" Minimum="0" Maximum="0" Value="0"
+                  TickFrequency="1" IsSnapToTickEnabled="True"
+                  ToolTip.Tip="Scrubber manuale: trascina per saltare a un frame specifico"/>
+          <TextBlock x:Name="TxtFrameIdx" Grid.Column="4" Text="Frame 0 / 0" Classes="lbl"
+                     FontFamily="Consolas,Monospace" Width="100" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- FPS -->
+        <Grid ColumnDefinitions="Auto,8,*,8,Auto">
+          <TextBlock Grid.Column="0" Text="FPS" Classes="lbl" Width="40"/>
+          <Slider x:Name="SliderFps" Grid.Column="2" Minimum="1" Maximum="60" Value="12"
+                  TickFrequency="1" IsSnapToTickEnabled="True"
+                  ToolTip.Tip="Velocità riproduzione (1–60 FPS). Tipico pixel art: 8–15 FPS."/>
+          <TextBlock x:Name="TxtFps" Grid.Column="4" Text="12 FPS" Classes="lbl"
+                     FontFamily="Consolas,Monospace" Width="60" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- Loop mode + Background toggle -->
+        <Grid ColumnDefinitions="Auto,8,*,12,Auto,8,Auto">
+          <TextBlock Grid.Column="0" Text="Loop" Classes="lbl" Width="40"/>
+          <ComboBox x:Name="CmbLoop" Grid.Column="2" SelectedIndex="0" HorizontalAlignment="Stretch">
+            <ComboBoxItem Content="🔁 Loop infinito"/>
+            <ComboBoxItem Content="🔄 Ping-pong (avanti↔indietro)"/>
+            <ComboBoxItem Content="⏹ Una volta sola"/>
+          </ComboBox>
+          <TextBlock Grid.Column="4" Text="Sfondo" Classes="lbl"/>
+          <ComboBox x:Name="CmbBackground" Grid.Column="6" SelectedIndex="0" Width="120">
+            <ComboBoxItem Content="Checker"/>
+            <ComboBoxItem Content="Nero"/>
+            <ComboBoxItem Content="Bianco"/>
+            <ComboBoxItem Content="Magenta"/>
+          </ComboBox>
+        </Grid>
+
+      </StackPanel>
+    </Border>
+
+    <!-- ═══ DISPLAY FRAME (centrale) ════════════════════════════════════ -->
+    <Border x:Name="DisplayBorder" Background="#1a1a22" Padding="16">
+      <Image x:Name="FrameImage" Stretch="Uniform"
+             RenderOptions.BitmapInterpolationMode="None"
+             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Border>
+
+  </DockPanel>
+</Window>

@@ -1,0 +1,39 @@
+# Build outputs
+bin/
+obj/
+dist/
+publish/
+
+# User-specific files
+*.user
+*.suo
+.vs/
+.idea/
+.cursor/
+.claude/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Node (scripts/render-icon)
+scripts/node_modules/
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
