@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using AiPixelScaler.Core.Pipeline.Imaging;
+using AiPixelScaler.Desktop.Utilities;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiPixelScaler.Desktop.ViewModels;
@@ -100,7 +101,7 @@ public sealed class PipelineViewModel
         return new PipelineFormState(
             EnableChroma: EnableChroma,
             EnableChromaSnapRgb: ChromaSnapRgb,
-            ChromaHex: ToHexRgb(ChromaHex, "#00FF00"),
+            ChromaHex: InputParsing.NormalizeHexRgb(ChromaHex, "#00FF00"),
             ChromaTolerance: Math.Max(0, ChromaTolerance).ToString(CultureInfo.InvariantCulture),
             EnableQuantize: EnableQuantize,
             MaxColors: Math.Clamp(MaxColors, 2, 256).ToString(CultureInfo.InvariantCulture),
@@ -113,7 +114,7 @@ public sealed class PipelineViewModel
             EnableMajorityDenoise: EnableMajorityDenoise,
             MinIsland: (IslandMinArea ?? 0).ToString(CultureInfo.InvariantCulture),
             EnableOutline: EnableOutline,
-            OutlineHex: ToHexRgb(OutlineHex, "#000000"),
+            OutlineHex: InputParsing.NormalizeHexRgb(OutlineHex, "#000000"),
             EnableAlphaThreshold: AlphaThreshold.HasValue,
             AlphaThreshold: (AlphaThreshold ?? (byte)128).ToString(CultureInfo.InvariantCulture));
     }
@@ -136,14 +137,14 @@ public sealed class PipelineViewModel
         }
 
         var chromaColor = new Rgba32(0, 255, 0, 255);
-        if (chromaEnabled && !TryParseHexRgb(formState.ChromaHex, out chromaColor))
+        if (chromaEnabled && !InputParsing.TryParseHexRgb(formState.ChromaHex, out chromaColor))
         {
             error = "Chroma: hex colore non valido (es. #00FF00).";
             return false;
         }
 
         var outlineColor = new Rgba32(0, 0, 0, 255);
-        if (outlineEnabled && !TryParseHexRgb(formState.OutlineHex, out outlineColor))
+        if (outlineEnabled && !InputParsing.TryParseHexRgb(formState.OutlineHex, out outlineColor))
         {
             error = "Outline: hex bordo non valido.";
             return false;
@@ -151,10 +152,10 @@ public sealed class PipelineViewModel
 
         EnableChroma = chromaEnabled;
         ChromaSnapRgb = formState.EnableChromaSnapRgb;
-        ChromaHex = ToHexRgb(formState.ChromaHex, "#00FF00");
-        ChromaTolerance = Math.Max(0, ParseInt(formState.ChromaTolerance, 0));
+        ChromaHex = InputParsing.NormalizeHexRgb(formState.ChromaHex, "#00FF00");
+        ChromaTolerance = Math.Max(0, InputParsing.ParseInt(formState.ChromaTolerance, 0));
         EnableQuantize = quantEnabled;
-        MaxColors = Math.Clamp(ParseInt(formState.MaxColors, 16), 2, 256);
+        MaxColors = Math.Clamp(InputParsing.ParseInt(formState.MaxColors, 16), 2, 256);
         Quantizer = formState.QuantizerIndex switch
         {
             1 => PixelArtProcessor.QuantizerKind.Wu,
@@ -163,38 +164,14 @@ public sealed class PipelineViewModel
         };
         EnableMajorityDenoise = majorityEnabled;
         var defaultMinIsland = ActivePreset == PresetKind.AggressiveRecover ? 3 : 2;
-        IslandMinArea = majorityEnabled ? Math.Max(1, ParseInt(formState.MinIsland, defaultMinIsland)) : null;
+        IslandMinArea = majorityEnabled ? Math.Max(1, InputParsing.ParseInt(formState.MinIsland, defaultMinIsland)) : null;
         EnableOutline = outlineEnabled;
-        OutlineHex = ToHexRgb(formState.OutlineHex, "#000000");
-        AlphaThreshold = alphaEnabled ? (byte)Math.Clamp(ParseInt(formState.AlphaThreshold, 128), 0, 255) : null;
+        OutlineHex = InputParsing.NormalizeHexRgb(formState.OutlineHex, "#000000");
+        AlphaThreshold = alphaEnabled ? (byte)Math.Clamp(InputParsing.ParseInt(formState.AlphaThreshold, 128), 0, 255) : null;
         EnableRecoverFill = ActivePreset == PresetKind.AggressiveRecover;
 
         options = BuildOptions(chromaColor, outlineColor, includeOutline);
         return true;
     }
 
-    private static int ParseInt(string? s, int fallback)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return fallback;
-        return int.TryParse(s.Trim(), out var n) ? n : fallback;
-    }
-
-    private static bool TryParseHexRgb(string? s, out Rgba32 color)
-    {
-        color = default;
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        var t = s.Trim();
-        if (t.StartsWith("#", StringComparison.Ordinal)) t = t[1..];
-        if (t.Length != 6) return false;
-        if (!uint.TryParse(t, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var v)) return false;
-        color = new Rgba32((byte)(v >> 16), (byte)(v >> 8), (byte)v, 255);
-        return true;
-    }
-
-    private static string ToHexRgb(string? value, string fallback)
-    {
-        if (TryParseHexRgb(value, out var color))
-            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        return fallback;
-    }
 }
