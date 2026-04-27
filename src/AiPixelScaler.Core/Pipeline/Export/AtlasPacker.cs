@@ -16,7 +16,9 @@ public static class AtlasPacker
     public static PackedLayout PackRow(IReadOnlyList<(string id, Image<Rgba32> img)> items)
     {
         if (items.Count == 0)
-            return new PackedLayout { Atlas = new Image<Rgba32>(0, 0), Placements = Array.Empty<(string, int, int, int, int)>() };
+            // ImageSharp non supporta immagini 0x0: per un atlas "vuoto" usiamo un
+            // canvas trasparente minimo 1x1 e nessun placement.
+            return new PackedLayout { Atlas = new Image<Rgba32>(1, 1, new Rgba32(0, 0, 0, 0)), Placements = Array.Empty<(string, int, int, int, int)>() };
 
         var totalW = 0;
         var maxH = 0;
