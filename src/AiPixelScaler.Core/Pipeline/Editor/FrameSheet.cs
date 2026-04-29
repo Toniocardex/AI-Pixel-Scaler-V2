@@ -42,8 +42,10 @@ public sealed class FrameSheet : IDisposable
         /// <summary>
         /// Centra l'AABB opaca nel rettangolo cella di destinazione.
         /// Composition: <c>atlasPos = Cell.Min + Offset + (contentPos − Padding)</c>.
+        /// Opzionale: dopo il centro, piccolo aggiustamento così l’angolo alto-sinistra dell’opaco nell’atlas
+        /// sia su multipli di <paramref name="opaqueCornerSnapMultiple"/> (default 8).
         /// </summary>
-        public bool AutoCenter(byte alphaThreshold = 1)
+        public bool AutoCenter(byte alphaThreshold = 1, int opaqueCornerSnapMultiple = 8)
         {
             var aabb = OpaqueBoundsInContent(alphaThreshold);
             if (aabb is null) return false;
@@ -54,9 +56,23 @@ public sealed class FrameSheet : IDisposable
             var contentCy = bb.MinY + bb.Height / 2;
 
             // Offset = cellHalf + Padding − contentCenter
-            Offset = new Point(
-                Cell.Width  / 2 - contentCx + Padding,
-                Cell.Height / 2 - contentCy + Padding);
+            var ox = Cell.Width  / 2 - contentCx + Padding;
+            var oy = Cell.Height / 2 - contentCy + Padding;
+
+            var g = opaqueCornerSnapMultiple;
+            if (g >= 2)
+            {
+                var idealPx = Cell.MinX + ox - Padding;
+                var idealPy = Cell.MinY + oy - Padding;
+                var snappedPx = CellCentering.SnapPasteDestForOpaqueTopLeftModulo(
+                    idealPx, bb.MinX, bb.MaxX, Cell.MinX, Cell.MaxX, g);
+                var snappedPy = CellCentering.SnapPasteDestForOpaqueTopLeftModulo(
+                    idealPy, bb.MinY, bb.MaxY, Cell.MinY, Cell.MaxY, g);
+                ox = snappedPx - Cell.MinX + Padding;
+                oy = snappedPy - Cell.MinY + Padding;
+            }
+
+            Offset = new Point(ox, oy);
             return true;
         }
 
@@ -139,9 +155,11 @@ public sealed class FrameSheet : IDisposable
         return dst;
     }
 
-    public void AutoCenterAll(byte alphaThreshold = 1)
+    /// <summary>Centra tutti i frame nella propria cella; pass-through di <paramref name="opaqueCornerSnapMultiple"/> come in <see cref="Frame.AutoCenter"/>.</summary>
+    /// <param name="opaqueCornerSnapMultiple">≥2 attiva lo snap dell&apos;angolo alto-sinistra dell&apos;opaco alla griglia; &lt;2 solo centro geometrico.</param>
+    public void AutoCenterAll(byte alphaThreshold = 1, int opaqueCornerSnapMultiple = 8)
     {
-        foreach (var f in _frames) f.AutoCenter(alphaThreshold);
+        foreach (var f in _frames) f.AutoCenter(alphaThreshold, opaqueCornerSnapMultiple);
     }
 
     public void AlignAllToBaseline(byte alphaThreshold = 1)

@@ -12,35 +12,6 @@
         Background="#0d0d10"
         MinWidth="900" MinHeight="600">
 
-  <!-- ═══ ICON GEOMETRIES (Lucide v0.292, MIT) ═══════════════════════ -->
-  <!-- Sorgente: https://lucide.dev — viewBox 0 0 24 24, line-art -->
-  <Window.Resources>
-    <StreamGeometry x:Key="IconFolderOpen">M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6.05A2 2 0 0 1 18.45 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2</StreamGeometry>
-    <StreamGeometry x:Key="IconRevert">M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5</StreamGeometry>
-    <StreamGeometry x:Key="IconUndo">M9 14L4 9l5-5 M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11</StreamGeometry>
-    <StreamGeometry x:Key="IconGrid">M5 3H19A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3Z M3 9h18 M3 15h18 M9 3v18 M15 3v18</StreamGeometry>
-    <StreamGeometry x:Key="IconMagnet">M6 15L2 11l6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15 M5 8l4 4 M12 15l4 4</StreamGeometry>
-    <StreamGeometry x:Key="IconEraser">M7 21l-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21 M22 21H7 M5 11l9 9</StreamGeometry>
-    <StreamGeometry x:Key="IconPipette">M2 22l1-1h3l9-9 M3 21v-3l9-9 M15 6l3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z</StreamGeometry>
-    <StreamGeometry x:Key="IconPlay">M6 3L20 12L6 21Z</StreamGeometry>
-    <StreamGeometry x:Key="IconFilm">M5 3H19A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3Z M7 3v18 M3 7.5h4 M3 12h18 M3 16.5h4 M17 3v18 M17 7.5h4 M17 16.5h4</StreamGeometry>
-    <StreamGeometry x:Key="IconChevronLeft">M15 18l-6-6 6-6</StreamGeometry>
-    <StreamGeometry x:Key="IconChevronRight">M9 18l6-6-6-6</StreamGeometry>
-    <StreamGeometry x:Key="IconWand">M12 3l1.5 3L17 7.5l-3.5 1.5L12 12l-1.5-3L7 7.5 10.5 6z M5 18l2-2 M3 21l2-2 M7 20l2-2</StreamGeometry>
-    <StreamGeometry x:Key="IconTarget">M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 10.5a1.5 1.5 0 1 0 1.5 1.5</StreamGeometry>
-    <StreamGeometry x:Key="IconCopy">M9 9h11v11H9z M4 4h11v11H4z</StreamGeometry>
-    <StreamGeometry x:Key="IconSave">M4 4h14l2 2v14H4z M8 4v6h8V4 M9 20v-5h6v5</StreamGeometry>
-    <StreamGeometry x:Key="IconCheck">M5 13l4 4L19 7</StreamGeometry>
-    <StreamGeometry x:Key="IconX">M6 6l12 12 M18 6L6 18</StreamGeometry>
-    <StreamGeometry x:Key="IconCenter">M12 4v16 M4 12h16 M8 8h8v8H8z</StreamGeometry>
-    <StreamGeometry x:Key="IconArrowDown">M12 4v14 M7 13l5 5 5-5</StreamGeometry>
-    <StreamGeometry x:Key="IconScissors">M4 6l6 6 M10 6L4 12 M14 6l6 12 M14 18l6-12 M6.5 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 1 0 0-3 M6.5 11.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 1 0 0-3</StreamGeometry>
-    <StreamGeometry x:Key="IconImage">M4 5h16v14H4z M7 14l3-3 3 2 4-4 2 2</StreamGeometry>
-    <StreamGeometry x:Key="IconArchive">M3 5h18v4H3z M5 9v10h14V9 M10 13h4</StreamGeometry>
-    <StreamGeometry x:Key="IconMap">M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14</StreamGeometry>
-    <StreamGeometry x:Key="IconSelectAll">M4 4h6 M4 4v6 M20 4h-6 M20 4v6 M4 20h6 M4 20v-6 M20 20h-6 M20 20v-6 M8 8h8v8H8z</StreamGeometry>
-  </Window.Resources>
-
   <Window.Styles>
 
     <!-- ═══ TOOLBAR — Lucide-styled tools ════════════════════════════ -->
@@ -65,168 +36,6 @@
       <Setter Property="Fill" Value="Transparent"/>
       <Setter Property="Stretch" Value="Uniform"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-
-    <!-- Bottone toolbar non-toggle (Apri, Ripristina, Annulla, Sandbox) -->
-    <Style Selector="Button.tool">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#cdcdd9"/>
-      <Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="Padding" Value="9,6"/>
-      <Setter Property="CornerRadius" Value="5"/>
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <Style Selector="Button.tool:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#1e1e2e"/>
-    </Style>
-    <Style Selector="Button.tool:pressed /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2a40"/>
-    </Style>
-    <Style Selector="Button.tool:disabled Path.tool-icon">
-      <Setter Property="Stroke" Value="#4a4a55"/>
-    </Style>
-    <Style Selector="Button.tool:disabled">
-      <Setter Property="Foreground" Value="#4a4a55"/>
-    </Style>
-
-    <!-- ToggleButton toolbar (Griglia, Magnetica, Gomma, Contagocce) -->
-    <Style Selector="ToggleButton.tool-toggle">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#aab"/>
-      <Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="Padding" Value="9,6"/>
-      <Setter Property="CornerRadius" Value="5"/>
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <Style Selector="ToggleButton.tool-toggle:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#1e1e2e"/>
-      <Setter Property="BorderBrush" Value="Transparent"/>
-    </Style>
-    <Style Selector="ToggleButton.tool-toggle:checked /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a3a5e"/>
-      <Setter Property="BorderBrush" Value="Transparent"/>
-    </Style>
-    <Style Selector="ToggleButton.tool-toggle:checked:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#324a78"/>
-      <Setter Property="BorderBrush" Value="Transparent"/>
-    </Style>
-    <Style Selector="ToggleButton.tool-toggle:checked">
-      <Setter Property="Foreground" Value="#cfddff"/>
-    </Style>
-    <Style Selector="ToggleButton.tool-toggle:checked Path.tool-icon">
-      <Setter Property="Stroke" Value="#7a96ff"/>
-    </Style>
-
-    <!-- Separatore verticale -->
-    <Style Selector="Border.vsep">
-      <Setter Property="Width" Value="1"/>
-      <Setter Property="Background" Value="#252535"/>
-      <Setter Property="Margin" Value="4,4"/>
-    </Style>
-
-    <!-- NumericUpDown compatto da toolbar -->
-    <Style Selector="NumericUpDown.toolbar">
-      <Setter Property="Background" Value="#0e0e16"/>
-      <Setter Property="Foreground" Value="#cdcdd9"/>
-      <Setter Property="BorderBrush" Value="#252535"/>
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
-      <Setter Property="ShowButtonSpinner" Value="False"/>
-      <Setter Property="MinWidth" Value="44"/>
-    </Style>
-
-    <!-- Sezione header -->
-    <Style Selector="TextBlock.sectionTitle">
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="Foreground" Value="#c8c8d8"/>
-    </Style>
-
-    <!-- Etichetta piccola grigia sopra i campi -->
-    <Style Selector="TextBlock.fieldLabel">
-      <Setter Property="Foreground" Value="#8e8ea8"/>
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Margin" Value="0,10,0,4"/>
-    </Style>
-
-    <!-- Nota/hint descrittiva -->
-    <Style Selector="TextBlock.hint">
-      <Setter Property="Foreground" Value="#6c6c84"/>
-      <Setter Property="FontSize" Value="10"/>
-      <Setter Property="TextWrapping" Value="Wrap"/>
-    </Style>
-
-    <!-- Bottone primario viola -->
-    <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#5c3d9e"/>
-      <Setter Property="Foreground" Value="#f0eeff"/>
-      <Setter Property="Padding" Value="10,7"/>
-      <Setter Property="CornerRadius" Value="5"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="HorizontalContentAlignment" Value="Center"/>
-    </Style>
-    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#7050c0"/>
-    </Style>
-    <Style Selector="Button.primary:pressed /template/ ContentPresenter">
-      <Setter Property="Background" Value="#4a3080"/>
-    </Style>
-
-    <!-- Bottone secondario scuro -->
-    <Style Selector="Button.secondary">
-      <Setter Property="Background" Value="#1e1e2e"/>
-      <Setter Property="Foreground" Value="#c7c7d6"/>
-      <Setter Property="Padding" Value="8,6"/>
-      <Setter Property="CornerRadius" Value="5"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="HorizontalContentAlignment" Value="Center"/>
-    </Style>
-    <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2a40"/>
-    </Style>
-
-    <!-- Bottone icona trasparente (contagocce) -->
-    <Style Selector="Button.icon">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#5a88ff"/>
-      <Setter Property="Padding" Value="5,4"/>
-      <Setter Property="CornerRadius" Value="4"/>
-      <Setter Property="FontSize" Value="13"/>
-    </Style>
-    <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#1a2040"/>
-    </Style>
-
-    <!-- Separatore orizzontale -->
-    <Style Selector="Separator.h">
-      <Setter Property="Background" Value="#1e1e28"/>
-      <Setter Property="Height" Value="1"/>
-      <Setter Property="Margin" Value="0,10,0,6"/>
-    </Style>
-
-    <!-- TextBox standard -->
-    <Style Selector="TextBox">
-      <Setter Property="Background" Value="#141420"/>
-      <Setter Property="Foreground" Value="#ccc"/>
-      <Setter Property="BorderBrush" Value="#2a2a3e"/>
-      <Setter Property="Padding" Value="6,4"/>
-      <Setter Property="CornerRadius" Value="4"/>
-      <Setter Property="FontSize" Value="12"/>
-    </Style>
-
-    <!-- CheckBox -->
-    <Style Selector="CheckBox">
-      <Setter Property="Foreground" Value="#aaa"/>
-      <Setter Property="FontSize" Value="11"/>
-    </Style>
-
-    <!-- Expander — header area -->
-    <Style Selector="Expander">
-      <Setter Property="Background" Value="#12121a"/>
-      <Setter Property="Padding" Value="10,8"/>
     </Style>
 
     <Style Selector="TabControl.sidebarTabs">
@@ -274,8 +83,8 @@
         <MenuItem x:Name="MenuUndo" Header="Annulla" InputGesture="Ctrl+Z"/>
       </MenuItem>
       <MenuItem Header="_Strumenti">
-        <MenuItem x:Name="MenuAnimPreview" Header="🎬 Anteprima animazione…" InputGesture="Ctrl+Shift+A"/>
-        <MenuItem x:Name="MenuSandbox"     Header="🎮 Sandbox fisica in-game…"/>
+        <MenuItem x:Name="MenuAnimPreview" Header="Anteprima animazione…" InputGesture="Ctrl+Shift+A"/>
+        <MenuItem x:Name="MenuSandbox"     Header="Sandbox fisica in-game…"/>
       </MenuItem>
     </Menu>
 
@@ -337,8 +146,15 @@
         <Button x:Name="BtnCenterCanvas" Classes="tool"
                 ToolTip.Tip="Recentra l'immagine nella viewport mantenendo lo zoom corrente">
           <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="⊹"/>
+            <Path Data="{StaticResource IconCenter}" Classes="tool-icon"/>
             <TextBlock Text="Centra canvas" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool"
+                ToolTip.Tip="Rilevamento automatico sprite (CCL): analizza l'immagine e aggiorna celle/lista overlay. Disponibile in ogni tab.">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Path Data="{StaticResource IconWand}" Classes="tool-icon"/>
+            <TextBlock Text="Rileva sprite" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
 
@@ -365,36 +181,19 @@
             <TextBlock Text="Contagocce" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
+        <Menu Background="Transparent">
+          <MenuItem Header="Selezione"
+                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva, ritaglio a selezione o rimozione area selezionata.">
+            <MenuItem x:Name="MiToolbarSelectionMode"
+                      Header="Selezione (ROI non distruttiva)"/>
+            <MenuItem x:Name="MiToolbarCropToSelection"
+                      Header="Ritaglia a selezione"/>
+            <MenuItem x:Name="MiToolbarRemoveSelectedArea"
+                      Header="Rimuovi area selezionata"/>
+          </MenuItem>
+        </Menu>
 
         <Border Classes="vsep"/>
-
-        <ToggleButton x:Name="ChkShowAdvancedToolbar" Classes="tool-toggle"
-                      ToolTip.Tip="Mostra strumenti avanzati in toolbar (animazione/sandbox)">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="⋯"/>
-            <TextBlock Text="Avanzati" VerticalAlignment="Center"/>
-          </StackPanel>
-        </ToggleButton>
-
-        <StackPanel x:Name="AdvancedToolbarGroup" Orientation="Horizontal" Spacing="2" IsVisible="False">
-          <!-- Anteprima animazione -->
-          <Button x:Name="BtnAnimPreview" Classes="tool"
-                  ToolTip.Tip="Anteprima animazione (cicla i frame del documento corrente)">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Path Data="{StaticResource IconFilm}" Classes="tool-icon"/>
-              <TextBlock Text="Animazione" VerticalAlignment="Center"/>
-            </StackPanel>
-          </Button>
-
-          <!-- Sandbox (test fisica) -->
-          <Button x:Name="BtnSandbox" Classes="tool"
-                  ToolTip.Tip="Sandbox in-game con fisica (movimento, gravità)">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Path Data="{StaticResource IconPlay}" Classes="tool-icon"/>
-              <TextBlock Text="Sandbox" VerticalAlignment="Center"/>
-            </StackPanel>
-          </Button>
-        </StackPanel>
       </StackPanel>
     </Border>
 
@@ -480,26 +279,124 @@
               <ComboBoxItem Content="Contorno"/>
             </ComboBox>
 
+            <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="fieldLabel" Margin="0,0,0,0" Text="Laboratorio"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Strumenti secondari di verifica: non influiscono sul flusso principale di slicing/allineamento."/>
+                <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
+                  <Button x:Name="BtnPanelAnimPreview" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                          ToolTip.Tip="Anteprima animazione (cicla i frame del documento corrente)">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                      <Path Data="{StaticResource IconFilm}" Classes="action-icon"/>
+                      <TextBlock Text="Animazione" VerticalAlignment="Center"/>
+                    </StackPanel>
+                  </Button>
+                  <Button x:Name="BtnPanelSandbox" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                          ToolTip.Tip="Sandbox in-game con fisica (movimento, gravità)">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                      <Path Data="{StaticResource IconPlay}" Classes="action-icon"/>
+                      <TextBlock Text="Sandbox" VerticalAlignment="Center"/>
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </StackPanel>
+            </Border>
+
             <TextBlock Text="Flusso" Classes="fieldLabel" Margin="0,2,0,0"/>
             <TextBlock Foreground="#5a5a6e" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,2"
                        Text="Usa le schede come nella vecchia app: Immagine → Sprite → export."/>
             <CheckBox x:Name="ChkShowAdvancedTabs"
                       Content="Mostra tab avanzate"
                       Margin="0,0,0,4"/>
+            <Expander x:Name="AdvancedToolsDrawer"
+                      Header="Altre schede"
+                      IsExpanded="False"
+                      Margin="0,0,0,6">
+              <StackPanel Spacing="4" Margin="0,4,0,0">
+                <TextBlock Classes="hint" Text="Salta alle schede avanzate (Stilizza, Template IA, …) e ad Allinea."/>
+                <Grid ColumnDefinitions="*,6,*" Margin="0,2,0,0">
+                  <Button x:Name="BtnGoAllinea" Grid.Column="0" Content="Apri Allinea" Classes="secondary"/>
+                  <Button x:Name="BtnGoStilizza" Grid.Column="2" Content="Apri Stilizza" Classes="secondary"/>
+                </Grid>
+                <Button x:Name="BtnGoTemplate" Content="Apri Template IA" Classes="secondary"
+                        HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Expander>
 
             <TabControl x:Name="MainTabs" Classes="sidebarTabs" SelectedIndex="0">
 
-            <TabItem Header=" Workflow ">
+            <TabItem Header=" Workspace ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
+                <TextBlock Classes="fieldLabel" Text="Flusso rapido (consigliato)"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Apri → pulisci → dividi → esporta. Tutto da una sola schermata."/>
+                <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,6,0,0">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="hint" Text="Stato dipendenze"/>
+                    <Border x:Name="WorkspaceDependencyBadge"
+                            Background="#3f1f24"
+                            BorderBrush="#6a2f39"
+                            BorderThickness="1"
+                            CornerRadius="999"
+                            Padding="8,2"
+                            HorizontalAlignment="Left">
+                      <TextBlock x:Name="TxtWorkspaceDependencyBadge"
+                                 FontSize="10"
+                                 FontWeight="SemiBold"
+                                 Foreground="#ffd9df"
+                                 Text="BLOCCATO"/>
+                    </Border>
+                    <TextBlock x:Name="TxtWorkspaceDependencyStatus"
+                               FontSize="11"
+                               Foreground="#b8b8d0"
+                               TextWrapping="Wrap"
+                               Text="Verifica stato workflow..."/>
+                    <Button x:Name="BtnWorkspaceGuideAction"
+                            Classes="secondary"
+                            HorizontalAlignment="Stretch"
+                            Content="Azione consigliata"/>
+                  </StackPanel>
+                </Border>
+
+                <Button x:Name="BtnWorkspaceOpen" Classes="primary" HorizontalAlignment="Stretch" Margin="0,6,0,0">
+                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                    <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
+                    <TextBlock Text="Apri immagine" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+
+                <Separator Classes="h"/>
+
+                <TextBlock Classes="fieldLabel" Text="Export rapido"/>
+                <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
+                  <Button x:Name="BtnWorkspaceExportPng" Grid.Column="0" Classes="primary">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                      <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
+                      <TextBlock Text="Esporta PNG"/>
+                    </StackPanel>
+                  </Button>
+                  <Button x:Name="BtnWorkspaceExportJson" Grid.Column="2" Classes="secondary">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                      <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+                      <TextBlock Text="Esporta JSON"/>
+                    </StackPanel>
+                  </Button>
+                </Grid>
+
+                <Separator Classes="h"/>
+
+                <Expander Header="Pipeline avanzato"
+                          IsExpanded="False"
+                          Margin="0,4,0,0">
+                  <StackPanel Spacing="0" Margin="0,8,0,0">
 
                 <TextBlock Classes="fieldLabel" Text="Workflow base (preview + count + palette + process)"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
                            Text="Preview: canvas a sinistra. Qui vedi conteggio colori e palette corrente, poi esegui il processo base."/>
-                <CheckBox x:Name="ChkShowAdvancedCleaning"
-                          Content="Mostra strumenti avanzati (expert mode)"
-                          Margin="0,4,0,0"
-                          ToolTip.Tip="Quando disattivato vedi solo il workflow rapido consigliato."/>
+                <TextBlock Classes="hint" Margin="0,4,0,0"
+                           Text="Preset, wizard IA e parametri della pipeline sono raggruppati qui sotto."/>
                 <Grid ColumnDefinitions="*,8,*" Margin="0,4,0,0">
                   <Border Grid.Column="0" Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8">
                     <StackPanel Spacing="2">
@@ -551,7 +448,6 @@
 
                 <Separator Classes="h"/>
 
-                <StackPanel x:Name="AdvancedCleaningPanel" IsVisible="False">
                 <!-- ── AI WIZARD ONE-CLICK (in cima per workflow rapido) ──── -->
                 <TextBlock Classes="fieldLabel" Text="Pulizia automatica completa"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
@@ -592,7 +488,7 @@
 
                 <!-- Rimuovi colore sfondo (chroma key) -->
                 <TextBlock Classes="fieldLabel" Text="Rimuovi colore sfondo (chroma key)"/>
-                <CheckBox x:Name="ChkPipeChroma" Content="Attiva" IsChecked="True"/>
+                <CheckBox x:Name="ChkPipeChroma" Content="Attiva" IsChecked="False"/>
                 <Grid ColumnDefinitions="*,6,70,6,Auto" Margin="0,4,0,0">
                   <TextBox x:Name="TxtPipeChromaHex" Grid.Column="0" Text="#00FF00"
                            PlaceholderText="Colore hex (es. #00FF00)"
@@ -675,6 +571,43 @@
 
                 <Separator Classes="h"/>
 
+                <CheckBox x:Name="ChkPipeAdvancedCleaner" Content="Advanced pixel cleaner (bilateral + LAB + pixel-grid)"
+                          ToolTip.Tip="Pulizia cromatica avanzata: bilateral edge-preserving, quantizzazione percettiva e griglia pixel forzata."/>
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Bilateral sigma spatial:" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipeBilateralSpatial" Grid.Column="2" Text="1.25"/>
+                </Grid>
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Bilateral sigma range:" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipeBilateralRange" Grid.Column="2" Text="0.085"/>
+                </Grid>
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Passaggi bilateral (1-3):" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipeBilateralPasses" Grid.Column="2" Text="1"/>
+                </Grid>
+                <CheckBox x:Name="ChkPipePixelGridEnforce" Content="Forza griglia pixel (downsample + upscale nearest)"/>
+                <Grid ColumnDefinitions="*,6,80,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Risoluzione nativa:" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipeNativeW" Grid.Column="2" Text="64"/>
+                  <TextBox x:Name="TxtPipeNativeH" Grid.Column="4" Text="64"/>
+                </Grid>
+                <CheckBox x:Name="ChkPipePaletteSnap" Content="Palette snapping condizionato (palette_id)"/>
+                <Grid ColumnDefinitions="Auto,8,*" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="palette_id:" Foreground="#666" FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipePaletteId" Grid.Column="2" Text=""/>
+                </Grid>
+                <Grid ColumnDefinitions="Auto,8,*" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Metadata JSON:" Foreground="#666" FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipePaletteMetadataPath" Grid.Column="2" Text=""
+                           ToolTip.Tip="Percorso opzionale a JSON con palette_id (usato se palette_id è vuoto)."/>
+                </Grid>
+
+                <Separator Classes="h"/>
+
                 <!-- Binarizza alpha (Hard Alpha Thresholding) -->
                 <CheckBox x:Name="ChkAlphaThreshold" Content="Rimuovi aloni semi-trasparenti (binarizza alpha)"/>
                 <TextBlock Classes="hint" Margin="0,2,0,0"
@@ -705,7 +638,9 @@
                 </Grid>
                 <Button x:Name="BtnNnResize" Content="Ridimensiona immagine"
                         Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
-                </StackPanel>
+
+                  </StackPanel>
+                </Expander>
 
               </StackPanel>
               </ScrollViewer>
@@ -715,15 +650,8 @@
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
 
-                <!-- Auto CCL — bottone primario, primo -->
-                <Button x:Name="BtnCcl" Classes="primary" HorizontalAlignment="Stretch">
-                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                    <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
-                    <TextBlock Text="Rileva sprite" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-                <TextBlock Classes="hint" Margin="0,4,0,0"
-                           Text="Analizza l'immagine e separa ogni sprite in modo automatico. Usa questa opzione come prima scelta."/>
+                <TextBlock Classes="hint" Margin="0,0,0,4" TextWrapping="Wrap"
+                           Text="Per il rilevamento automatico usa «Rileva sprite» nella toolbar: aggiorna subito celle e overlay senza cambiare scheda."/>
 
                 <Separator Classes="h"/>
 
@@ -865,10 +793,13 @@
                 </Grid>
 
                 <TextBlock Classes="fieldLabel" Text="Azioni rapide"/>
+                <CheckBox x:Name="ChkAlignCenterSnapGrid" Margin="0,4,0,2" IsChecked="True"
+                          Content="Aggancia angolo opaco a griglia 8 px dopo il centro"
+                          ToolTip.Tip="Attivo (consigliato con griglia toolbar multipla di 8): dopo il centro geometrico dell'AABB opaca nella cella, il contenuto può spostarsi leggermente così l'angolo in alto a sinistra dell'area opaca nell'atlas cade su multipli di 8 px. Disattiva per centratura pura senza questo rifinitura. Vale anche per «Centra nelle celle» negli strumenti avanzati."/>
                 <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
                   <Button x:Name="BtnAlignAllCenter" Grid.Column="0"
                           Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Centra l'AABB opaca di ogni frame nel rettangolo cella">
+                          ToolTip.Tip="Centra l'AABB opaca di ogni frame nel rettangolo della cella. Se «Aggancia angolo opaco…» è attivo sopra, può applicarsi anche il rifinitura su griglia 8 px (vedi checkbox).">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
                       <TextBlock Text="Centra tutti" VerticalAlignment="Center"/>
@@ -899,7 +830,8 @@
                 <TextBlock x:Name="TxtAlignSelected" Classes="hint" Text="Nessuno selezionato"
                            Margin="0,2,0,0"/>
                 <Grid ColumnDefinitions="*,6,*" Margin="0,6,0,0">
-                  <Button x:Name="BtnAlignSelCenter" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch">
+                  <Button x:Name="BtnAlignSelCenter" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                          ToolTip.Tip="Come «Centra tutti», solo sul frame selezionato. Rispetta il checkbox «Aggancia angolo opaco…» nella sezione Azioni rapide.">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
                       <TextBlock Text="Centra selezionato" VerticalAlignment="Center"/>
@@ -912,6 +844,14 @@
                     </StackPanel>
                   </Button>
                 </Grid>
+                <Button x:Name="BtnAlignSelLayoutCenter"
+                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                        ToolTip.Tip="Porta il frame selezionato al centro del layout globale (atlas), ignorando il vincolo di cella.">
+                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                    <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
+                    <TextBlock Text="Centra nel layout" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
                 <Button x:Name="BtnAlignSelReset" Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0">
                   <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                     <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
@@ -1015,10 +955,18 @@
 
                     <Button x:Name="BtnCenterInCells"
                             Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                            ToolTip.Tip="Centra il contenuto opaco di ogni frame al centro della propria cella. Utile dopo un'espansione POT (Ctrl+Z per annullare).">
+                            ToolTip.Tip="Centra il contenuto opaco in ogni cella dell’atlas corrente (senza workbench). La rifinitura su griglia 8 px segue l’opzione «Aggancia angolo opaco a griglia 8 px dopo il centro» nella sezione Azioni rapide sopra (tab Allinea); se disattivata, solo centro geometrico.">
                       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                         <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
                         <TextBlock Text="Centra nelle celle" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnSnapCellsToGrid"
+                            Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                            ToolTip.Tip="Sposta ogni sprite così che l’angolo in alto a sinistra della cella sia su multipli del passo «Griglia» in toolbar (origine 0,0 atlas). Dimensioni cella invariate. Se due celle finiscono sovrapposte, vince il disegno successivo nell’ordine della lista.">
+                      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                        <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
+                        <TextBlock Text="Aggancia alla griglia (toolbar)" VerticalAlignment="Center"/>
                       </StackPanel>
                     </Button>
 
@@ -1176,6 +1124,18 @@
                 </Grid>
                 <CheckBox x:Name="ChkExportAtlasIndexedPng" Content="Atlas PNG a palette 8-bit (file più compatto)"
                           ToolTip.Tip="Salva come PNG indicizzato (PLTE); quantizzazione Wu automatica se non hai già ridotto la palette."/>
+                <CheckBox x:Name="ChkExportKeepCellSize" Content="Mantieni dimensione cella (atlas non compatto)"
+                          ToolTip.Tip="Ogni frame occupa una cella uniforme W×H (presa dalle celle correnti) invece del pack compatto tight. Utile per animazioni con frame fissi."/>
+                <CheckBox x:Name="ChkExportCustomCellSize" Content="Uniforme personalizzato (W×H)"
+                          ToolTip.Tip="Usa una dimensione cella fissa scelta manualmente per tutti i frame. Se troppo piccola rispetto ai frame reali, l'export viene bloccato."/>
+                <Grid ColumnDefinitions="*,8,80,8,80" Margin="0,2,0,0">
+                  <TextBlock Grid.Column="0" Text="Cella custom (W×H):" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtExportCellW" Grid.Column="2" Text="208" IsEnabled="False"/>
+                  <TextBox x:Name="TxtExportCellH" Grid.Column="4" Text="256" IsEnabled="False"/>
+                </Grid>
+                <TextBlock x:Name="TxtExportCellMinRequired" Classes="hint" Margin="0,2,0,0"
+                           Text="Min richiesto: -"/>
                 <Grid ColumnDefinitions="*,8,*">
                   <Button x:Name="BtnExportFramesZip" Grid.Column="0" HorizontalAlignment="Stretch"
                           Classes="secondary"
@@ -1443,6 +1403,47 @@
                 <TextBlock Classes="hint" Margin="0,4,0,0" TextWrapping="Wrap"
                            Text="Soglia di aggancio celle: entro 18 px schermo il cursore si aggancia al bordo cella; oltre, si usa la griglia regolare."/>
 
+              </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header=" Guida ">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="0" Margin="2,4,2,6">
+                <TextBlock Classes="fieldLabel" Text="Mini guida allineamento animazioni"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Regole rapide per scegliere subito il comando giusto in base al tipo di animazione."/>
+
+                <Separator Classes="h"/>
+                <TextBlock Classes="fieldLabel" Text="Scelta veloce per tipo animazione"/>
+                <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Idle: usa Piedi (tutti) per tenere stabile il contatto a terra."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Run/Walk: prima Piedi (tutti), poi piccoli ritocchi solo sui frame che saltano."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Attack/Cast: parti con Centra tutti, poi correggi i keyframe forti con Centra selezionato."/>
+                  </StackPanel>
+                </Border>
+
+                <Separator Classes="h"/>
+                <TextBlock Classes="fieldLabel" Text="Quando usare Centra nel layout"/>
+                <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Debug rapido di un frame singolo fuori asse."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Confronto silhouette/proporzioni al centro dell'atlas."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Non usarlo come default per tutta l'animazione: per coerenza gameplay preferisci la baseline."/>
+                  </StackPanel>
+                </Border>
+
+                <Separator Classes="h"/>
+                <TextBlock Classes="fieldLabel" Text="Checklist prima export"/>
+                <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="1) Rileva sprite (toolbar) oppure Dividi a griglia."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="2) Avvia allineamento frame."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="3) Applica allineamento."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="4) Controlla preview animazione e solo dopo esporta PNG/JSON."/>
+                  </StackPanel>
+                </Border>
               </StackPanel>
               </ScrollViewer>
             </TabItem>

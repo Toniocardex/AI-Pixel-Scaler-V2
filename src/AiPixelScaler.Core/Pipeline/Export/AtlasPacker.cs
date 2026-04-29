@@ -41,4 +41,34 @@ public static class AtlasPacker
 
         return new PackedLayout { Atlas = atlas, Placements = placements };
     }
+
+    /// <summary>
+    /// Pack orizzontale a celle uniformi: ogni frame occupa uno slot W×H fisso.
+    /// Il contenuto viene centrato nello slot, mantenendo atlas "a griglia" stabile.
+    /// </summary>
+    public static PackedLayout PackRowUniform(
+        IReadOnlyList<(string id, Image<Rgba32> img)> items,
+        int cellWidth,
+        int cellHeight)
+    {
+        if (items.Count == 0)
+            return new PackedLayout { Atlas = new Image<Rgba32>(1, 1, new Rgba32(0, 0, 0, 0)), Placements = Array.Empty<(string, int, int, int, int)>() };
+
+        cellWidth = Math.Max(1, cellWidth);
+        cellHeight = Math.Max(1, cellHeight);
+        var atlas = new Image<Rgba32>(cellWidth * items.Count, cellHeight, new Rgba32(0, 0, 0, 0));
+        var placements = new List<(string id, int x, int y, int w, int h)>(items.Count);
+
+        var x0 = 0;
+        foreach (var (id, img) in items)
+        {
+            var drawX = x0 + (cellWidth - img.Width) / 2;
+            var drawY = (cellHeight - img.Height) / 2;
+            atlas.Mutate(c => c.DrawImage(img, new Point(drawX, drawY), 1f));
+            placements.Add((id, x0, 0, cellWidth, cellHeight));
+            x0 += cellWidth;
+        }
+
+        return new PackedLayout { Atlas = atlas, Placements = placements };
+    }
 }

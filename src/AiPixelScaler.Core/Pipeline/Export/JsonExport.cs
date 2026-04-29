@@ -5,6 +5,7 @@ namespace AiPixelScaler.Core.Pipeline.Export;
 
 public sealed class SpriteSheetMetadata
 {
+    public string? PaletteId { get; init; }
     public List<SpriteCellEntry> Cells { get; init; } = new();
 }
 
@@ -29,4 +30,7 @@ public static class JsonExport
 
     public static string Serialize(SpriteSheetMetadata metadata) =>
         JsonSerializer.Serialize(metadata, Options);
+
+    public static SpriteSheetMetadata? Deserialize(string json) =>
+        JsonSerializer.Deserialize<SpriteSheetMetadata>(json, Options);
 }

@@ -1,22 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AiPixelScaler.Desktop.Views.AnimationPreviewWindow"
-        Title="🎬 Anteprima animazione"
+        Title="Anteprima animazione"
         Width="520" Height="520"
         Background="#0a0a10"
         MinWidth="400" MinHeight="380">
 
   <Window.Styles>
-    <Style Selector="Button">
-      <Setter Property="Background" Value="#1e1e2e"/>
-      <Setter Property="Foreground" Value="#bbb"/>
-      <Setter Property="Padding" Value="10,6"/>
-      <Setter Property="CornerRadius" Value="5"/>
-      <Setter Property="FontSize" Value="11"/>
-    </Style>
-    <Style Selector="Button:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2a40"/>
-    </Style>
     <Style Selector="ComboBox">
       <Setter Property="Background" Value="#141420"/>
       <Setter Property="Foreground" Value="#bbb"/>
@@ -41,7 +31,7 @@
 
         <!-- Play / Frame slider / Frame counter -->
         <Grid ColumnDefinitions="Auto,8,*,8,Auto">
-          <Button x:Name="BtnPlay" Grid.Column="0" Content="▶  Play" Width="92"/>
+          <Button x:Name="BtnPlay" Grid.Column="0" Content="Play" Width="92" Classes="secondary"/>
           <Slider x:Name="SliderFrame" Grid.Column="2" Minimum="0" Maximum="0" Value="0"
                   TickFrequency="1" IsSnapToTickEnabled="True"
                   ToolTip.Tip="Scrubber manuale: trascina per saltare a un frame specifico"/>
@@ -52,10 +42,10 @@
         <!-- FPS -->
         <Grid ColumnDefinitions="Auto,8,*,8,Auto">
           <TextBlock Grid.Column="0" Text="FPS" Classes="lbl" Width="40"/>
-          <Slider x:Name="SliderFps" Grid.Column="2" Minimum="1" Maximum="60" Value="12"
+          <Slider x:Name="SliderFps" Grid.Column="2" Minimum="1" Maximum="60" Value="8"
                   TickFrequency="1" IsSnapToTickEnabled="True"
                   ToolTip.Tip="Velocità riproduzione (1–60 FPS). Tipico pixel art: 8–15 FPS."/>
-          <TextBlock x:Name="TxtFps" Grid.Column="4" Text="12 FPS" Classes="lbl"
+          <TextBlock x:Name="TxtFps" Grid.Column="4" Text="8 FPS" Classes="lbl"
                      FontFamily="Consolas,Monospace" Width="60" TextAlignment="Right"/>
         </Grid>
 
@@ -63,9 +53,9 @@
         <Grid ColumnDefinitions="Auto,8,*,12,Auto,8,Auto">
           <TextBlock Grid.Column="0" Text="Loop" Classes="lbl" Width="40"/>
           <ComboBox x:Name="CmbLoop" Grid.Column="2" SelectedIndex="0" HorizontalAlignment="Stretch">
-            <ComboBoxItem Content="🔁 Loop infinito"/>
-            <ComboBoxItem Content="🔄 Ping-pong (avanti↔indietro)"/>
-            <ComboBoxItem Content="⏹ Una volta sola"/>
+            <ComboBoxItem Content="Loop infinito"/>
+            <ComboBoxItem Content="Ping-pong (avanti↔indietro)"/>
+            <ComboBoxItem Content="Una volta sola"/>
           </ComboBox>
           <TextBlock Grid.Column="4" Text="Sfondo" Classes="lbl"/>
           <ComboBox x:Name="CmbBackground" Grid.Column="6" SelectedIndex="0" Width="120">

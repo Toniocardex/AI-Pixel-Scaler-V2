@@ -1,3 +1,5 @@
+using System;
+
 namespace AiPixelScaler.Core.Geometry;
 
 /// <summary>
@@ -30,6 +32,40 @@ public readonly struct AxisAlignedBox : IEquatable<AxisAlignedBox>
 
     public static AxisAlignedBox FromInclusivePixelBounds(int minX, int minY, int maxXIncl, int maxYIncl) =>
         new(minX, minY, maxXIncl + 1, maxYIncl + 1);
+
+    /// <summary>
+    /// Converte due angoli in coordinate mondo (pixel continue, tipicamente già agganciati alla griglia)
+    /// in un box half-open dentro [0,<paramref name="imgW"/>) × [0,<paramref name="imgH"/>).
+    /// Usa <see cref="Math.Floor"/> sul minimo e <see cref="Math.Ceiling"/> sul massimo così uno span da 0 a 1280
+    /// (bordo esclusivo dopo l’ultimo pixel della tessera) ha larghezza 1280, non 1281 come succedeva
+    /// combinando Floor su entrambi gli angoli con <see cref="FromInclusivePixelBounds"/>.
+    /// </summary>
+    public static AxisAlignedBox FromWorldCornersHalfOpen(
+        double wx0, double wy0, double wx1, double wy1, int imgW, int imgH)
+    {
+        if (imgW < 1 || imgH < 1)
+            return new AxisAlignedBox(0, 0, 0, 0);
+
+        var loX = Math.Min(wx0, wx1);
+        var hiX = Math.Max(wx0, wx1);
+        var loY = Math.Min(wy0, wy1);
+        var hiY = Math.Max(wy0, wy1);
+
+        var minX = (int)Math.Floor(loX);
+        var maxX = (int)Math.Ceiling(hiX);
+        var minY = (int)Math.Floor(loY);
+        var maxY = (int)Math.Ceiling(hiY);
+
+        minX = Math.Clamp(minX, 0, imgW);
+        maxX = Math.Clamp(maxX, 0, imgW);
+        minY = Math.Clamp(minY, 0, imgH);
+        maxY = Math.Clamp(maxY, 0, imgH);
+
+        if (maxX <= minX || maxY <= minY)
+            return new AxisAlignedBox(0, 0, 0, 0);
+
+        return new AxisAlignedBox(minX, minY, maxX, maxY);
+    }
 
     public bool Equals(AxisAlignedBox other) =>
         MinX == other.MinX && MinY == other.MinY && MaxX == other.MaxX && MaxY == other.MaxY;
