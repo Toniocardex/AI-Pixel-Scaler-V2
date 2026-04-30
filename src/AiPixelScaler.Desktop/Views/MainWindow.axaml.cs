@@ -21,6 +21,7 @@ using AiPixelScaler.Desktop.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
@@ -40,15 +41,24 @@ public partial class MainWindow : Window
     private List<SpriteCell> _cells = new();
     private (int w, int h) _lastGlobal;
     private bool _hasUserFile;
-    private readonly List<WorkspaceSnapshot> _undoStack = new();
+    private readonly List<WorkspaceUndoSnapshot> _undoStack = new();
     private readonly PipelineViewModel _pipelineVm = new();
     private bool _isApplyingPipelinePreset;
     private WorkspaceGuideAction _workspaceGuideAction = WorkspaceGuideAction.OpenImage;
+    private readonly WorkspaceTabsController _workspaceTabs = new();
+    private bool _workspaceTabSwitching;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _selectionCanvasMode;   // true = ROI non distruttiva attiva (tab Selezione o menu toolbar)
     private bool             _toolbarSelectionModeEnabled;
     private AxisAlignedBox?  _activeSelectionBox;    // ultima selezione confermata
+
+    // Incolla fluttuante (Ctrl+V) — sorgente ad alta risoluzione + bitmap anteprima sul canvas
+    private Image<Rgba32>? _floatingPasteSource;
+    private double _floatingDisplayScale = 1.0;
+    private int _floatingDestX;
+    private int _floatingDestY;
+    private Bitmap? _floatingPreviewBitmap;
 
     public MainWindow()
     {
@@ -127,6 +137,7 @@ public partial class MainWindow : Window
         ChkSpriteCrop.IsCheckedChanged += (_, _) => UpdateSpriteSelectionMode();
         Editor.ImagePixelPicked += OnEditorImagePixelPicked;
         Editor.ImageSelectionCompleted += OnEditorImageSelectionCompleted;
+        Editor.FloatingOverlayMoved += OnEditorFloatingOverlayMoved;
 
         // Pivot
         SliderPivotX.ValueChanged += (_, _) => UpdatePivotLabels();
@@ -262,6 +273,7 @@ public partial class MainWindow : Window
         BtnExportTiled.Click     += async (_, _) => await ExportTiledMapJsonAsync();
         BtnExportFramesZip.Click += async (_, _) => await ExportFramesZipAsync();
 
+        InitializeWorkspaceTabs();
         UpdatePivotLabels();
         UpdateUndoUi();
         UpdateWorkspaceGuidance();
@@ -269,14 +281,51 @@ public partial class MainWindow : Window
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Z || !e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
         if (FocusManager?.GetFocusedElement() is TextBox) return;
-        TryUndo();
-        e.Handled = true;
+
+        if (_floatingPasteSource is not null)
+        {
+            if (e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
+            {
+                CommitFloatingPaste();
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None)
+            {
+                CancelFloatingPaste();
+                e.Handled = true;
+                return;
+            }
+        }
+
+        if (e.Key == Key.V && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _ = TryPasteFromClipboardAsync();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Delete && e.KeyModifiers == KeyModifiers.None)
+        {
+            if (_document is not null && _activeSelectionBox is not null)
+            {
+                RemoveSelectedArea();
+                e.Handled = true;
+            }
+            return;
+        }
+
+        if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            TryUndo();
+            e.Handled = true;
+        }
     }
 
     private void TryUndo()
     {
+        ClearFloatingPasteSession();
         if (_undoStack.Count == 0)
         {
             SetStatus("Niente da annullare.");
@@ -303,12 +352,14 @@ public partial class MainWindow : Window
     private bool PushUndo()
     {
         if (_document is null) return false;
-        _undoStack.Add(WorkspaceSnapshot.Capture(
+        _undoStack.Add(WorkspaceUndoSnapshot.Capture(
             _document,
             _cells,
             Editor.SliceGridRows,
             Editor.SliceGridCols,
             Editor.SpriteCells));
+        _workspaceTabs.MarkActiveDirty();
+        RefreshWorkspaceChrome();
         while (_undoStack.Count > MaxUndo)
         {
             var drop = _undoStack[0];
@@ -334,38 +385,160 @@ public partial class MainWindow : Window
         MenuUndo.IsEnabled = can;
     }
 
+    private void RefreshWorkspaceChrome()
+    {
+        BtnWorkspaceCloseTab.IsEnabled = _workspaceTabs.CanClose;
+        TxtWorkspaceContext.Text = _workspaceTabs.ContextText;
+    }
+
+    private WorkspaceTabViewModel CaptureWorkspaceState(string title, bool isDirty) =>
+        WorkspaceStateFactory.CaptureFromRuntime(
+            title,
+            isDirty,
+            _document,
+            _backup,
+            _cells,
+            _undoStack,
+            _hasUserFile,
+            Editor.SliceGridRows,
+            Editor.SliceGridCols,
+            Editor.SpriteCells,
+            CreateWelcomeAtlas);
+
+    private void RestoreWorkspaceState(WorkspaceTabViewModel state)
+    {
+        ClearFloatingPasteSession();
+        ClearUndoStack();
+        _document?.Dispose();
+        _backup?.Dispose();
+
+        _document = state.Document.Clone();
+        _backup = state.Backup.Clone();
+        _cells = WorkspaceUndoSnapshot.CloneCells(state.Cells);
+        _hasUserFile = state.HasUserFile;
+        Editor.SliceGridRows = state.GridRows;
+        Editor.SliceGridCols = state.GridCols;
+        Editor.SpriteCells = WorkspaceUndoSnapshot.CloneCells(state.SpriteOverlay);
+        _undoStack.AddRange(WorkspaceStateFactory.CloneUndoStack(state.UndoStack));
+
+        _activeSelectionBox = null;
+        Editor.SetCommittedSelection(null);
+        UpdateSelectionInfo();
+        RefreshCellList();
+        RefreshView();
+        RefreshEmptyState();
+        UpdateUndoUi();
+    }
+
+    private WorkspaceTabViewModel CreateWelcomeWorkspaceState(string title)
+        => WorkspaceStateFactory.CreateWelcome(title, CreateWelcomeAtlas);
+
+    private WorkspaceTabViewModel CreateWorkspaceStateFromImage(Image<Rgba32> image, string title)
+        => WorkspaceStateFactory.CreateFromImage(image, title);
+
+    private void SaveCurrentWorkspaceState()
+    {
+        var current = _workspaceTabs.ActiveTab;
+        if (current is null)
+            return;
+        var replacement = CaptureWorkspaceState(current.Title, current.IsDirty);
+        _workspaceTabs.ReplaceActive(replacement);
+        RefreshWorkspaceChrome();
+    }
+
+    private void SwitchToWorkspace(int index)
+    {
+        if (!_workspaceTabs.TryActivate(index))
+            return;
+        _workspaceTabSwitching = true;
+        try
+        {
+            var active = _workspaceTabs.ActiveTab;
+            if (active is null) return;
+            RestoreWorkspaceState(active);
+            WorkspaceTabs.SelectedIndex = index;
+            RefreshWorkspaceChrome();
+            SetStatus($"Workspace attivo: {WorkspaceTabs.SelectedItem ?? active.Title}.");
+        }
+        finally
+        {
+            _workspaceTabSwitching = false;
+        }
+    }
+
+    private void InitializeWorkspaceTabs()
+    {
+        WorkspaceTabs.ItemsSource = _workspaceTabs.Headers;
+        WorkspaceTabs.SelectionChanged += OnWorkspaceTabsSelectionChanged;
+        BtnWorkspaceNewTab.Click += (_, _) => AddNewWorkspaceTab();
+        BtnWorkspaceCloseTab.Click += (_, _) => CloseActiveWorkspaceTab();
+        BtnWorkspaceNewFromClipboard.Click += async (_, _) => await AddWorkspaceFromClipboardAsync();
+        _workspaceTabs.Initialize(CaptureWorkspaceState("Workspace 1", isDirty: false));
+        RefreshWorkspaceChrome();
+        WorkspaceTabs.SelectedIndex = 0;
+    }
+
+    private void OnWorkspaceTabsSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_workspaceTabSwitching) return;
+        var idx = WorkspaceTabs.SelectedIndex;
+        if (idx < 0 || idx == _workspaceTabs.ActiveIndex) return;
+        SaveCurrentWorkspaceState();
+        SwitchToWorkspace(idx);
+    }
+
+    private void AddNewWorkspaceTab()
+    {
+        SaveCurrentWorkspaceState();
+        var title = $"Workspace {_workspaceTabs.Count + 1}";
+        _workspaceTabs.AddAndActivate(CreateWelcomeWorkspaceState(title));
+        RefreshWorkspaceChrome();
+        SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+    }
+
+    private void CloseActiveWorkspaceTab()
+    {
+        if (!_workspaceTabs.CanClose)
+        {
+            SetStatus("Serve almeno un workspace aperto.");
+            return;
+        }
+        SaveCurrentWorkspaceState();
+        _workspaceTabs.TryCloseActive();
+        RefreshWorkspaceChrome();
+        SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+    }
+
+    private async Task AddWorkspaceFromClipboardAsync()
+    {
+        var top = TopLevel.GetTopLevel(this);
+        if (top?.Clipboard is null)
+        {
+            SetStatus("Appunti non disponibili.");
+            return;
+        }
+
+        var img = await ClipboardImageReader.TryReadImageAsync(top.Clipboard);
+        if (img is null)
+        {
+            SetStatus("Appunti: nessuna immagine disponibile.");
+            return;
+        }
+
+        SaveCurrentWorkspaceState();
+        var title = $"Clipboard {_workspaceTabs.Count + 1}";
+        var state = CreateWorkspaceStateFromImage(img, title);
+        img.Dispose();
+        _workspaceTabs.AddAndActivate(state);
+        RefreshWorkspaceChrome();
+        SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+    }
+
     private void RefreshEmptyState()
     {
         var show = !_hasUserFile;
         EmptyStateDim.IsVisible = show;
         EmptyStatePanel.IsVisible = show;
-    }
-
-    private static List<SpriteCell> CopyCells(IEnumerable<SpriteCell> src) =>
-        src.Select(c => new SpriteCell(c.Id, c.BoundsInAtlas, c.PivotNdcX, c.PivotNdcY)).ToList();
-
-    private sealed class WorkspaceSnapshot
-    {
-        public required Image<Rgba32> Image { get; init; }
-        public required List<SpriteCell> Cells { get; init; }
-        public int GridRows { get; init; }
-        public int GridCols { get; init; }
-        public required List<SpriteCell> SpriteOverlay { get; init; }
-
-        public static WorkspaceSnapshot Capture(
-            Image<Rgba32> doc,
-            IReadOnlyList<SpriteCell> cells,
-            int gridRows,
-            int gridCols,
-            IReadOnlyList<SpriteCell> overlay) =>
-            new()
-            {
-                Image = doc.Clone(),
-                Cells = CopyCells(cells),
-                GridRows = gridRows,
-                GridCols = gridCols,
-                SpriteOverlay = CopyCells(overlay)
-            };
     }
 
     private void ActivatePipette(int targetIndex)
@@ -514,6 +687,7 @@ public partial class MainWindow : Window
 
     private void LoadWelcomeDocument()
     {
+        ClearFloatingPasteSession();
         _document?.Dispose();
         _document = CreateWelcomeAtlas();
         _backup?.Dispose();
@@ -529,6 +703,8 @@ public partial class MainWindow : Window
         _activeSelectionBox = null;
         Editor.SetCommittedSelection(null);
         UpdateSelectionInfo();
+        _workspaceTabs.MarkActiveClean();
+        RefreshWorkspaceChrome();
         SetStatus("Pronto. Apri un'immagine per iniziare.");
     }
 
@@ -539,12 +715,15 @@ public partial class MainWindow : Window
             LoadWelcomeDocument();
             return;
         }
+        ClearFloatingPasteSession();
         _document?.Dispose();
         _document = _backup.Clone();
         _cells.Clear();
         ClearSliceGrid();
         RefreshView();
         CellList.ItemsSource = null;
+        _workspaceTabs.MarkActiveClean();
+        RefreshWorkspaceChrome();
         SetStatus("Immagine ripristinata all'originale.");
     }
 
@@ -1070,6 +1249,169 @@ public partial class MainWindow : Window
         return new string(chars);
     }
 
+    /// <summary>
+    /// Chiude modalità transiente (atlas pulito, workbench frame, ROI crop, strumenti canvas)
+    /// dopo aver sostituito il documento e svuotato <see cref="_cells"/>.
+    /// Usare solo per un «nuovo progetto» (es. Apri immagine), non dopo import frame nello stesso progetto.
+    /// </summary>
+    private void ResetTransientStateForNewOpenedProject()
+    {
+        _pasteSource?.Dispose();
+        _pasteSource = null;
+        _pasteBuffer?.Dispose();
+        _pasteBuffer = null;
+        _pasteLastSelection = null;
+        _pasteModeActive = false;
+        _viewingPasteSource = false;
+        BtnPasteEnter.IsVisible = true;
+        PasteActiveBar.IsVisible = false;
+        Editor.IsCellClickMode = false;
+        UpdatePasteBufferStatus();
+
+        ExitFrameAlignMode();
+
+        _lastUserRoi = null;
+        _frameDragInitialOffset = null;
+
+        _toolbarSelectionModeEnabled = false;
+        ChkPipette.IsChecked = false;
+        ChkEraser.IsChecked = false;
+        ChkSpriteCrop.IsChecked = false;
+        Editor.IsPipetteMode = false;
+        PipetteHintBar.IsVisible = false;
+        Editor.IsEraserMode = false;
+        ClearFloatingPasteSession();
+    }
+
+    private void ClearFloatingPasteSession()
+    {
+        _floatingPasteSource?.Dispose();
+        _floatingPasteSource = null;
+        _floatingPreviewBitmap?.Dispose();
+        _floatingPreviewBitmap = null;
+        _floatingDisplayScale = 1.0;
+        Editor.ClearFloatingOverlay();
+    }
+
+    private void OnEditorFloatingOverlayMoved(object? sender, FloatingOverlayMoveEventArgs e)
+    {
+        _floatingDestX = e.X;
+        _floatingDestY = e.Y;
+        Editor.UpdateFloatingOverlayPosition(e.X, e.Y);
+    }
+
+    private async Task TryPasteFromClipboardAsync()
+    {
+        if (_document is null)
+        {
+            SetStatus("Apri prima un'immagine.");
+            return;
+        }
+        if (Editor.IsFrameEditMode || _pasteModeActive || Editor.IsTilePreviewMode)
+        {
+            SetStatus("Esci dalla modalità workbench, atlas pulito o anteprima tile prima di incollare dagli appunti.");
+            return;
+        }
+
+        var top = TopLevel.GetTopLevel(this);
+        if (top?.Clipboard is null)
+        {
+            SetStatus("Appunti non disponibili.");
+            return;
+        }
+
+        Image<Rgba32>? loaded;
+        try
+        {
+            loaded = await ClipboardImageReader.TryReadImageAsync(top.Clipboard);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Lettura appunti: {ex.Message}");
+            return;
+        }
+
+        if (loaded is null)
+        {
+            SetStatus("Appunti: nessuna immagine (PNG/bitmap).");
+            return;
+        }
+
+        ClearFloatingPasteSession();
+        _floatingPasteSource = loaded;
+
+        var dw = _document.Width;
+        var dh = _document.Height;
+        double scale = 1.0;
+
+        if (loaded.Width > dw || loaded.Height > dh)
+        {
+            var choice = await PasteOversizeDialog.ShowAsync(this, loaded.Width, loaded.Height, dw, dh);
+            if (choice == PasteOversizeChoice.Cancel)
+            {
+                ClearFloatingPasteSession();
+                SetStatus("Incolla annullato.");
+                return;
+            }
+            if (choice == PasteOversizeChoice.FitToCanvas)
+                scale = FloatingPasteGeometry.ComputeUniformFitScale(loaded.Width, loaded.Height, dw, dh);
+        }
+
+        _floatingDisplayScale = scale;
+        var (dispW, dispH) = FloatingPasteGeometry.ComputeDisplayDimensions(loaded.Width, loaded.Height, scale);
+        var (cx, cy) = FloatingPasteGeometry.ComputeCenteredTopLeft(dw, dh, dispW, dispH);
+        _floatingDestX = cx;
+        _floatingDestY = cy;
+
+        Image<Rgba32>? resizedPreview = null;
+        try
+        {
+            if (Math.Abs(scale - 1.0) > 1e-9)
+                resizedPreview = NearestNeighborResize.Resize(loaded, dispW, dispH);
+
+            var forBridge = resizedPreview ?? loaded;
+            _floatingPreviewBitmap = Imaging.Rgba32BitmapBridge.ToBitmap(forBridge);
+        }
+        finally
+        {
+            resizedPreview?.Dispose();
+        }
+
+        if (_floatingPreviewBitmap is null)
+        {
+            ClearFloatingPasteSession();
+            SetStatus("Impossibile creare anteprima incolla.");
+            return;
+        }
+
+        Editor.SetFloatingOverlay(_floatingPreviewBitmap, _floatingDestX, _floatingDestY, dispW, dispH);
+        SetStatus("Incolla fluttuante: trascina · Invio conferma · Esc annulla.");
+    }
+
+    private void CommitFloatingPaste()
+    {
+        if (_document is null || _floatingPasteSource is null)
+            return;
+        try
+        {
+            PushUndo();
+            FloatingPasteComposer.Commit(_document, _floatingPasteSource, _floatingDestX, _floatingDestY, _floatingDisplayScale);
+            ClearFloatingPasteSession();
+            RefreshView();
+            SetStatus("Incolla confermato sul canvas.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Errore commit incolla: {ex.Message}");
+        }
+    }
+
+    private void CancelFloatingPaste()
+    {
+        ClearFloatingPasteSession();
+        SetStatus("Incolla fluttuante annullato.");
+    }
+
     private async Task OpenImageAsync()
     {
         var file = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -1098,7 +1440,7 @@ public partial class MainWindow : Window
             _backup = _document.Clone();
             _cells.Clear();
             ClearSliceGrid();
-            RefreshView();
+            ResetTransientStateForNewOpenedProject();
             CellList.ItemsSource = null;
             // TxtAabb rimosso
             TxtGlobal.Text = "—  Esegui prima il passo 2";
@@ -1107,8 +1449,12 @@ public partial class MainWindow : Window
             ClearUndoStack();
             _activeSelectionBox = null;
             Editor.SetCommittedSelection(null);
-            UpdateSelectionInfo();
             MainTabs.SelectedIndex = 0;
+            EnterSelectionCanvas(IsRoiSelectionModeRequested());
+            UpdateSelectionInfo();
+            RefreshView();
+            _workspaceTabs.MarkActiveClean();
+            RefreshWorkspaceChrome();
             SetStatus($"Immagine aperta: {_document.Width}×{_document.Height} px. Scheda «Immagine» o «Sprite».");
         }
         catch (Exception ex)
@@ -1707,6 +2053,7 @@ public partial class MainWindow : Window
 
     private void EnterPasteMode()
     {
+        ClearFloatingPasteSession();
         if (_document is null) { SetStatus("Apri prima un'immagine."); return; }
         if (_cells.Count == 0)
         {
@@ -1861,6 +2208,7 @@ public partial class MainWindow : Window
 
     private void EnterFrameAlignMode()
     {
+        ClearFloatingPasteSession();
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         if (_cells.Count == 0)
         {
@@ -2615,6 +2963,7 @@ public partial class MainWindow : Window
 
     protected override void OnUnloaded(Avalonia.Interactivity.RoutedEventArgs e)
     {
+        ClearFloatingPasteSession();
         ClearUndoStack();
         _document?.Dispose();
         _document = null;
@@ -2628,6 +2977,7 @@ public partial class MainWindow : Window
         _pasteSource = null;
         _pasteBuffer?.Dispose();
         _pasteBuffer = null;
+        _workspaceTabs.Dispose();
         base.OnUnloaded(e);
     }
 }

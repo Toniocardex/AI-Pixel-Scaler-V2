@@ -183,18 +183,51 @@
         </ToggleButton>
         <Menu Background="Transparent">
           <MenuItem Header="Selezione"
-                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva, ritaglio a selezione o rimozione area selezionata.">
+                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva, ritaglio a selezione o rimozione area selezionata (Canc).">
             <MenuItem x:Name="MiToolbarSelectionMode"
                       Header="Selezione (ROI non distruttiva)"/>
             <MenuItem x:Name="MiToolbarCropToSelection"
                       Header="Ritaglia a selezione"/>
             <MenuItem x:Name="MiToolbarRemoveSelectedArea"
-                      Header="Rimuovi area selezionata"/>
+                      Header="Rimuovi area selezionata (Canc)"/>
           </MenuItem>
         </Menu>
 
         <Border Classes="vsep"/>
       </StackPanel>
+    </Border>
+
+    <!-- ═══ WORKSPACE TABS (fase 2 MVP) ═══════════════════════════════════ -->
+    <Border DockPanel.Dock="Top" Background="#101018" Padding="8,6" BorderThickness="0,0,0,1"
+            BorderBrush="#1e1e2e">
+      <DockPanel LastChildFill="True">
+        <TextBlock x:Name="TxtWorkspaceContext" DockPanel.Dock="Left" Margin="0,0,10,0"
+                   Foreground="#8a88a8" FontSize="11" VerticalAlignment="Center"
+                   Text="Workspace 1 · Pulito"/>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+          <Button x:Name="BtnWorkspaceNewTab" Classes="tool" ToolTip.Tip="Nuovo workspace">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconPlus}" Classes="tool-icon"/>
+              <TextBlock Text="Nuovo tab" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnWorkspaceCloseTab" Classes="tool" ToolTip.Tip="Chiudi workspace attivo">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconClose}" Classes="tool-icon"/>
+              <TextBlock Text="Chiudi tab" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnWorkspaceNewFromClipboard" Classes="tool"
+                  ToolTip.Tip="Crea un nuovo workspace dagli appunti (immagine)">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconPaste}" Classes="tool-icon"/>
+              <TextBlock Text="Nuovo da appunti" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <TabControl x:Name="WorkspaceTabs" Classes="sidebarTabs" Margin="0" Height="34"/>
+      </DockPanel>
     </Border>
 
     <!-- ═══ STATUS BAR (in basso) ════════════════════════════════════════ -->

@@ -115,6 +115,12 @@ public class EditorSurface : Control
     private Avalonia.Point _frameDragStartScreen;
     private List<WorkbenchFrameRender> _workbenchRenderFrames = [];
 
+    // Floating paste overlay (owner: MainWindow — non fare Dispose qui)
+    private Bitmap? _floatingOverlayBitmap;
+    private int _floatingX, _floatingY, _floatingW, _floatingH;
+    private bool _floatingDragging;
+    private double _floatingGrabWx, _floatingGrabWy;
+
     // ─── Static brushes ───────────────────────────────────────────────────────
 
     private static readonly SolidColorBrush CheckerBrushA = new(Avalonia.Media.Color.FromArgb(0xff, 0x2a, 0x2a, 0x2e));
@@ -349,6 +355,9 @@ public class EditorSurface : Control
     public event EventHandler<ImagePixelPickedEventArgs>?       ImagePixelPicked;
     public event EventHandler<ImageSelectionCompletedEventArgs>? ImageSelectionCompleted;
 
+    /// <summary>Nuova posizione (angolo alto-sinistra in pixel mondo) durante il drag dell’overlay fluttuante.</summary>
+    public event EventHandler<FloatingOverlayMoveEventArgs>? FloatingOverlayMoved;
+
     /// <summary>Fired continuamente durante il drag della gomma (coordinate in pixel-immagine).</summary>
     public event EventHandler<EraserStrokeEventArgs>? EraserStroke;
 
@@ -386,6 +395,35 @@ public class EditorSurface : Control
         _committedSelection = box;
         InvalidateVisual();
     }
+
+    /// <summary>Overlay incolla fluttuante (bitmap già scalata per anteprima). Non dispone <paramref name="overlay"/>.</summary>
+    public void SetFloatingOverlay(Bitmap? overlay, int destX, int destY, int destW, int destH)
+    {
+        _floatingOverlayBitmap = overlay;
+        _floatingX = destX;
+        _floatingY = destY;
+        _floatingW = Math.Max(1, destW);
+        _floatingH = Math.Max(1, destH);
+        _floatingDragging = false;
+        InvalidateVisual();
+    }
+
+    public void UpdateFloatingOverlayPosition(int x, int y)
+    {
+        _floatingX = x;
+        _floatingY = y;
+        InvalidateVisual();
+    }
+
+    public void ClearFloatingOverlay()
+    {
+        _floatingOverlayBitmap = null;
+        _floatingDragging = false;
+        _floatingW = _floatingH = 0;
+        InvalidateVisual();
+    }
+
+    public bool IsFloatingOverlayActive => _floatingOverlayBitmap is not null;
 
     /// <summary>
     /// Aggiorna solo le righe [yMin, yMax) del bitmap esistente senza ricrearlo.
@@ -515,6 +553,26 @@ public class EditorSurface : Control
             else if (bmp is not null)
             {
                 context.DrawImage(bmp, new Rect(0, 0, worldW, worldH), new Rect(0, 0, worldW, worldH));
+            }
+
+            if (!inWorkbench && _floatingOverlayBitmap is not null && _floatingW > 0 && _floatingH > 0)
+            {
+                using (context.PushRenderOptions(new RenderOptions
+                       { BitmapInterpolationMode = BitmapInterpolationMode.None }))
+                {
+                    var srcW = _floatingOverlayBitmap.PixelSize.Width;
+                    var srcH = _floatingOverlayBitmap.PixelSize.Height;
+                    context.DrawImage(
+                        _floatingOverlayBitmap,
+                        new Rect(0, 0, srcW, srcH),
+                        new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
+                }
+
+                var fp = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 255, 220, 80)), 1.2 / Math.Max(_viewport.Zoom, 0.0001))
+                {
+                    DashStyle = new DashStyle([3.0, 3.0], 0)
+                };
+                context.DrawRectangle(fp, new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
             }
         }
 
@@ -703,6 +761,27 @@ public class EditorSurface : Control
         }
         if (!cur.Properties.IsLeftButtonPressed) return;
 
+        if (_floatingOverlayBitmap is not null
+            && !IsEraserMode
+            && !IsPipetteMode
+            && !IsSelectionMode
+            && !IsCellClickMode
+            && !(IsFrameEditMode && _frameCells.Count > 0)
+            && !IsTilePreviewMode)
+        {
+            var (fwx, fwy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+            if (fwx >= _floatingX && fwy >= _floatingY
+                && fwx < _floatingX + _floatingW && fwy < _floatingY + _floatingH)
+            {
+                _floatingDragging = true;
+                _floatingGrabWx = fwx - _floatingX;
+                _floatingGrabWy = fwy - _floatingY;
+                e.Pointer.Capture(this);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (IsEraserMode)
         {
             _eraserDragging = true;
@@ -805,6 +884,13 @@ public class EditorSurface : Control
             InvalidateVisual();
             return;
         }
+        if (_floatingDragging)
+        {
+            _floatingDragging = false;
+            e.Pointer.Capture(null);
+            InvalidateVisual();
+            return;
+        }
         if (_selDragging)
         {
             _selDragging = false;
@@ -864,6 +950,15 @@ public class EditorSurface : Control
                 (int)Math.Round(dxImage),
                 (int)Math.Round(dyImage),
                 isCommit: false));
+            return;
+        }
+        if (_floatingDragging)
+        {
+            var (wx, wy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+            var nx = (int)Math.Floor(wx - _floatingGrabWx);
+            var ny = (int)Math.Floor(wy - _floatingGrabWy);
+            FloatingOverlayMoved?.Invoke(this, new FloatingOverlayMoveEventArgs(nx, ny));
+            InvalidateVisual();
             return;
         }
         if (_selDragging)
