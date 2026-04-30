@@ -928,6 +928,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Sicuro impostato.");
+        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -946,6 +947,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Aggressivo+Recupero impostato.");
+        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -1142,6 +1144,7 @@ public partial class MainWindow : Window
     {
         if (_isApplyingPipelinePreset) return;
         _pipelineVm.ActivePreset = PipelineViewModel.PresetKind.None;
+        ExpPipelineTechnicalDetails.IsExpanded = true;
         UpdatePipelinePresetBadge();
     }
 
