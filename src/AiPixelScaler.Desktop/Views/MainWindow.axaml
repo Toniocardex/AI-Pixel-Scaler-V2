@@ -139,7 +139,35 @@
           </StackPanel>
         </Button>
 
-        <TextBlock Text="Canvas" Foreground="#72728c" FontSize="10" Margin="8,0,4,0" VerticalAlignment="Center"/>
+        <Border Classes="vsep"/>
+
+        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool" MinWidth="104"
+                ToolTip.Tip="Rilevamento automatico sprite (CCL): analizza l'immagine e aggiorna celle/lista overlay. Disponibile in ogni tab.">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Path Data="{StaticResource IconTarget}" Classes="tool-icon"/>
+            <TextBlock Text="Rileva sprite" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+          </StackPanel>
+        </Button>
+        <Menu Classes="toolbar-menu">
+          <MenuItem Classes="toolbar-menu-root"
+                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
+            <MenuItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconCrop}" Classes="tool-icon"/>
+                <TextBlock Text="Selezione" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+              </StackPanel>
+            </MenuItem.Header>
+            <MenuItem x:Name="MiToolbarSelectionMode"
+                      Header="Seleziona Area"
+                      ToolTip.Tip="Disegna un rettangolo sul canvas; dopo il rilascio usa le maniglie azzurre (angoli e lati) per ridimensionare o trascina l’interno per spostare la ROI senza ridisegnarla."/>
+            <MenuItem x:Name="MiToolbarCropToSelection"
+                      Header="Ritaglia a selezione"/>
+            <MenuItem x:Name="MiToolbarRemoveSelectedArea"
+                      Header="Rimuovi area selezionata (Canc)"/>
+          </MenuItem>
+        </Menu>
+
+        <Border Classes="vsep"/>
 
         <!-- View tools -->
         <ToggleButton x:Name="ChkWorldGrid" Classes="tool-toggle" IsChecked="True"
@@ -172,15 +200,8 @@
             <TextBlock Text="Centra canvas" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool" MinWidth="104"
-                ToolTip.Tip="Rilevamento automatico sprite (CCL): analizza l'immagine e aggiorna celle/lista overlay. Disponibile in ogni tab.">
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <Path Data="{StaticResource IconTarget}" Classes="tool-icon"/>
-            <TextBlock Text="Rileva sprite" VerticalAlignment="Center" TextWrapping="NoWrap"/>
-          </StackPanel>
-        </Button>
 
-        <TextBlock Text="Strumenti rapidi" Foreground="#72728c" FontSize="10" Margin="8,0,4,0" VerticalAlignment="Center"/>
+        <Border Classes="vsep"/>
 
         <!-- Eraser tool -->
         <ToggleButton x:Name="ChkEraser" Classes="tool-toggle"
@@ -203,28 +224,7 @@
             <TextBlock Text="Contagocce" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <Menu Classes="toolbar-menu">
-          <MenuItem Classes="toolbar-menu-root"
-                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
-            <MenuItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Path Data="{StaticResource IconCrop}" Classes="tool-icon"/>
-                <TextBlock Text="Selezione" VerticalAlignment="Center" TextWrapping="NoWrap"/>
-              </StackPanel>
-            </MenuItem.Header>
-            <MenuItem x:Name="MiToolbarSelectionMode"
-                      Header="Seleziona Area"
-                      ToolTip.Tip="Disegna un rettangolo sul canvas; dopo il rilascio usa le maniglie azzurre (angoli e lati) per ridimensionare o trascina l’interno per spostare la ROI senza ridisegnarla."/>
-            <MenuItem x:Name="MiToolbarCropToSelection"
-                      Header="Ritaglia a selezione"/>
-            <MenuItem x:Name="MiToolbarRemoveSelectedArea"
-                      Header="Rimuovi area selezionata (Canc)"/>
-          </MenuItem>
-        </Menu>
 
-        <Border Classes="vsep"/>
-        <TextBlock Text="Toolbar essenziale: Apri · Undo · Griglia · Magnetica · Centra · Selezione · Gomma/Pipetta"
-                   Foreground="#5f5f78" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center"/>
       </StackPanel>
     </Border>
 
