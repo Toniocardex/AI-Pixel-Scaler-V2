@@ -111,7 +111,7 @@
     </Menu>
 
     <!-- ═══ TOOLBAR (Lucide icons + label) ═══════════════════════════════ -->
-    <Border DockPanel.Dock="Top" Background="#13131c" Padding="8,6" BorderThickness="0,0,0,1"
+    <Border DockPanel.Dock="Top" Background="#11111a" Padding="10,6" BorderThickness="0,0,0,1"
             BorderBrush="#1e1e2e">
       <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
 
@@ -139,7 +139,7 @@
           </StackPanel>
         </Button>
 
-        <Border Classes="vsep"/>
+        <TextBlock Text="Canvas" Foreground="#72728c" FontSize="10" Margin="8,0,4,0" VerticalAlignment="Center"/>
 
         <!-- View tools -->
         <ToggleButton x:Name="ChkWorldGrid" Classes="tool-toggle" IsChecked="True"
@@ -151,7 +151,7 @@
         </ToggleButton>
         <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
-                       Width="48"
+                       Width="56"
                        ToolTip.Tip="Dimensione celle griglia in px (es. 8, 16, 32, 64…)"/>
 
         <ToggleButton x:Name="ChkSnapGrid" Classes="tool-toggle"
@@ -163,7 +163,7 @@
         </ToggleButton>
         <NumericUpDown x:Name="TxtSnapSize" Classes="toolbar"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
-                       Width="48" IsEnabled="False"
+                       Width="56" IsEnabled="False"
                        ToolTip.Tip="Passo griglia magnetica in px (rotellina del mouse per aumentare/diminuire)"/>
         <Button x:Name="BtnCenterCanvas" Classes="tool"
                 ToolTip.Tip="Recentra l'immagine nella viewport mantenendo lo zoom corrente">
@@ -180,7 +180,7 @@
           </StackPanel>
         </Button>
 
-        <Border Classes="vsep"/>
+        <TextBlock Text="Strumenti rapidi" Foreground="#72728c" FontSize="10" Margin="8,0,4,0" VerticalAlignment="Center"/>
 
         <!-- Eraser tool -->
         <ToggleButton x:Name="ChkEraser" Classes="tool-toggle"
@@ -203,6 +203,13 @@
             <TextBlock Text="Contagocce" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
+        <Button x:Name="BtnToolbarSelectionQuick" Classes="tool"
+                ToolTip.Tip="Selezione area sul canvas">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Path Data="{StaticResource IconCrop}" Classes="tool-icon"/>
+            <TextBlock Text="Selezione" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
         <Menu Background="Transparent">
             <MenuItem Header="Selezione"
                     ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
@@ -217,6 +224,8 @@
         </Menu>
 
         <Border Classes="vsep"/>
+        <TextBlock Text="Toolbar essenziale: Apri · Undo · Griglia · Magnetica · Centra · Selezione · Gomma/Pipetta"
+                   Foreground="#5f5f78" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center"/>
       </StackPanel>
     </Border>
 
@@ -272,6 +281,20 @@
       </DockPanel>
     </Border>
 
+    <!-- ═══ WORKFLOW ACTION BAR (task-first CTA) ═════════════════════════ -->
+    <Border DockPanel.Dock="Bottom" Background="#10101a" Padding="10,6"
+            BorderThickness="0,1,0,0" BorderBrush="#1e1e2e">
+      <Grid ColumnDefinitions="*,Auto,8,Auto">
+        <TextBlock x:Name="TxtWorkflowStepSummary"
+                   VerticalAlignment="Center"
+                   Foreground="#b5b4ca"
+                   FontSize="11"
+                   Text="Step 1/4 · Importa"/>
+        <Button x:Name="BtnWorkflowPrimaryAction" Grid.Column="1" Classes="primary" Content="Step 1 · Importa"/>
+        <Button x:Name="BtnWorkflowNextStep" Grid.Column="3" Classes="secondary" Content="Prossimo step"/>
+      </Grid>
+    </Border>
+
     <!-- ═══ STATUS BAR (in basso) ════════════════════════════════════════ -->
     <Border DockPanel.Dock="Bottom" Background="#0a0a10" Padding="10,4"
             BorderThickness="0,1,0,0" BorderBrush="#1e1e2e">
@@ -286,10 +309,33 @@
     </Border>
 
     <!-- ═══ CORPO PRINCIPALE ════════════════════════════════════════════ -->
-    <Grid x:Name="MainBodyGrid" ColumnDefinitions="*,4,320">
+    <Grid x:Name="MainBodyGrid" ColumnDefinitions="84,*,4,320">
+
+      <!-- ─── LEFT RAIL (workflow task-first) ─────────────────────────── -->
+      <Border Grid.Column="0" Background="#0c0c14" BorderBrush="#1e1e2e" BorderThickness="0,0,1,0">
+        <StackPanel Margin="8,10" Spacing="8">
+          <TextBlock Text="Workflow" Foreground="#7f7f98" FontSize="10" HorizontalAlignment="Center"/>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepImporta" Classes="tool-toggle" Content="1 · Importa"/>
+            <TextBlock x:Name="TxtStepImportaState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepPulisci" Classes="tool-toggle" Content="2 · Pulisci"/>
+            <TextBlock x:Name="TxtStepPulisciState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepSliceAllinea" Classes="tool-toggle" Content="3 · Slice"/>
+            <TextBlock x:Name="TxtStepSliceState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepEsporta" Classes="tool-toggle" Content="4 · Esporta"/>
+            <TextBlock x:Name="TxtStepEsportaState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
 
       <!-- ─── CANVAS + overlay stato vuoto ────────────────────────────── -->
-      <Grid Grid.Column="0" Background="#0a0a0e">
+      <Grid Grid.Column="1" Background="#0a0a0e">
         <ctrl:EditorSurface x:Name="Editor" ClipToBounds="True" Zoom="1"
                             RenderOptions.BitmapInterpolationMode="None"/>
         <Border x:Name="EmptyStateDim" ZIndex="8" IsHitTestVisible="False" IsVisible="False"
@@ -314,10 +360,10 @@
       </Grid>
 
       <!-- ─── SPLITTER ─────────────────────────────────────────────────── -->
-      <GridSplitter x:Name="PanelSplitter" Grid.Column="1" Background="#1a1a26" ResizeDirection="Columns"/>
+      <GridSplitter x:Name="PanelSplitter" Grid.Column="2" Background="#1a1a26" ResizeDirection="Columns"/>
 
       <!-- ─── PANNELLO DESTRO ───────────────────────────────────────────── -->
-      <Border Grid.Column="2" Background="#0f0f18" x:Name="RightPanel">
+      <Border Grid.Column="3" Background="#0f0f18" x:Name="RightPanel">
         <DockPanel>
 
           <!-- Header fisso con titolo + bottone comprimi -->
@@ -528,12 +574,20 @@
                 <TextBlock Classes="hint" TextWrapping="Wrap"
                            Text="Imposta automaticamente parametri consigliati: Sicuro (conservativo) o Aggressivo+Recupero (più forte)."/>
                 <Grid ColumnDefinitions="*,8,*" Margin="0,4,0,0">
-                  <Button x:Name="BtnPresetSafe" Grid.Column="0"
-                          Content="Preset sicuro"
-                          Classes="secondary" HorizontalAlignment="Stretch"/>
-                  <Button x:Name="BtnPresetAggressiveRecover" Grid.Column="2"
-                          Content="Preset aggressivo + recupero"
-                          Classes="secondary" HorizontalAlignment="Stretch"/>
+                  <Border Grid.Column="0" Background="#0a0a14" BorderBrush="#2e3a5a" BorderThickness="1" CornerRadius="6" Padding="8">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Preset Sicuro" FontWeight="SemiBold" Foreground="#cfd9ff"/>
+                      <TextBlock Classes="hint" Text="Prima: pulizia leggera · Dopo: palette più stabile, meno artefatti."/>
+                      <Button x:Name="BtnPresetSafe" Content="Applica preset sicuro" Classes="secondary" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="2" Background="#0a0a14" BorderBrush="#5a3a2e" BorderThickness="1" CornerRadius="6" Padding="8">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Aggressivo + Recupero" FontWeight="SemiBold" Foreground="#ffd8c8"/>
+                      <TextBlock Classes="hint" Text="Prima: rumore/alone marcato · Dopo: pulizia forte con recupero pixel interni."/>
+                      <Button x:Name="BtnPresetAggressiveRecover" Content="Applica preset aggressivo" Classes="secondary" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                  </Border>
                 </Grid>
                 <TextBlock x:Name="TxtPipelinePresetBadge"
                            Classes="hint"
@@ -583,6 +637,11 @@
 
                 <Separator Classes="h"/>
 
+                <Expander x:Name="ExpPipelineTechnicalDetails"
+                          Header="Mostra dettagli tecnici"
+                          IsExpanded="False"
+                          Margin="0,6,0,0">
+                  <StackPanel Spacing="0" Margin="0,8,0,0">
                 <!-- Rimuovi colore sfondo (chroma key) -->
                 <TextBlock Classes="fieldLabel" Text="Rimuovi colore sfondo (chroma key)"/>
                 <CheckBox x:Name="ChkPipeChroma" Content="Attiva" IsChecked="False"/>
@@ -715,6 +774,8 @@
                   <TextBox x:Name="TxtAlphaThreshold" Grid.Column="2" Text="128"
                            ToolTip.Tip="Pixel con alpha &gt; soglia → opaco (255). Pixel con alpha ≤ soglia → trasparente (0)."/>
                 </Grid>
+                  </StackPanel>
+                </Expander>
 
                 <Button x:Name="BtnPipeApply" Classes="primary" HorizontalAlignment="Stretch" Margin="0,10,0,0">
                   <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">

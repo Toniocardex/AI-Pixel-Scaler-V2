@@ -34,6 +34,32 @@ public sealed class PipelineViewModel
         bool EnableAlphaThreshold,
         string AlphaThreshold);
 
+    private sealed record PipelineValidatedSettings(
+        bool EnableChroma,
+        bool ChromaSnapRgb,
+        string ChromaHex,
+        int ChromaTolerance,
+        bool EnableAdvancedCleaner,
+        double BilateralSigmaSpatial,
+        double BilateralSigmaRange,
+        int BilateralPasses,
+        bool EnablePixelGridEnforce,
+        int NativeWidth,
+        int NativeHeight,
+        bool EnablePaletteSnap,
+        string PaletteId,
+        string PaletteMetadataPath,
+        bool EnableQuantize,
+        int MaxColors,
+        PixelArtProcessor.QuantizerKind Quantizer,
+        bool EnableMajorityDenoise,
+        int? IslandMinArea,
+        bool EnableOutline,
+        string OutlineHex,
+        byte? AlphaThreshold,
+        bool EnableRecoverFill,
+        int RecoverIterations);
+
     public bool EnableChroma { get; set; }
     public bool ChromaSnapRgb { get; set; }
     public string ChromaHex { get; set; } = "#00FF00";
@@ -112,65 +138,67 @@ public sealed class PipelineViewModel
 
     public PixelArtPipeline.Options BuildOptions(Rgba32 chroma, Rgba32 outline, bool includeOutline)
     {
+        var normalized = BuildValidatedSettings();
         return new PixelArtPipeline.Options(
-            EnableChroma: EnableChroma,
-            ChromaSnapRgb: ChromaSnapRgb,
+            EnableChroma: normalized.EnableChroma,
+            ChromaSnapRgb: normalized.ChromaSnapRgb,
             ChromaColor: chroma,
-            ChromaTolerance: Math.Max(0, ChromaTolerance),
-            EnableAdvancedCleaner: EnableAdvancedCleaner,
-            BilateralSigmaSpatial: Math.Clamp(BilateralSigmaSpatial, 0.5, 6.0),
-            BilateralSigmaRange: Math.Clamp(BilateralSigmaRange, 0.01, 0.35),
-            BilateralPasses: Math.Clamp(BilateralPasses, 1, 3),
-            EnablePixelGridEnforce: EnablePixelGridEnforce,
-            NativeWidth: Math.Max(1, NativeWidth),
-            NativeHeight: Math.Max(1, NativeHeight),
-            EnablePaletteSnap: EnablePaletteSnap,
-            PaletteId: string.IsNullOrWhiteSpace(PaletteId) ? null : PaletteId.Trim(),
-            EnableQuantize: EnableQuantize,
-            MaxColors: Math.Clamp(MaxColors, 2, 256),
-            Quantizer: Quantizer,
-            EnableMajorityDenoise: EnableMajorityDenoise,
+            ChromaTolerance: normalized.ChromaTolerance,
+            EnableAdvancedCleaner: normalized.EnableAdvancedCleaner,
+            BilateralSigmaSpatial: normalized.BilateralSigmaSpatial,
+            BilateralSigmaRange: normalized.BilateralSigmaRange,
+            BilateralPasses: normalized.BilateralPasses,
+            EnablePixelGridEnforce: normalized.EnablePixelGridEnforce,
+            NativeWidth: normalized.NativeWidth,
+            NativeHeight: normalized.NativeHeight,
+            EnablePaletteSnap: normalized.EnablePaletteSnap,
+            PaletteId: string.IsNullOrWhiteSpace(normalized.PaletteId) ? null : normalized.PaletteId,
+            EnableQuantize: normalized.EnableQuantize,
+            MaxColors: normalized.MaxColors,
+            Quantizer: normalized.Quantizer,
+            EnableMajorityDenoise: normalized.EnableMajorityDenoise,
             MajorityMinSameNeighbors: Math.Max(1, MajorityMinSameNeighbors),
-            IslandMinArea: IslandMinArea is > 0 ? IslandMinArea : null,
-            EnableOutline: includeOutline && EnableOutline,
+            IslandMinArea: normalized.IslandMinArea,
+            EnableOutline: includeOutline && normalized.EnableOutline,
             OutlineColor: outline,
-            AlphaThreshold: AlphaThreshold,
-            EnableRecoverFill: EnableRecoverFill,
-            RecoverIterations: Math.Max(1, RecoverIterations),
+            AlphaThreshold: normalized.AlphaThreshold,
+            EnableRecoverFill: normalized.EnableRecoverFill,
+            RecoverIterations: normalized.RecoverIterations,
             RequantizeAfterRecover: true);
     }
 
     public PipelineFormState ToFormState()
     {
+        var normalized = BuildValidatedSettings();
         return new PipelineFormState(
-            EnableChroma: EnableChroma,
-            EnableChromaSnapRgb: ChromaSnapRgb,
-            ChromaHex: InputParsing.NormalizeHexRgb(ChromaHex, "#00FF00"),
-            ChromaTolerance: Math.Max(0, ChromaTolerance).ToString(CultureInfo.InvariantCulture),
-            EnableAdvancedCleaner: EnableAdvancedCleaner,
-            BilateralSigmaSpatial: Math.Clamp(BilateralSigmaSpatial, 0.5, 6.0).ToString(CultureInfo.InvariantCulture),
-            BilateralSigmaRange: Math.Clamp(BilateralSigmaRange, 0.01, 0.35).ToString(CultureInfo.InvariantCulture),
-            BilateralPasses: Math.Clamp(BilateralPasses, 1, 3).ToString(CultureInfo.InvariantCulture),
-            EnablePixelGridEnforce: EnablePixelGridEnforce,
-            NativeWidth: Math.Max(1, NativeWidth).ToString(CultureInfo.InvariantCulture),
-            NativeHeight: Math.Max(1, NativeHeight).ToString(CultureInfo.InvariantCulture),
-            EnablePaletteSnap: EnablePaletteSnap,
-            PaletteId: (PaletteId ?? string.Empty).Trim(),
-            PaletteMetadataPath: (PaletteMetadataPath ?? string.Empty).Trim(),
-            EnableQuantize: EnableQuantize,
-            MaxColors: Math.Clamp(MaxColors, 2, 256).ToString(CultureInfo.InvariantCulture),
-            QuantizerIndex: Quantizer switch
+            EnableChroma: normalized.EnableChroma,
+            EnableChromaSnapRgb: normalized.ChromaSnapRgb,
+            ChromaHex: normalized.ChromaHex,
+            ChromaTolerance: normalized.ChromaTolerance.ToString(CultureInfo.InvariantCulture),
+            EnableAdvancedCleaner: normalized.EnableAdvancedCleaner,
+            BilateralSigmaSpatial: normalized.BilateralSigmaSpatial.ToString(CultureInfo.InvariantCulture),
+            BilateralSigmaRange: normalized.BilateralSigmaRange.ToString(CultureInfo.InvariantCulture),
+            BilateralPasses: normalized.BilateralPasses.ToString(CultureInfo.InvariantCulture),
+            EnablePixelGridEnforce: normalized.EnablePixelGridEnforce,
+            NativeWidth: normalized.NativeWidth.ToString(CultureInfo.InvariantCulture),
+            NativeHeight: normalized.NativeHeight.ToString(CultureInfo.InvariantCulture),
+            EnablePaletteSnap: normalized.EnablePaletteSnap,
+            PaletteId: normalized.PaletteId,
+            PaletteMetadataPath: normalized.PaletteMetadataPath,
+            EnableQuantize: normalized.EnableQuantize,
+            MaxColors: normalized.MaxColors.ToString(CultureInfo.InvariantCulture),
+            QuantizerIndex: normalized.Quantizer switch
             {
                 PixelArtProcessor.QuantizerKind.Wu => 1,
                 PixelArtProcessor.QuantizerKind.Octree => 2,
                 _ => 0
             },
-            EnableMajorityDenoise: EnableMajorityDenoise,
-            MinIsland: (IslandMinArea ?? 0).ToString(CultureInfo.InvariantCulture),
-            EnableOutline: EnableOutline,
-            OutlineHex: InputParsing.NormalizeHexRgb(OutlineHex, "#000000"),
-            EnableAlphaThreshold: AlphaThreshold.HasValue,
-            AlphaThreshold: (AlphaThreshold ?? (byte)128).ToString(CultureInfo.InvariantCulture));
+            EnableMajorityDenoise: normalized.EnableMajorityDenoise,
+            MinIsland: (normalized.IslandMinArea ?? 0).ToString(CultureInfo.InvariantCulture),
+            EnableOutline: normalized.EnableOutline,
+            OutlineHex: normalized.OutlineHex,
+            EnableAlphaThreshold: normalized.AlphaThreshold.HasValue,
+            AlphaThreshold: (normalized.AlphaThreshold ?? (byte)128).ToString(CultureInfo.InvariantCulture));
     }
 
     public bool TryBuildOptionsFromFormState(PipelineFormState formState, bool includeOutline, out PixelArtPipeline.Options options, out string error)
@@ -208,19 +236,20 @@ public sealed class PipelineViewModel
         EnableChroma = chromaEnabled;
         ChromaSnapRgb = formState.EnableChromaSnapRgb;
         ChromaHex = InputParsing.NormalizeHexRgb(formState.ChromaHex, "#00FF00");
-        ChromaTolerance = Math.Max(0, InputParsing.ParseInt(formState.ChromaTolerance, 0));
+        var normalizedTolerance = ParseIntInRange(formState.ChromaTolerance, 0, 0, int.MaxValue);
+        ChromaTolerance = normalizedTolerance;
         EnableAdvancedCleaner = advancedEnabled;
-        BilateralSigmaSpatial = ParseDouble(formState.BilateralSigmaSpatial, 1.25, 0.5, 6.0);
-        BilateralSigmaRange = ParseDouble(formState.BilateralSigmaRange, 0.085, 0.01, 0.35);
-        BilateralPasses = Math.Clamp(InputParsing.ParseInt(formState.BilateralPasses, 1), 1, 3);
+        BilateralSigmaSpatial = ParseDoubleInRange(formState.BilateralSigmaSpatial, 1.25, 0.5, 6.0);
+        BilateralSigmaRange = ParseDoubleInRange(formState.BilateralSigmaRange, 0.085, 0.01, 0.35);
+        BilateralPasses = ParseIntInRange(formState.BilateralPasses, 1, 1, 3);
         EnablePixelGridEnforce = formState.EnablePixelGridEnforce;
-        NativeWidth = Math.Max(1, InputParsing.ParseInt(formState.NativeWidth, 64));
-        NativeHeight = Math.Max(1, InputParsing.ParseInt(formState.NativeHeight, 64));
+        NativeWidth = ParseIntInRange(formState.NativeWidth, 64, 1, int.MaxValue);
+        NativeHeight = ParseIntInRange(formState.NativeHeight, 64, 1, int.MaxValue);
         EnablePaletteSnap = formState.EnablePaletteSnap;
         PaletteId = (formState.PaletteId ?? string.Empty).Trim();
         PaletteMetadataPath = (formState.PaletteMetadataPath ?? string.Empty).Trim();
         EnableQuantize = quantEnabled;
-        MaxColors = Math.Clamp(InputParsing.ParseInt(formState.MaxColors, 16), 2, 256);
+        MaxColors = ParseIntInRange(formState.MaxColors, 16, 2, 256);
         Quantizer = formState.QuantizerIndex switch
         {
             1 => PixelArtProcessor.QuantizerKind.Wu,
@@ -229,17 +258,49 @@ public sealed class PipelineViewModel
         };
         EnableMajorityDenoise = majorityEnabled;
         var defaultMinIsland = ActivePreset == PresetKind.AggressiveRecover ? 3 : 2;
-        IslandMinArea = majorityEnabled ? Math.Max(1, InputParsing.ParseInt(formState.MinIsland, defaultMinIsland)) : null;
+        IslandMinArea = majorityEnabled ? ParseIntInRange(formState.MinIsland, defaultMinIsland, 1, int.MaxValue) : null;
         EnableOutline = outlineEnabled;
         OutlineHex = InputParsing.NormalizeHexRgb(formState.OutlineHex, "#000000");
-        AlphaThreshold = alphaEnabled ? (byte)Math.Clamp(InputParsing.ParseInt(formState.AlphaThreshold, 128), 0, 255) : null;
+        AlphaThreshold = alphaEnabled ? (byte)ParseIntInRange(formState.AlphaThreshold, 128, 0, 255) : null;
         EnableRecoverFill = ActivePreset == PresetKind.AggressiveRecover;
 
         options = BuildOptions(chromaColor, outlineColor, includeOutline);
         return true;
     }
 
-    private static double ParseDouble(string? s, double fallback, double min, double max)
+    private PipelineValidatedSettings BuildValidatedSettings()
+    {
+        return new PipelineValidatedSettings(
+            EnableChroma: EnableChroma,
+            ChromaSnapRgb: ChromaSnapRgb,
+            ChromaHex: InputParsing.NormalizeHexRgb(ChromaHex, "#00FF00"),
+            ChromaTolerance: ParseIntInRange(ChromaTolerance.ToString(CultureInfo.InvariantCulture), 0, 0, int.MaxValue),
+            EnableAdvancedCleaner: EnableAdvancedCleaner,
+            BilateralSigmaSpatial: ParseDoubleInRange(BilateralSigmaSpatial.ToString(CultureInfo.InvariantCulture), 1.25, 0.5, 6.0),
+            BilateralSigmaRange: ParseDoubleInRange(BilateralSigmaRange.ToString(CultureInfo.InvariantCulture), 0.085, 0.01, 0.35),
+            BilateralPasses: ParseIntInRange(BilateralPasses.ToString(CultureInfo.InvariantCulture), 1, 1, 3),
+            EnablePixelGridEnforce: EnablePixelGridEnforce,
+            NativeWidth: ParseIntInRange(NativeWidth.ToString(CultureInfo.InvariantCulture), 64, 1, int.MaxValue),
+            NativeHeight: ParseIntInRange(NativeHeight.ToString(CultureInfo.InvariantCulture), 64, 1, int.MaxValue),
+            EnablePaletteSnap: EnablePaletteSnap,
+            PaletteId: (PaletteId ?? string.Empty).Trim(),
+            PaletteMetadataPath: (PaletteMetadataPath ?? string.Empty).Trim(),
+            EnableQuantize: EnableQuantize,
+            MaxColors: ParseIntInRange(MaxColors.ToString(CultureInfo.InvariantCulture), 16, 2, 256),
+            Quantizer: Quantizer,
+            EnableMajorityDenoise: EnableMajorityDenoise,
+            IslandMinArea: IslandMinArea is > 0 ? IslandMinArea : null,
+            EnableOutline: EnableOutline,
+            OutlineHex: InputParsing.NormalizeHexRgb(OutlineHex, "#000000"),
+            AlphaThreshold: AlphaThreshold is null ? null : (byte)ParseIntInRange(AlphaThreshold.Value.ToString(CultureInfo.InvariantCulture), 128, 0, 255),
+            EnableRecoverFill: EnableRecoverFill,
+            RecoverIterations: ParseIntInRange(RecoverIterations.ToString(CultureInfo.InvariantCulture), 1, 1, int.MaxValue));
+    }
+
+    private static int ParseIntInRange(string? s, int fallback, int min, int max)
+        => Math.Clamp(InputParsing.ParseInt(s, fallback), min, max);
+
+    private static double ParseDoubleInRange(string? s, double fallback, double min, double max)
     {
         if (string.IsNullOrWhiteSpace(s))
             return fallback;
