@@ -73,7 +73,7 @@ public static class AiCleanupWizard
 
         if (o.BinarizeAlpha)
         {
-            AlphaThreshold.ApplyInPlace(image, o.AlphaThreshold);
+            PipelineSharedStages.ApplyAlphaThreshold(image, o.AlphaThreshold);
             report.Steps.Add($"alpha→{o.AlphaThreshold}");
         }
 
@@ -85,23 +85,20 @@ public static class AiCleanupWizard
 
         if (o.DenoiseIslands)
         {
-            IslandDenoise.ApplyInPlace(image, new IslandDenoise.Options(
-                alphaThreshold: 1,
-                minIslandArea:  Math.Max(1, o.IslandMinSize),
-                connectivity:   PixelConnectivity.Eight));
+            PipelineSharedStages.ApplyIslandDenoise(image, o.IslandMinSize, PixelConnectivity.Eight);
             report.Steps.Add($"isole < {o.IslandMinSize}");
         }
 
         if (o.ReducePalette)
         {
             var n = Math.Clamp(o.PaletteColors, 2, 256);
-            var palette = PaletteExtractor.Extract(image, new PaletteExtractor.Options(Colors: n));
+            var palette = PipelineSharedStages.ApplyPaletteReduction(
+                image,
+                n,
+                o.PaletteDither ? PaletteMapper.DitherMode.FloydSteinberg : PaletteMapper.DitherMode.None,
+                PixelArtProcessor.QuantizerKind.KMeansOklab);
             if (palette.Count > 0)
-            {
-                PaletteMapper.ApplyInPlace(image, palette,
-                    o.PaletteDither ? PaletteMapper.DitherMode.FloydSteinberg : PaletteMapper.DitherMode.None);
                 report.Steps.Add($"palette {palette.Count}{(o.PaletteDither ? " +dither" : "")}");
-            }
         }
 
         return report;
