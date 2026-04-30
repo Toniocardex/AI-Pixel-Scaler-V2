@@ -151,7 +151,7 @@
         </ToggleButton>
         <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar" IsVisible="False"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
-                       Width="48"
+                       Width="56"
                        ToolTip.Tip="Dimensione celle griglia in px (es. 8, 16, 32, 64…)"/>
 
         <ToggleButton x:Name="ChkSnapGrid" Classes="tool-toggle"
@@ -163,7 +163,7 @@
         </ToggleButton>
         <NumericUpDown x:Name="TxtSnapSize" Classes="toolbar" IsVisible="False"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
-                       Width="48" IsEnabled="False"
+                       Width="56" IsEnabled="False"
                        ToolTip.Tip="Passo griglia magnetica in px (rotellina del mouse per aumentare/diminuire)"/>
         <Button x:Name="BtnCenterCanvas" Classes="tool"
                 ToolTip.Tip="Recentra l'immagine nella viewport mantenendo lo zoom corrente">
@@ -315,10 +315,22 @@
       <Border Grid.Column="0" Background="#0c0c14" BorderBrush="#1e1e2e" BorderThickness="0,0,1,0">
         <StackPanel Margin="8,10" Spacing="8">
           <TextBlock Text="Workflow" Foreground="#7f7f98" FontSize="10" HorizontalAlignment="Center"/>
-          <ToggleButton x:Name="BtnStepImporta" Classes="tool-toggle" Content="1 · Importa"/>
-          <ToggleButton x:Name="BtnStepPulisci" Classes="tool-toggle" Content="2 · Pulisci"/>
-          <ToggleButton x:Name="BtnStepSliceAllinea" Classes="tool-toggle" Content="3 · Slice"/>
-          <ToggleButton x:Name="BtnStepEsporta" Classes="tool-toggle" Content="4 · Esporta"/>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepImporta" Classes="tool-toggle" Content="1 · Importa"/>
+            <TextBlock x:Name="TxtStepImportaState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepPulisci" Classes="tool-toggle" Content="2 · Pulisci"/>
+            <TextBlock x:Name="TxtStepPulisciState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepSliceAllinea" Classes="tool-toggle" Content="3 · Slice"/>
+            <TextBlock x:Name="TxtStepSliceState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleButton x:Name="BtnStepEsporta" Classes="tool-toggle" Content="4 · Esporta"/>
+            <TextBlock x:Name="TxtStepEsportaState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+          </StackPanel>
         </StackPanel>
       </Border>
 

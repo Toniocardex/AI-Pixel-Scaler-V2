@@ -45,6 +45,10 @@ public partial class MainWindow : Window
     private readonly PipelineViewModel _pipelineVm = new();
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
+    private readonly DelegateCommand _runQuickProcessCommand;
+    private readonly DelegateCommand _applySafePresetCommand;
+    private readonly DelegateCommand _applyAggressivePresetCommand;
+    private readonly DelegateCommand _applyPipelineCommand;
     private readonly WorkspaceTabsController _workspaceTabs = new();
     private readonly UiPreferencesService _uiPreferences = new();
     private bool _workspaceTabSwitching;
@@ -56,6 +60,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _runQuickProcessCommand = new DelegateCommand(RunQuickProcess, () => _document is not null);
+        _applySafePresetCommand = new DelegateCommand(ApplySafePresetToControls, () => _document is not null);
+        _applyAggressivePresetCommand = new DelegateCommand(ApplyAggressivePresetToControls, () => _document is not null);
+        _applyPipelineCommand = new DelegateCommand(RunPixelPipeline, () => _document is not null);
         _undoCoordinator = new WorkspaceUndoCoordinator(MenuUndo, BtnUndo, MaxUndo, () =>
         {
             _workspaceTabs.MarkActiveDirty();
@@ -147,10 +155,10 @@ public partial class MainWindow : Window
         SliderPivotY.ValueChanged += (_, _) => UpdatePivotLabels();
 
         // Passo 1 — Pulisci
-        BtnQuickProcess.Click += (_, _) => RunQuickProcess();
-        BtnPresetSafe.Click += (_, _) => ApplySafePresetToControls();
-        BtnPresetAggressiveRecover.Click += (_, _) => ApplyAggressivePresetToControls();
-        BtnPipeApply.Click += (_, _) => RunPixelPipeline();
+        BtnQuickProcess.Click += (_, _) => _runQuickProcessCommand.Execute(null);
+        BtnPresetSafe.Click += (_, _) => _applySafePresetCommand.Execute(null);
+        BtnPresetAggressiveRecover.Click += (_, _) => _applyAggressivePresetCommand.Execute(null);
+        BtnPipeApply.Click += (_, _) => _applyPipelineCommand.Execute(null);
         HookPipelinePresetResetOnManualChanges();
         _isApplyingPipelinePreset = true;
         try
@@ -1569,7 +1577,7 @@ public partial class MainWindow : Window
                 await OpenImageAsync();
                 break;
             case WorkflowShellViewModel.WorkflowStep.Pulisci:
-                RunQuickProcess();
+                _runQuickProcessCommand.Execute(null);
                 break;
             case WorkflowShellViewModel.WorkflowStep.SliceAllinea:
                 RunCcl();
@@ -1652,8 +1660,29 @@ public partial class MainWindow : Window
         BtnStepSliceAllinea.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.SliceAllinea;
         BtnStepEsporta.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Esporta;
 
-        TxtWorkflowStepSummary.Text = _workflowShell.StepSummary;
+        TxtWorkflowStepSummary.Text = _workflowShell.ActiveStep switch
+        {
+            WorkflowShellViewModel.WorkflowStep.Importa => $"{_workflowShell.StepSummary} · Apri un file PNG da elaborare.",
+            WorkflowShellViewModel.WorkflowStep.Pulisci => $"{_workflowShell.StepSummary} · Applica un preset o workflow rapido.",
+            WorkflowShellViewModel.WorkflowStep.SliceAllinea => $"{_workflowShell.StepSummary} · Rileva/sistema le celle sprite.",
+            WorkflowShellViewModel.WorkflowStep.Esporta => $"{_workflowShell.StepSummary} · Esporta atlas PNG/JSON.",
+            _ => _workflowShell.StepSummary
+        };
         BtnWorkflowPrimaryAction.Content = _workflowShell.PrimaryActionLabel;
+        UpdateWorkflowStepStates();
+    }
+
+    private void UpdateWorkflowStepStates()
+    {
+        var hasDoc = _document is not null;
+        var cleanDone = hasDoc && TxtQuickColorsAfter.Text != "-" &&
+                        !string.Equals(TxtQuickColorsBefore.Text, TxtQuickColorsAfter.Text, StringComparison.Ordinal);
+        var hasCells = _cells.Count > 0;
+
+        TxtStepImportaState.Text = hasDoc ? "✔ completato" : "● richiesto";
+        TxtStepPulisciState.Text = !hasDoc ? "🔒 bloccato" : (cleanDone ? "✔ completato" : "● richiesto");
+        TxtStepSliceState.Text = !cleanDone ? "🔒 bloccato" : (hasCells ? "✔ completato" : "● richiesto");
+        TxtStepEsportaState.Text = !hasCells ? "🔒 bloccato" : "● pronto";
     }
 
     private void SetWorkspaceBadge(string text, string bgHex, string borderHex, string fgHex)
