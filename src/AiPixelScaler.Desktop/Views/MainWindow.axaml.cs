@@ -189,6 +189,12 @@ public partial class MainWindow : Window
         ChkShowAdvancedTabs.IsCheckedChanged += (_, _) =>
         {
             var show = ChkShowAdvancedTabs.IsChecked == true;
+            if (!show && (ReferenceEquals(MainTabs.SelectedItem, TabStylize) ||
+                          ReferenceEquals(MainTabs.SelectedItem, TabTemplate) ||
+                          ReferenceEquals(MainTabs.SelectedItem, TabSelection)))
+            {
+                MainTabs.SelectedIndex = 0;
+            }
             TabStylize.IsVisible = show;
             TabTemplate.IsVisible = show;
             TabSelection.IsVisible = show;
@@ -2037,7 +2043,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnMainTabChanged(object? sender, Avalonia.Controls.SelectionChangedEventArgs e)
     {
-        var entering = MainTabs.SelectedIndex == SelectionCanvasTabIndex;
+        var entering = ReferenceEquals(MainTabs.SelectedItem, TabSelection);
         EnterSelectionCanvas(entering);
     }
 
