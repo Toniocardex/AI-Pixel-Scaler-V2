@@ -222,6 +222,12 @@ public partial class MainWindow : Window
         BtnWorkspaceExportPng.Click += async (_, _) => await ExportPngAsync();
         BtnWorkspaceExportJson.Click += async (_, _) => await ExportJsonAsync();
         BtnWorkspaceGuideAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
+        BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
+        BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
+        BtnStepImporta.Click += (_, _) => SelectWorkflowStep(WorkflowStep.Importa);
+        BtnStepPulisci.Click += (_, _) => SelectWorkflowStep(WorkflowStep.Pulisci);
+        BtnStepSliceAllinea.Click += (_, _) => SelectWorkflowStep(WorkflowStep.SliceAllinea);
+        BtnStepEsporta.Click += (_, _) => SelectWorkflowStep(WorkflowStep.Esporta);
         BtnGoAllinea.Click += (_, _) => MainTabs.SelectedIndex = 2;
         BtnGoStilizza.Click += (_, _) =>
         {
@@ -1562,6 +1568,33 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task AdvanceWorkflowStepAsync()
+    {
+        var next = _activeWorkflowStep switch
+        {
+            WorkflowStep.Importa => WorkflowStep.Pulisci,
+            WorkflowStep.Pulisci => WorkflowStep.SliceAllinea,
+            WorkflowStep.SliceAllinea => WorkflowStep.Esporta,
+            _ => WorkflowStep.Esporta
+        };
+        SelectWorkflowStep(next);
+        await RunWorkspaceGuideActionAsync();
+    }
+
+    private void SelectWorkflowStep(WorkflowStep step)
+    {
+        _activeWorkflowStep = step;
+        MainTabs.SelectedIndex = step switch
+        {
+            WorkflowStep.Importa => 0,
+            WorkflowStep.Pulisci => 1,
+            WorkflowStep.SliceAllinea => 2,
+            WorkflowStep.Esporta => 0,
+            _ => 0
+        };
+        UpdateWorkflowShell();
+    }
+
     private void UpdateWorkspaceGuidance()
     {
         if (_document is null)
@@ -1570,6 +1603,7 @@ public partial class MainWindow : Window
             SetWorkspaceBadge("BLOCCATO", "#3f1f24", "#6a2f39", "#ffd9df");
             TxtWorkspaceDependencyStatus.Text = "Manca immagine sorgente. Apri un file per iniziare.";
             BtnWorkspaceGuideAction.Content = "Step 1 · Importa";
+            UpdateWorkflowShell();
             return;
         }
 
@@ -1579,6 +1613,7 @@ public partial class MainWindow : Window
             SetWorkspaceBadge("IN CORSO", "#203047", "#2e4a6f", "#d4e7ff");
             TxtWorkspaceDependencyStatus.Text = "Immagine caricata. Applica una pulizia rapida prima del slicing.";
             BtnWorkspaceGuideAction.Content = "Step 2 · Pulisci";
+            UpdateWorkflowShell();
             return;
         }
 
@@ -1588,6 +1623,7 @@ public partial class MainWindow : Window
             SetWorkspaceBadge("ATTENZIONE", "#3d3318", "#6d5922", "#ffe8b2");
             TxtWorkspaceDependencyStatus.Text = "Manca slicing: rileva o crea celle sprite prima dell'export frame-based.";
             BtnWorkspaceGuideAction.Content = "Step 3 · Slice/Allinea";
+            UpdateWorkflowShell();
             return;
         }
 
@@ -1595,6 +1631,26 @@ public partial class MainWindow : Window
         SetWorkspaceBadge("PRONTO", "#173927", "#266344", "#c9f5dd");
         TxtWorkspaceDependencyStatus.Text = $"Slicing pronto: {_cells.Count} celle disponibili. Puoi esportare subito.";
         BtnWorkspaceGuideAction.Content = "Step 4 · Esporta";
+        UpdateWorkflowShell();
+    }
+
+    private void UpdateWorkflowShell()
+    {
+        BtnStepImporta.IsChecked = _activeWorkflowStep == WorkflowStep.Importa;
+        BtnStepPulisci.IsChecked = _activeWorkflowStep == WorkflowStep.Pulisci;
+        BtnStepSliceAllinea.IsChecked = _activeWorkflowStep == WorkflowStep.SliceAllinea;
+        BtnStepEsporta.IsChecked = _activeWorkflowStep == WorkflowStep.Esporta;
+
+        var stepText = _activeWorkflowStep switch
+        {
+            WorkflowStep.Importa => "Step 1/4 · Importa",
+            WorkflowStep.Pulisci => "Step 2/4 · Pulisci",
+            WorkflowStep.SliceAllinea => "Step 3/4 · Slice/Allinea",
+            WorkflowStep.Esporta => "Step 4/4 · Esporta",
+            _ => "Step 1/4 · Importa"
+        };
+        TxtWorkflowStepSummary.Text = stepText;
+        BtnWorkflowPrimaryAction.Content = BtnWorkspaceGuideAction.Content;
     }
 
     private void SetWorkspaceBadge(string text, string bgHex, string borderHex, string fgHex)
