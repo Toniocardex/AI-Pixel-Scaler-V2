@@ -437,7 +437,7 @@ public partial class MainWindow : Window
 
     private void InitializeWorkspaceTabs()
     {
-        WorkspaceTabs.ItemsSource = _workspaceTabs.Headers;
+        WorkspaceTabs.ItemsSource = _workspaceTabs.StripItems;
         WorkspaceTabs.SelectionChanged += OnWorkspaceTabsSelectionChanged;
         BtnWorkspaceNewTab.Click += (_, _) => AddNewWorkspaceTab();
         BtnWorkspaceCloseTab.Click += (_, _) => CloseActiveWorkspaceTab();
@@ -472,10 +472,61 @@ public partial class MainWindow : Window
             SetStatus("Serve almeno un workspace aperto.");
             return;
         }
+        CloseWorkspaceTabAt(_workspaceTabs.ActiveIndex);
+    }
+
+    /// <summary>Chiude il tab all’indice dato; salva il runtime solo se necessario e aggiorna selezione senza restore se il tab chiuso non era attivo.</summary>
+    private void CloseWorkspaceTabAt(int index)
+    {
+        if (index < 0 || index >= _workspaceTabs.Count)
+            return;
+
+        if (!_workspaceTabs.CanClose)
+        {
+            SetStatus("Serve almeno un workspace aperto.");
+            return;
+        }
+
+        var closingActive = index == _workspaceTabs.ActiveIndex;
         SaveCurrentWorkspaceState();
-        _workspaceTabs.TryCloseActive();
+
+        if (closingActive)
+            WorkspaceTabs.SelectedIndex = -1;
+
+        if (!_workspaceTabs.TryCloseAt(index))
+        {
+            if (closingActive && _workspaceTabs.Count > 0)
+                WorkspaceTabs.SelectedIndex = _workspaceTabs.ActiveIndex;
+            return;
+        }
+
         RefreshWorkspaceChrome();
-        SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+
+        if (closingActive)
+            SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+        else
+        {
+            _workspaceTabSwitching = true;
+            try
+            {
+                WorkspaceTabs.SelectedIndex = _workspaceTabs.ActiveIndex;
+            }
+            finally
+            {
+                _workspaceTabSwitching = false;
+            }
+        }
+    }
+
+    private void OnWorkspaceTabStripCloseClick(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Button { Tag: WorkspaceTabStripItem item })
+            return;
+        var idx = _workspaceTabs.IndexOfStripItem(item);
+        if (idx < 0)
+            return;
+        CloseWorkspaceTabAt(idx);
     }
 
     private async Task AddWorkspaceFromClipboardAsync()

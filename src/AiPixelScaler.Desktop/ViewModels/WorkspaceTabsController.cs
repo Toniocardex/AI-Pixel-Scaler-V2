@@ -6,14 +6,15 @@ namespace AiPixelScaler.Desktop.ViewModels;
 
 /// <summary>
 /// Gestisce ciclo di vita e metadati UI dei workspace tab.
-/// Non conosce la UI: espone header, stato attivo e contesto.
+/// Non conosce la UI: espone strip items, stato attivo e contesto.
 /// </summary>
 public sealed class WorkspaceTabsController : IDisposable
 {
-    private readonly ObservableCollection<string> _headers = [];
+    private readonly ObservableCollection<WorkspaceTabStripItem> _stripItems = [];
     private readonly List<WorkspaceTabViewModel> _tabs = [];
 
-    public ReadOnlyObservableCollection<string> Headers { get; }
+    public ReadOnlyObservableCollection<WorkspaceTabStripItem> StripItems { get; }
+
     public int ActiveIndex { get; private set; } = -1;
     public bool CanClose => _tabs.Count > 1;
     public int Count => _tabs.Count;
@@ -24,8 +25,10 @@ public sealed class WorkspaceTabsController : IDisposable
 
     public WorkspaceTabsController()
     {
-        Headers = new ReadOnlyObservableCollection<string>(_headers);
+        StripItems = new ReadOnlyObservableCollection<WorkspaceTabStripItem>(_stripItems);
     }
+
+    public int IndexOfStripItem(WorkspaceTabStripItem item) => _stripItems.IndexOf(item);
 
     public void Initialize(WorkspaceTabViewModel initial)
     {
@@ -60,16 +63,25 @@ public sealed class WorkspaceTabsController : IDisposable
         RefreshChrome();
     }
 
-    public bool TryCloseActive()
+    /// <summary>Chiude il tab all’indice dato. Aggiorna <see cref="ActiveIndex"/> e lo strip.</summary>
+    public bool TryCloseAt(int index)
     {
-        if (_tabs.Count <= 1 || ActiveIndex < 0 || ActiveIndex >= _tabs.Count)
+        if (_tabs.Count <= 1 || index < 0 || index >= _tabs.Count)
             return false;
-        _tabs[ActiveIndex].Dispose();
-        _tabs.RemoveAt(ActiveIndex);
-        ActiveIndex = Math.Clamp(ActiveIndex - 1, 0, _tabs.Count - 1);
+
+        _tabs[index].Dispose();
+        _tabs.RemoveAt(index);
+
+        if (index < ActiveIndex)
+            ActiveIndex--;
+        else if (index == ActiveIndex)
+            ActiveIndex = Math.Clamp(index - 1, 0, _tabs.Count - 1);
+
         RefreshChrome();
         return true;
     }
+
+    public bool TryCloseActive() => TryCloseAt(ActiveIndex);
 
     public void MarkActiveDirty(bool dirty = true)
     {
@@ -81,14 +93,31 @@ public sealed class WorkspaceTabsController : IDisposable
 
     public void MarkActiveClean() => MarkActiveDirty(false);
 
-    private static string DisplayTitle(WorkspaceTabViewModel ws) =>
-        ws.IsDirty ? $"{ws.Title} *" : ws.Title;
-
     private void RefreshChrome()
     {
-        _headers.Clear();
-        foreach (var tab in _tabs)
-            _headers.Add(DisplayTitle(tab));
+        var allowClose = _tabs.Count > 1;
+
+        // Non usare Clear(): TabControl + SelectedIndex può crashare se si svuota la ItemsSource.
+        for (var i = 0; i < _tabs.Count; i++)
+        {
+            var tab = _tabs[i];
+            if (i < _stripItems.Count)
+            {
+                var strip = _stripItems[i];
+                strip.AttachTab(tab);
+                strip.SyncDisplay(allowClose);
+            }
+            else
+            {
+                var strip = new WorkspaceTabStripItem();
+                strip.AttachTab(tab);
+                strip.SyncDisplay(allowClose);
+                _stripItems.Add(strip);
+            }
+        }
+
+        while (_stripItems.Count > _tabs.Count)
+            _stripItems.RemoveAt(_stripItems.Count - 1);
 
         var active = ActiveTab;
         ContextText = active is null
@@ -101,7 +130,8 @@ public sealed class WorkspaceTabsController : IDisposable
         foreach (var tab in _tabs)
             tab.Dispose();
         _tabs.Clear();
-        _headers.Clear();
+        while (_stripItems.Count > 0)
+            _stripItems.RemoveAt(_stripItems.Count - 1);
         ActiveIndex = -1;
     }
 
