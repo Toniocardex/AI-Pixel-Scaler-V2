@@ -14,11 +14,13 @@ using AiPixelScaler.Core.Pipeline.Slicing;
 using AiPixelScaler.Core.Pipeline.Templates;
 using AiPixelScaler.Core.Pipeline.Tiling;
 using AiPixelScaler.Desktop.Controls;
+using AiPixelScaler.Desktop.Imaging;
 using AiPixelScaler.Desktop.Services;
 using AiPixelScaler.Desktop.Utilities;
 using AiPixelScaler.Desktop.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
@@ -70,6 +72,8 @@ public partial class MainWindow : Window
         MenuExit.Click    += (_, _) => Close();
         MenuSandbox.Click += (_, _) => OpenSandbox();
         MenuUndo.Click    += (_, _) => TryUndo();
+        MenuCopyImage.Click += async (_, _) => await TryCopyImageToClipboardAsync();
+        MenuPasteImage.Click += async (_, _) => await TryPasteFromClipboardAsync();
 
         // Toolbar
         BtnOpen.Click    += async (_, _) => await OpenImageAsync();
@@ -212,6 +216,8 @@ public partial class MainWindow : Window
                 : "Tab avanzate nascoste (layout semplificato).");
         };
         BtnWorkspaceOpen.Click += async (_, _) => await OpenImageAsync();
+        BtnWorkspaceCopyToClipboard.Click += async (_, _) => await TryCopyImageToClipboardAsync();
+        BtnWorkspacePasteFromClipboard.Click += async (_, _) => await TryPasteFromClipboardAsync();
         BtnWorkspaceExportPng.Click += async (_, _) => await ExportPngAsync();
         BtnWorkspaceExportJson.Click += async (_, _) => await ExportJsonAsync();
         BtnWorkspaceGuideAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
@@ -309,6 +315,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (e.Key == Key.C && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _ = TryCopyImageToClipboardAsync();
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Delete && e.KeyModifiers == KeyModifiers.None)
         {
             if (_document is not null && _activeSelectionBox is not null)
@@ -323,6 +336,7 @@ public partial class MainWindow : Window
         {
             TryUndo();
             e.Handled = true;
+            return;
         }
     }
 
@@ -1312,6 +1326,70 @@ public partial class MainWindow : Window
             () => Editor.IsFrameEditMode || _pasteModeActive || Editor.IsTilePreviewMode,
             (iw, ih, cw, ch) => PasteOversizeDialog.ShowAsync(this, iw, ih, cw, ch),
             msg => SetStatus(msg));
+    }
+
+    private async Task TryCopyImageToClipboardAsync()
+    {
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        if (clipboard is null)
+        {
+            SetStatus("Appunti non disponibili.");
+            return;
+        }
+
+        if (_document is null)
+        {
+            SetStatus("Apri prima un'immagine.");
+            return;
+        }
+
+        Image<Rgba32>? cropped = null;
+        Bitmap? bmp = null;
+        try
+        {
+            Image<Rgba32> pixelsSource = _document;
+            string detail;
+
+            if (_activeSelectionBox is not null)
+            {
+                var box = _activeSelectionBox.Value;
+                var minX = Math.Clamp(box.MinX, 0, _document.Width);
+                var maxX = Math.Clamp(box.MaxX, 0, _document.Width);
+                var minY = Math.Clamp(box.MinY, 0, _document.Height);
+                var maxY = Math.Clamp(box.MaxY, 0, _document.Height);
+                if (minX >= maxX || minY >= maxY)
+                {
+                    SetStatus("Selezione non valida per la copia.");
+                    return;
+                }
+
+                var clamped = new AxisAlignedBox(minX, minY, maxX, maxY);
+                cropped = AtlasCropper.Crop(_document, in clamped);
+                pixelsSource = cropped;
+                detail = $"{cropped.Width}×{cropped.Height} px (selezione ROI)";
+            }
+            else
+                detail = $"{_document.Width}×{_document.Height} px";
+
+            bmp = Rgba32BitmapBridge.ToBitmap(pixelsSource);
+            if (bmp is null)
+            {
+                SetStatus("Impossibile preparare l'immagine per gli appunti.");
+                return;
+            }
+
+            await clipboard.SetBitmapAsync(bmp).ConfigureAwait(true);
+            SetStatus($"Copiato negli appunti: {detail}.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Copia negli appunti: {ex.Message}");
+        }
+        finally
+        {
+            cropped?.Dispose();
+            bmp?.Dispose();
+        }
     }
 
     private void CommitFloatingPaste() =>

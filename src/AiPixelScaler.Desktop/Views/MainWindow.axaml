@@ -97,6 +97,12 @@
       </MenuItem>
       <MenuItem Header="_Modifica">
         <MenuItem x:Name="MenuUndo" Header="Annulla" InputGesture="Ctrl+Z"/>
+        <MenuItem x:Name="MenuCopyImage"
+                  Header="Copia immagine negli appunti"
+                  InputGesture="Ctrl+C"/>
+        <MenuItem x:Name="MenuPasteImage"
+                  Header="Incolla immagine nel canvas…"
+                  InputGesture="Ctrl+V"/>
       </MenuItem>
       <MenuItem Header="_Strumenti">
         <MenuItem x:Name="MenuAnimPreview" Header="Anteprima animazione…" InputGesture="Ctrl+Shift+A"/>
@@ -234,10 +240,10 @@
             </StackPanel>
           </Button>
           <Button x:Name="BtnWorkspaceNewFromClipboard" Classes="tool"
-                  ToolTip.Tip="Crea un nuovo workspace dagli appunti (immagine)">
+                  ToolTip.Tip="Apre un nuovo tab workspace con l’immagine negli appunti. Per incollare sul canvas del tab corrente usa Modifica → Incolla o il pulsante nel tab Workspace (Ctrl+V).">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Path Data="{StaticResource IconPaste}" Classes="tool-icon"/>
-              <TextBlock Text="Nuovo da appunti" VerticalAlignment="Center"/>
+              <TextBlock Text="Nuovo tab da appunti" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
         </StackPanel>
@@ -434,6 +440,28 @@
                     <TextBlock Text="Apri immagine" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
+
+                <Border Background="#0f1420" BorderBrush="#252538" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,8,0,0">
+                  <StackPanel Spacing="6">
+                    <TextBlock Classes="fieldLabel" Text="Appunti"/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap"
+                               Text="Copia (Ctrl+C) salva l’immagine corrente negli appunti — o solo l’area ROI se hai una selezione attiva. Incolla nel canvas (Ctrl+V) mette un’immagine dagli appunti sul foglio (Invio conferma · Esc annulla). «Nuovo tab da appunti» in alto apre un workspace separato."/>
+                    <Button x:Name="BtnWorkspaceCopyToClipboard" Classes="secondary" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Copia bitmap PNG-compatibile negli appunti (intero atlas o selezione ROI). Scorciatoia Ctrl+C — come Modifica → Copia.">
+                      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                        <Path Data="{StaticResource IconCopy}" Classes="action-icon"/>
+                        <TextBlock Text="Copia negli appunti" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnWorkspacePasteFromClipboard" Classes="secondary" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Incolla PNG/bitmap dagli appunti sul canvas corrente — come Ctrl+V. Non disponibile in atlas pulito / workbench frame / anteprima tile.">
+                      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                        <Path Data="{StaticResource IconPaste}" Classes="action-icon"/>
+                        <TextBlock Text="Incolla nel canvas" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Border>
 
                 <Separator Classes="h"/>
 
