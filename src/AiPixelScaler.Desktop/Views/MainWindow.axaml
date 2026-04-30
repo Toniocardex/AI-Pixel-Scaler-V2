@@ -175,7 +175,7 @@
         <Button x:Name="BtnToolbarRilevaSprite" Classes="tool" MinWidth="104"
                 ToolTip.Tip="Rilevamento automatico sprite (CCL): analizza l'immagine e aggiorna celle/lista overlay. Disponibile in ogni tab.">
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <Path Data="{StaticResource IconWand}" Classes="tool-icon"/>
+            <Path Data="{StaticResource IconTarget}" Classes="tool-icon"/>
             <TextBlock Text="Rileva sprite" VerticalAlignment="Center" TextWrapping="NoWrap"/>
           </StackPanel>
         </Button>
