@@ -233,6 +233,7 @@ public partial class MainWindow : Window
         BtnWorkspacePasteFromClipboard.Click += async (_, _) => await TryPasteFromClipboardAsync();
         BtnWorkspaceExportPng.Click += async (_, _) => await ExportPngAsync();
         BtnWorkspaceExportJson.Click += async (_, _) => await ExportJsonAsync();
+        InitAlignGridPanel();
         BtnWorkspaceGuideAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
@@ -832,6 +833,101 @@ public partial class MainWindow : Window
         Editor.SliceGridRows = 0;
         Editor.SliceGridCols = 0;
         Editor.SpriteCells = [];
+    }
+
+    private void InitAlignGridPanel()
+    {
+        ChkAlignGridPreview.IsCheckedChanged += (_, _) => PushAlignGridToEditor();
+        TxtAlignCellW.ValueChanged += (_, _) => PushAlignGridToEditor();
+        TxtAlignCellH.ValueChanged += (_, _) => PushAlignGridToEditor();
+        TxtAlignOffX.ValueChanged += (_, _) => PushAlignGridToEditor();
+        TxtAlignOffY.ValueChanged += (_, _) => PushAlignGridToEditor();
+        TxtAlignSpaceX.ValueChanged += (_, _) => PushAlignGridToEditor();
+        TxtAlignSpaceY.ValueChanged += (_, _) => PushAlignGridToEditor();
+        BtnAlignGridCrop.Click += (_, _) => RunCropToAlignGrid();
+        PushAlignGridToEditor();
+    }
+
+    private void PushAlignGridToEditor()
+    {
+        Editor.ShowAlignGrid = ChkAlignGridPreview.IsChecked == true;
+        Editor.AlignGridCellWidth = Math.Max(1, (int)(TxtAlignCellW.Value ?? 32));
+        Editor.AlignGridCellHeight = Math.Max(1, (int)(TxtAlignCellH.Value ?? 32));
+        Editor.AlignGridOffsetX = Math.Max(0, (int)(TxtAlignOffX.Value ?? 0));
+        Editor.AlignGridOffsetY = Math.Max(0, (int)(TxtAlignOffY.Value ?? 0));
+        Editor.AlignGridSpacingX = Math.Max(0, (int)(TxtAlignSpaceX.Value ?? 0));
+        Editor.AlignGridSpacingY = Math.Max(0, (int)(TxtAlignSpaceY.Value ?? 0));
+    }
+
+    private void RunCropToAlignGrid()
+    {
+        if (_document is null)
+        {
+            SetStatus("Nessuna immagine aperta.");
+            return;
+        }
+
+        var cw = Math.Max(1, (int)(TxtAlignCellW.Value ?? 32));
+        var ch = Math.Max(1, (int)(TxtAlignCellH.Value ?? 32));
+        var sx = Math.Max(0, (int)(TxtAlignSpaceX.Value ?? 0));
+        var sy = Math.Max(0, (int)(TxtAlignSpaceY.Value ?? 0));
+        var ox = Math.Max(0, (int)(TxtAlignOffX.Value ?? 0));
+        var oy = Math.Max(0, (int)(TxtAlignOffY.Value ?? 0));
+
+        try
+        {
+            if (!PushUndo())
+                return;
+
+            var cropped = GridAlignmentCropper.CropToValidGrid(_document, ox, oy, cw, ch, sx, sy);
+            _document.Dispose();
+            _document = cropped;
+
+            TxtAlignOffX.Value = 0;
+            TxtAlignOffY.Value = 0;
+            PushAlignGridToEditor();
+
+            RegenerateCellsFromAlignGridAfterCrop(cw, ch, sx, sy);
+
+            _workspaceTabs.MarkActiveDirty();
+            RefreshView();
+            RefreshCellList();
+            UpdateWorkspaceGuidance();
+            UpdateWorkflowShell();
+            SetStatus($"Ritaglio griglia: {cropped.Width}×{cropped.Height} px — {_cells.Count} celle overlay.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Errore ritaglio griglia: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Dopo crop con offset azzerato: rigenera la lista sprite con gutter, senza SliceGridRows/Cols (la griglia arancione usa snap-8).
+    /// </summary>
+    private void RegenerateCellsFromAlignGridAfterCrop(int cw, int ch, int sx, int sy)
+    {
+        ClearSliceGrid();
+
+        if (_document is null)
+        {
+            _cells.Clear();
+            CellList.ItemsSource = null;
+            return;
+        }
+
+        var cols = (_document.Width + sx) / (cw + sx);
+        var rows = (_document.Height + sy) / (ch + sy);
+        if (cols < 1 || rows < 1)
+        {
+            _cells.Clear();
+            CellList.ItemsSource = null;
+            Editor.SpriteCells = [];
+            return;
+        }
+
+        _cells = GridSlicer.SliceExactWithSpacing(cols, rows, cw, ch, sx, sy).ToList();
+        Editor.SpriteCells = _cells;
     }
 
     private static Image<Rgba32> CreateWelcomeAtlas()

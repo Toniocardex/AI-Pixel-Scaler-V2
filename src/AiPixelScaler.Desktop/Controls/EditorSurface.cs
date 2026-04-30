@@ -61,6 +61,28 @@ public class EditorSurface : Control
     public static readonly StyledProperty<int> SnapThresholdProperty =
         AvaloniaProperty.Register<EditorSurface, int>(nameof(SnapThreshold), 18);
 
+    /// <summary>Overlay griglia allineamento (tile + gutter) per ritaglio atlas.</summary>
+    public static readonly StyledProperty<bool> ShowAlignGridProperty =
+        AvaloniaProperty.Register<EditorSurface, bool>(nameof(ShowAlignGrid));
+
+    public static readonly StyledProperty<int> AlignGridOffsetXProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(AlignGridOffsetX));
+
+    public static readonly StyledProperty<int> AlignGridOffsetYProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(AlignGridOffsetY));
+
+    public static readonly StyledProperty<int> AlignGridCellWidthProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(AlignGridCellWidth), 32);
+
+    public static readonly StyledProperty<int> AlignGridCellHeightProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(AlignGridCellHeight), 32);
+
+    public static readonly StyledProperty<int> AlignGridSpacingXProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(AlignGridSpacingX));
+
+    public static readonly StyledProperty<int> AlignGridSpacingYProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(AlignGridSpacingY));
+
     public static readonly StyledProperty<bool> IsEraserModeProperty =
         AvaloniaProperty.Register<EditorSurface, bool>(nameof(IsEraserMode), false);
 
@@ -238,6 +260,48 @@ public class EditorSurface : Control
     {
         get => GetValue(SnapThresholdProperty);
         set => SetValue(SnapThresholdProperty, Math.Max(1, value));
+    }
+
+    public bool ShowAlignGrid
+    {
+        get => GetValue(ShowAlignGridProperty);
+        set => SetValue(ShowAlignGridProperty, value);
+    }
+
+    public int AlignGridOffsetX
+    {
+        get => GetValue(AlignGridOffsetXProperty);
+        set => SetValue(AlignGridOffsetXProperty, Math.Max(0, value));
+    }
+
+    public int AlignGridOffsetY
+    {
+        get => GetValue(AlignGridOffsetYProperty);
+        set => SetValue(AlignGridOffsetYProperty, Math.Max(0, value));
+    }
+
+    public int AlignGridCellWidth
+    {
+        get => GetValue(AlignGridCellWidthProperty);
+        set => SetValue(AlignGridCellWidthProperty, Math.Max(1, value));
+    }
+
+    public int AlignGridCellHeight
+    {
+        get => GetValue(AlignGridCellHeightProperty);
+        set => SetValue(AlignGridCellHeightProperty, Math.Max(1, value));
+    }
+
+    public int AlignGridSpacingX
+    {
+        get => GetValue(AlignGridSpacingXProperty);
+        set => SetValue(AlignGridSpacingXProperty, Math.Max(0, value));
+    }
+
+    public int AlignGridSpacingY
+    {
+        get => GetValue(AlignGridSpacingYProperty);
+        set => SetValue(AlignGridSpacingYProperty, Math.Max(0, value));
     }
 
     /// <summary>Modalità gomma: trascina per cancellare pixel (A→0) nell'immagine.</summary>
@@ -492,7 +556,11 @@ public class EditorSurface : Control
          || change.Property == ShowGridProperty      || change.Property == WorldGridSizeProperty
          || change.Property == SliceGridRowsProperty
          || change.Property == SliceGridColsProperty || change.Property == SnapToGridProperty
-         || change.Property == SnapGridSizeProperty  || change.Property == IsEraserModeProperty
+         || change.Property == SnapGridSizeProperty  || change.Property == ShowAlignGridProperty
+         || change.Property == AlignGridOffsetXProperty || change.Property == AlignGridOffsetYProperty
+         || change.Property == AlignGridCellWidthProperty || change.Property == AlignGridCellHeightProperty
+         || change.Property == AlignGridSpacingXProperty || change.Property == AlignGridSpacingYProperty
+         || change.Property == IsEraserModeProperty
          || change.Property == EraserRadiusProperty  || change.Property == IsFrameEditModeProperty
          || change.Property == FrameSnapRadiusProperty || change.Property == FrameSnapEnabledProperty
          || change.Property == IsTilePreviewModeProperty
@@ -612,6 +680,16 @@ public class EditorSurface : Control
         {
             using (context.PushTransform(m))
                 DrawSliceGrid(context, worldW, worldH, SliceGridRows, SliceGridCols, _viewport.Zoom);
+        }
+
+        if (ShowAlignGrid && AlignGridCellWidth >= 1 && AlignGridCellHeight >= 1)
+        {
+            using (context.PushTransform(m))
+                DrawAlignGrid(context, worldW, worldH,
+                    AlignGridOffsetX, AlignGridOffsetY,
+                    AlignGridCellWidth, AlignGridCellHeight,
+                    AlignGridSpacingX, AlignGridSpacingY,
+                    _viewport.Zoom);
         }
 
         if (_spriteCells.Count > 0 && SliceGridRows == 0 && SliceGridCols == 0)
@@ -1380,5 +1458,78 @@ public class EditorSurface : Control
             ctx.DrawLine(pen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
         for (var y = 0; y <= worldH; y += step)
             ctx.DrawLine(pen, new Avalonia.Point(0, y), new Avalonia.Point(worldW, y));
+    }
+
+    /// <summary>
+    /// Griglia tile + gutter (spacing tra tile). Linee a inizio tile e, se spacing &gt; 0, a fine tile.
+    /// Coordinate mondo (pixel immagine).
+    /// </summary>
+    private static void DrawAlignGrid(DrawingContext ctx, int worldW, int worldH,
+        int offsetX, int offsetY, int cellW, int cellH, int spacingX, int spacingY, double zoom)
+    {
+        if (cellW < 1 || cellH < 1 || worldW < 1 || worldH < 1)
+            return;
+
+        var periodX = cellW + spacingX;
+        var periodY = cellH + spacingY;
+        if (periodX < 1 || periodY < 1)
+            return;
+
+        var t = 1.25 / Math.Max(zoom, 0.0001);
+        var penMajor = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(210, 140, 200, 255)), t);
+        var penGutter = spacingX > 0 || spacingY > 0
+            ? new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(160, 255, 140, 200)), t * 0.85)
+            { DashStyle = new DashStyle([4.0, 3.0], 0) }
+            : penMajor;
+
+        static double SnapLine(double v) => Math.Floor(v) + 0.5;
+
+        void Vertical(double x)
+        {
+            if (x < 0 || x > worldW) return;
+            var sx = SnapLine(x);
+            ctx.DrawLine(penMajor, new Avalonia.Point(sx, 0), new Avalonia.Point(sx, worldH));
+        }
+
+        void VerticalGutter(double x)
+        {
+            if (x < 0 || x > worldW) return;
+            var sx = SnapLine(x);
+            ctx.DrawLine(penGutter, new Avalonia.Point(sx, 0), new Avalonia.Point(sx, worldH));
+        }
+
+        void Horizontal(double y)
+        {
+            if (y < 0 || y > worldH) return;
+            var sy = SnapLine(y);
+            ctx.DrawLine(penMajor, new Avalonia.Point(0, sy), new Avalonia.Point(worldW, sy));
+        }
+
+        void HorizontalGutter(double y)
+        {
+            if (y < 0 || y > worldH) return;
+            var sy = SnapLine(y);
+            ctx.DrawLine(penGutter, new Avalonia.Point(0, sy), new Avalonia.Point(worldW, sy));
+        }
+
+        for (var vx = (double)offsetX; vx < worldW + 1e-6; vx += periodX)
+        {
+            Vertical(vx);
+            if (spacingX > 0)
+            {
+                var endX = vx + cellW;
+                VerticalGutter(endX);
+            }
+        }
+
+        for (var vy = (double)offsetY; vy < worldH + 1e-6; vy += periodY)
+        {
+            Horizontal(vy);
+            if (spacingY > 0)
+            {
+                var endY = vy + cellH;
+                HorizontalGutter(endY);
+            }
+        }
     }
 }

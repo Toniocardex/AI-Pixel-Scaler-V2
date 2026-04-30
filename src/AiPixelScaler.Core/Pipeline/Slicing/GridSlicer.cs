@@ -62,4 +62,37 @@ public static class GridSlicer
 
         return list;
     }
+
+    /// <summary>
+    /// Griglia fissa con gutter tra tile: origine (0,0); ogni colonna è spostata di <c>cellWidth + spacingX</c> px sulla X.
+    /// </summary>
+    public static IReadOnlyList<SpriteCell> SliceExactWithSpacing(
+        int cols,
+        int rows,
+        int cellWidth,
+        int cellHeight,
+        int spacingX,
+        int spacingY)
+    {
+        if (rows < 1 || cols < 1 || cellWidth < 1 || cellHeight < 1)
+            return Array.Empty<SpriteCell>();
+
+        spacingX = Math.Max(0, spacingX);
+        spacingY = Math.Max(0, spacingY);
+
+        var list = new List<SpriteCell>(rows * cols);
+        var periodX = cellWidth + spacingX;
+        var periodY = cellHeight + spacingY;
+
+        for (var r = 0; r < rows; r++)
+        for (var c = 0; c < cols; c++)
+        {
+            var minX = c * periodX;
+            var minY = r * periodY;
+            var box = new AxisAlignedBox(minX, minY, minX + cellWidth, minY + cellHeight);
+            list.Add(new SpriteCell($"r{r}c{c}", box));
+        }
+
+        return list;
+    }
 }

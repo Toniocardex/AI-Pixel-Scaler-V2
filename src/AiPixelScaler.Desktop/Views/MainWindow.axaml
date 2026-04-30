@@ -529,6 +529,48 @@
 
                 <Separator Classes="h"/>
 
+                <Expander Header="Griglia allineamento / ritaglio atlas"
+                          IsExpanded="False"
+                          Margin="0,4,0,0">
+                  <StackPanel Spacing="6" Margin="0,8,0,0">
+                    <TextBlock Classes="hint" TextWrapping="Wrap"
+                               Text="Tile, offset e gutter con anteprima sul canvas. «Applica ritaglio» tiene solo tile intere (core ImageSharp), azzera offset e rigenera le celle overlay per export."/>
+                    <CheckBox x:Name="ChkAlignGridPreview" Content="Mostra anteprima griglia" IsChecked="False"/>
+                    <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,Auto,Auto">
+                      <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                        <TextBlock Classes="hint" Text="Tile W (px)"/>
+                        <NumericUpDown x:Name="TxtAlignCellW" Value="32" Minimum="1" Maximum="4096" Increment="1" FormatString="0"/>
+                      </StackPanel>
+                      <StackPanel Grid.Row="0" Grid.Column="2" Spacing="2">
+                        <TextBlock Classes="hint" Text="Tile H (px)"/>
+                        <NumericUpDown x:Name="TxtAlignCellH" Value="32" Minimum="1" Maximum="4096" Increment="1" FormatString="0"/>
+                      </StackPanel>
+                      <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0,4,0,0">
+                        <TextBlock Classes="hint" Text="Offset X"/>
+                        <NumericUpDown x:Name="TxtAlignOffX" Value="0" Minimum="0" Maximum="8192" Increment="1" FormatString="0"/>
+                      </StackPanel>
+                      <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2" Margin="0,4,0,0">
+                        <TextBlock Classes="hint" Text="Offset Y"/>
+                        <NumericUpDown x:Name="TxtAlignOffY" Value="0" Minimum="0" Maximum="8192" Increment="1" FormatString="0"/>
+                      </StackPanel>
+                      <StackPanel Grid.Row="2" Grid.Column="0" Spacing="2" Margin="0,4,0,0">
+                        <TextBlock Classes="hint" Text="Spacing X"/>
+                        <NumericUpDown x:Name="TxtAlignSpaceX" Value="0" Minimum="0" Maximum="512" Increment="1" FormatString="0"/>
+                      </StackPanel>
+                      <StackPanel Grid.Row="2" Grid.Column="2" Spacing="2" Margin="0,4,0,0">
+                        <TextBlock Classes="hint" Text="Spacing Y"/>
+                        <NumericUpDown x:Name="TxtAlignSpaceY" Value="0" Minimum="0" Maximum="512" Increment="1" FormatString="0"/>
+                      </StackPanel>
+                    </Grid>
+                    <Button x:Name="BtnAlignGridCrop" Classes="primary" HorizontalAlignment="Stretch">
+                      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                        <Path Data="{StaticResource IconCrop}" Classes="action-icon"/>
+                        <TextBlock Text="Applica ritaglio griglia" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Expander>
+
                 <Expander Header="Pipeline avanzato"
                           IsExpanded="False"
                           Margin="0,4,0,0">

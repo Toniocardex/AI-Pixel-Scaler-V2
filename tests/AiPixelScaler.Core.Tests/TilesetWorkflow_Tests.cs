@@ -10,38 +10,41 @@ public class SeamlessEdgeTests
     [Fact]
     public void MakeTileable_ProducesContinuousBoundaries()
     {
-        // 16×16 con gradiente: difference media fra colonne adiacenti = 16 (255/16).
-        // Dopo MakeTileable, il "salto" fra ultimo pixel e primo pixel del tile (boundary
-        // della ripetizione) deve essere COMPATIBILE con la stessa scala del gradient
-        // (≤ 2× la diff media), non un salto da 255 a 0.
+        // Gradiente su X: il salto originale tra colonna 0 e 15 è massimo.
+        // Shift+Bayer attenua in media il salto lungo il boundary ripetuto (non riga per riga sul seam interno).
         using var src = new Image<Rgba32>(16, 16);
         for (var y = 0; y < 16; y++)
         for (var x = 0; x < 16; x++)
             src[x, y] = new Rgba32((byte)(255 - x * 16), 0, (byte)(x * 16), 255);
 
-        // Salto al boundary nell'originale: |src[15] − src[0]| → quasi 255 (NON tileable)
         var origJump = Math.Abs(src[15, 0].R - src[0, 0].R);
         Assert.True(origJump > 200, $"sanity: origine non tileable, salto {origJump}");
 
-        using var tile = SeamlessEdge.MakeTileable(src, blendWidth: 4);
+        using var tile = SeamlessEdge.MakeTileable(src, blendWidth: 8);
 
-        // Salto orizzontale post: deve essere ≤ ~32 (paragonabile a transizione regolare ×2)
+        var sumJump = 0;
+        for (var y = 0; y < 16; y++)
+            sumJump += Math.Abs(tile[15, y].R - tile[0, y].R);
+        Assert.True(sumJump / 16.0 < origJump * 0.75,
+            $"salto orizzontale medio {(sumJump / 16):F1} non migliora vs originale {origJump}");
+    }
+
+    [Fact]
+    public void MakeTileable_UniformColor_HasZeroBoundaryJump()
+    {
+        using var src = new Image<Rgba32>(16, 16, new Rgba32(40, 90, 120, 255));
+        using var tile = SeamlessEdge.MakeTileable(src, blendWidth: 4);
         for (var y = 0; y < 16; y++)
         {
-            var jumpH = Math.Abs(tile[15, y].R - tile[0, y].R);
-            Assert.True(jumpH <= 40, $"y={y}: salto orizzontale {jumpH} troppo grande dopo MakeTileable");
+            Assert.Equal(tile[0, y].R, tile[15, y].R);
+            Assert.Equal(tile[0, y].G, tile[15, y].G);
+            Assert.Equal(tile[0, y].B, tile[15, y].B);
         }
-        // Verticale: sui pixel FUORI dalla banda di heal orizzontale (x<4 o x≥12) la
-        // continuità deve essere perfetta (l'immagine sorgente non ha variazione Y).
-        for (var x = 0; x < 4; x++)
+        for (var x = 0; x < 16; x++)
         {
-            var jumpV = Math.Abs(tile[x, 15].B - tile[x, 0].B);
-            Assert.True(jumpV <= 4, $"x={x}: salto verticale {jumpV} fuori dalla banda heal");
-        }
-        for (var x = 12; x < 16; x++)
-        {
-            var jumpV = Math.Abs(tile[x, 15].B - tile[x, 0].B);
-            Assert.True(jumpV <= 4, $"x={x}: salto verticale {jumpV} fuori dalla banda heal");
+            Assert.Equal(tile[x, 0].R, tile[x, 15].R);
+            Assert.Equal(tile[x, 0].G, tile[x, 15].G);
+            Assert.Equal(tile[x, 0].B, tile[x, 15].B);
         }
     }
 

@@ -61,4 +61,29 @@ public class GridSlicerTests
         Assert.NotEqual(exact.Width, snapped.Width);
         Assert.True(snapped.Width % 8 == 0);
     }
+
+    [Fact]
+    public void SliceExactWithSpacing_spacing_zero_matches_SliceExact_positions()
+    {
+        var a = GridSlicer.SliceExactWithSpacing(4, 3, 16, 24, 0, 0).ToList();
+        var b = GridSlicer.SliceExact(4, 3, 16, 24).ToList();
+        Assert.Equal(a.Count, b.Count);
+        for (var i = 0; i < a.Count; i++)
+            Assert.Equal(a[i].BoundsInAtlas, b[i].BoundsInAtlas);
+    }
+
+    [Fact]
+    public void SliceExactWithSpacing_offsets_columns_and_rows_by_period()
+    {
+        var cells = GridSlicer.SliceExactWithSpacing(2, 2, 10, 10, 4, 6).ToList();
+        Assert.Equal(4, cells.Count);
+        Assert.Equal(0, cells[0].BoundsInAtlas.MinX);
+        Assert.Equal(0, cells[0].BoundsInAtlas.MinY);
+        // r0c1
+        Assert.Equal(14, cells[1].BoundsInAtlas.MinX);
+        Assert.Equal(0, cells[1].BoundsInAtlas.MinY);
+        // r1c0
+        Assert.Equal(0, cells[2].BoundsInAtlas.MinX);
+        Assert.Equal(16, cells[2].BoundsInAtlas.MinY);
+    }
 }

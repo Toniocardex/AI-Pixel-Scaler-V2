@@ -5,104 +5,90 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace AiPixelScaler.Core.Pipeline.Tiling;
 
 /// <summary>
-/// Rende un'immagine tileable (ripetibile senza giunture visibili).
+/// Rende un'immagine tileable (ripetibile senza giunture ai bordi esterni).
 ///
-/// Algoritmo (shift + Bayer dither):
-///   1. <b>Wrap shift</b> di (W/2, H/2): l'immagine viene traslata circolarmente
-///      così che gli angoli originali si congiungano al centro. I bordi destri/sinistri
-///      e top/bottom risultano automaticamente identici (tile garantito).
-///   2. <b>Heal del seam centrale</b>: la discontinuità si trova ora nelle
-///      colonne/righe centrali. Si maschera con un <b>dithering Bayer 4×4 deterministico</b>
-///      che alterna pixel originali e pixel speculari secondo una matrice di soglia.
-///
-/// Critico per pixel art: <b>NIENTE</b> alpha-blending lineare o gradient — solo scelte
-/// binarie pixel-per-pixel, così lo stile pixel-art viene preservato.
-///
-/// Bayer 4×4 (matrice di soglia normalizzata 0..15):
-///   0  8  2 10
-///  12  4 14  6
-///   3 11  1  9
-///  15  7 13  5
-///
-/// Per pixel a distanza <c>d</c> dal seam (banda di larghezza <c>blendWidth</c>):
-///   ratio   = 1 − d/blendWidth      (1 al seam, 0 al bordo banda)
-///   thresh  = Bayer(x mod 4, y mod 4) / 15
-///   if ratio &gt; thresh → sostituisci col pixel speculare oltre il seam
+/// Algoritmo <b>Shift + dither Bayer</b>:
+/// <list type="number">
+/// <item><b>Base shiftata</b>: wrap-traslazione di (W/2, H/2) — i bordi esterni dell’originale
+/// coincidono nel tiling; la discontinuità si sposta in una croce al centro.</item>
+/// <item><b>Patch</b>: pixel dell’immagine <em>non</em> shiftata, che al centro è ancora coerente.</item>
+/// <item><b>Dither</b>: vicino al centro si sceglie patch vs base con soglia Bayer 4×4 e peso
+/// da distanza dal seam — solo pixel dell’originale, niente blend alpha (pixel art pulita).</item>
+/// </list>
 /// </summary>
 public static class SeamlessEdge
 {
-    private static readonly int[,] Bayer4 =
+    /// <summary>Matrice Bayer 4×4 normalizzata in [0, 1).</summary>
+    private static readonly float[,] Bayer4x4 =
     {
-        {  0,  8,  2, 10 },
-        { 12,  4, 14,  6 },
-        {  3, 11,  1,  9 },
-        { 15,  7, 13,  5 },
+        {  0f / 16f,  8f / 16f,  2f / 16f, 10f / 16f },
+        { 12f / 16f,  4f / 16f, 14f / 16f,  6f / 16f },
+        {  3f / 16f, 11f / 16f,  1f / 16f,  9f / 16f },
+        { 15f / 16f,  7f / 16f, 13f / 16f,  5f / 16f },
     };
 
     /// <summary>
-    /// Genera una versione tileable. <paramref name="blendWidth"/> = larghezza in px della
-    /// banda di dithering attorno al seam centrale (tipico 4–12 px).
+    /// Genera una versione seamless usando shift + patch + dither Bayer.
     /// </summary>
-    public static Image<Rgba32> MakeTileable(Image<Rgba32> source, int blendWidth = 4)
+    /// <param name="original">Immagine sorgente.</param>
+    /// <param name="blendRadius">Raggio in pixel della zona di transizione attorno al seam centrale (tipico 4–8).</param>
+    /// <returns>Nuova immagine; la sorgente non viene modificata.</returns>
+    public static Image<Rgba32> CreateSeamlessTile(Image<Rgba32> original, int blendRadius = 6)
     {
-        if (source.Width < 4 || source.Height < 4) return source.Clone();
-        blendWidth = Math.Max(1, blendWidth);
+        ArgumentNullException.ThrowIfNull(original);
 
-        var w = source.Width;
-        var h = source.Height;
-        var halfW = w / 2;
-        var halfH = h / 2;
+        var width = original.Width;
+        var height = original.Height;
+        if (width < 4 || height < 4)
+            return original.Clone();
 
-        // Snapshot pixel da source (lettura lineare in array)
-        var src = ImageUtils.ToFlatArray(source);
+        blendRadius = Math.Max(1, blendRadius);
 
-        // Wrap shift: dst[x,y] = src[(x+halfW)%w, (y+halfH)%h]
-        var dst = new Rgba32[w * h];
-        for (var y = 0; y < h; y++)
-        for (var x = 0; x < w; x++)
-            dst[y * w + x] = src[((y + halfH) % h) * w + ((x + halfW) % w)];
+        var shiftX = width / 2;
+        var shiftY = height / 2;
 
-        // Heal seam verticale a x = halfW (banda halfW±blendWidth)
-        for (var y = 0; y < h; y++)
-        for (var dx = -blendWidth; dx < blendWidth; dx++)
+        var src = ImageUtils.ToFlatArray(original);
+        var dst = new Rgba32[width * height];
+
+        for (var y = 0; y < height; y++)
         {
-            var x = halfW + dx;
-            if (x < 0 || x >= w) continue;
-            var thresh = Bayer4[y & 3, x & 3] / 15.0;
-            var ratio  = 1.0 - Math.Abs(dx) / (double)blendWidth;
-            if (ratio > thresh)
+            var shiftedY = (y + shiftY) % height;
+            var rowShiftedBase = shiftedY * width;
+            var rowPatchBase = y * width;
+
+            for (var x = 0; x < width; x++)
             {
-                // mirror across vertical seam at x = halfW
-                var mx = halfW - dx - 1;
-                if (mx >= 0 && mx < w) dst[y * w + x] = dst[y * w + mx];
+                var shiftedX = (x + shiftX) % width;
+
+                var basePixel = src[rowShiftedBase + shiftedX];
+                var patchPixel = src[rowPatchBase + x];
+
+                var distX = Math.Abs(x - shiftX);
+                var distY = Math.Abs(y - shiftY);
+
+                var weightX = Math.Max(0f, 1f - distX / (float)blendRadius);
+                var weightY = Math.Max(0f, 1f - distY / (float)blendRadius);
+                var blendWeight = Math.Max(weightX, weightY);
+
+                var bayerThreshold = Bayer4x4[y & 3, x & 3];
+
+                dst[y * width + x] = blendWeight > bayerThreshold ? patchPixel : basePixel;
             }
         }
 
-        // Heal seam orizzontale a y = halfH (banda halfH±blendWidth)
-        for (var x = 0; x < w; x++)
-        for (var dy = -blendWidth; dy < blendWidth; dy++)
+        var result = new Image<Rgba32>(width, height);
+        result.ProcessPixelRows(accessor =>
         {
-            var y = halfH + dy;
-            if (y < 0 || y >= h) continue;
-            var thresh = Bayer4[y & 3, x & 3] / 15.0;
-            var ratio  = 1.0 - Math.Abs(dy) / (double)blendWidth;
-            if (ratio > thresh)
-            {
-                var my = halfH - dy - 1;
-                if (my >= 0 && my < h) dst[y * w + x] = dst[my * w + x];
-            }
-        }
-
-        // Scrittura su Image<Rgba32>
-        var result = new Image<Rgba32>(w, h);
-        result.ProcessPixelRows(a =>
-        {
-            for (var y = 0; y < a.Height; y++)
-            {
-                var row = a.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++) row[x] = dst[y * w + x];
-            }
+            for (var y = 0; y < height; y++)
+                dst.AsSpan(y * width, width).CopyTo(accessor.GetRowSpan(y));
         });
+
         return result;
     }
+
+    /// <summary>
+    /// Alias con naming storico del progetto. <paramref name="blendWidth"/> equivale a <see cref="CreateSeamlessTile"/> blend radius.
+    /// </summary>
+    public static Image<Rgba32> MakeTileable(Image<Rgba32> source, int blendWidth = 6) =>
+        CreateSeamlessTile(source, blendWidth);
 }
