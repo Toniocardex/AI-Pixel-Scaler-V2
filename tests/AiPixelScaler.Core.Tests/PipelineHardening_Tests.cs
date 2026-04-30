@@ -80,4 +80,83 @@ public class PipelineHardening_Tests
         Assert.Equal(before1, img[1, 0]);
         Assert.Equal(report.UniqueColorsBefore, report.UniqueColorsAfter);
     }
+
+    [Fact]
+    public void ApplyInPlace_advanced_cleaner_pixel_grid_enforce_preserves_image_size()
+    {
+        using var img = new Image<Rgba32>(16, 16);
+        for (var y = 0; y < img.Height; y++)
+        for (var x = 0; x < img.Width; x++)
+            img[x, y] = ((x + y) % 2 == 0) ? new Rgba32(220, 60, 60, 255) : new Rgba32(60, 60, 220, 255);
+
+        var report = PixelArtPipeline.ApplyInPlace(img, new PixelArtPipeline.Options(
+            EnableChroma: false,
+            EnableQuantize: true,
+            MaxColors: 16,
+            EnableAdvancedCleaner: true,
+            EnablePixelGridEnforce: true,
+            NativeWidth: 8,
+            NativeHeight: 8));
+
+        Assert.Equal(16, img.Width);
+        Assert.Equal(16, img.Height);
+        Assert.Contains(report.Steps, s => s.StartsWith("advanced pixel-grid", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ApplyInPlace_advanced_cleaner_reports_palette_when_outer_quantize_disabled()
+    {
+        using var img = new Image<Rgba32>(4, 1);
+        img[0, 0] = new Rgba32(220, 60, 60, 255);
+        img[1, 0] = new Rgba32(215, 58, 58, 255);
+        img[2, 0] = new Rgba32(60, 60, 220, 255);
+        img[3, 0] = new Rgba32(58, 58, 215, 255);
+
+        var report = PixelArtPipeline.ApplyInPlace(img, new PixelArtPipeline.Options(
+            EnableChroma: false,
+            EnableQuantize: false,
+            EnableAdvancedCleaner: true,
+            MaxColors: 2,
+            BilateralPasses: 1));
+
+        Assert.NotEmpty(report.Palette);
+        Assert.Contains(report.Steps, s => s.StartsWith("advanced quantize", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ApplyInPlace_advanced_cleaner_does_not_run_outer_quantize_again()
+    {
+        using var img = new Image<Rgba32>(4, 1);
+        img[0, 0] = new Rgba32(220, 60, 60, 255);
+        img[1, 0] = new Rgba32(215, 58, 58, 255);
+        img[2, 0] = new Rgba32(60, 60, 220, 255);
+        img[3, 0] = new Rgba32(58, 58, 215, 255);
+
+        var report = PixelArtPipeline.ApplyInPlace(img, new PixelArtPipeline.Options(
+            EnableChroma: false,
+            EnableQuantize: true,
+            EnableAdvancedCleaner: true,
+            MaxColors: 2,
+            BilateralPasses: 1));
+
+        Assert.Single(report.Steps.Where(s => s.Contains("quantize", StringComparison.Ordinal)));
+        Assert.Contains(report.Steps, s => s.StartsWith("advanced quantize", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ApplyInPlace_palette_snap_uses_palette_id_when_enabled()
+    {
+        using var img = new Image<Rgba32>(1, 1);
+        img[0, 0] = new Rgba32(10, 200, 10, 255);
+
+        _ = PixelArtPipeline.ApplyInPlace(img, new PixelArtPipeline.Options(
+            EnableChroma: false,
+            EnableQuantize: false,
+            EnableAdvancedCleaner: false,
+            EnablePaletteSnap: true,
+            PaletteId: "gameboydmg"));
+
+        var allowed = PalettePresets.Get(PalettePresets.Preset.GameBoyDMG);
+        Assert.Contains(allowed, c => c.R == img[0, 0].R && c.G == img[0, 0].G && c.B == img[0, 0].B);
+    }
 }

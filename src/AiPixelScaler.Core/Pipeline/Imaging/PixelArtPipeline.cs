@@ -10,6 +10,15 @@ public static class PixelArtPipeline
         bool ChromaSnapRgb = false,
         Rgba32 ChromaColor = default,
         double ChromaTolerance = 0,
+        bool EnableAdvancedCleaner = false,
+        double BilateralSigmaSpatial = 1.25,
+        double BilateralSigmaRange = 0.085,
+        int BilateralPasses = 1,
+        bool EnablePixelGridEnforce = false,
+        int NativeWidth = 64,
+        int NativeHeight = 64,
+        bool EnablePaletteSnap = false,
+        string? PaletteId = null,
         bool EnableQuantize = true,
         int MaxColors = 16,
         PixelArtProcessor.QuantizerKind Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab,
@@ -52,7 +61,25 @@ public static class PixelArtPipeline
         }
 
         IReadOnlyList<Rgba32> palette = [];
-        if (options.EnableQuantize)
+        if (options.EnableAdvancedCleaner)
+        {
+            palette = AdvancedPixelCleaner.ApplyInPlace(
+                image,
+                options.MaxColors,
+                options.Quantizer,
+                new AdvancedPixelCleaner.Options(
+                    SigmaSpatial: options.BilateralSigmaSpatial,
+                    SigmaRange: options.BilateralSigmaRange,
+                    BilateralPasses: options.BilateralPasses,
+                    EnablePixelGridEnforce: options.EnablePixelGridEnforce,
+                    NativeWidth: options.NativeWidth,
+                    NativeHeight: options.NativeHeight,
+                    EnablePaletteSnap: options.EnablePaletteSnap,
+                    PaletteId: options.PaletteId),
+                steps);
+        }
+
+        if (options.EnableQuantize && palette.Count == 0)
         {
             palette = ExtractPalette(image, options.Quantizer, options.MaxColors);
             if (palette.Count > 0)
@@ -60,6 +87,13 @@ public static class PixelArtPipeline
                 PaletteMapper.ApplyInPlace(image, palette, PaletteMapper.DitherMode.None);
                 steps.Add($"quantize {options.Quantizer} ({palette.Count})");
             }
+        }
+
+        if (options.EnablePaletteSnap && PaletteIdResolver.TryResolve(options.PaletteId, out var lockedPalette))
+        {
+            PaletteMapper.ApplyInPlace(image, lockedPalette, PaletteMapper.DitherMode.None);
+            palette = lockedPalette;
+            steps.Add($"quantize snap {options.PaletteId}");
         }
 
         if (options.EnableMajorityDenoise)
@@ -110,13 +144,5 @@ public static class PixelArtPipeline
     }
 
     private static IReadOnlyList<Rgba32> ExtractPalette(Image<Rgba32> image, PixelArtProcessor.QuantizerKind quantizer, int maxColors)
-    {
-        var n = Math.Clamp(maxColors, 2, 256);
-        return quantizer switch
-        {
-            PixelArtProcessor.QuantizerKind.Wu => PaletteExtractorAlgorithms.ExtractWu(image, n),
-            PixelArtProcessor.QuantizerKind.Octree => PaletteExtractorAlgorithms.ExtractOctree(image, n),
-            _ => PaletteExtractor.Extract(image, new PaletteExtractor.Options(Colors: n)),
-        };
-    }
+        => PaletteExtractorRouting.Extract(image, quantizer, maxColors);
 }

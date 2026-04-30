@@ -115,6 +115,12 @@ public class EditorSurface : Control
     private Avalonia.Point _frameDragStartScreen;
     private List<WorkbenchFrameRender> _workbenchRenderFrames = [];
 
+    // Floating paste overlay (owner: MainWindow — non fare Dispose qui)
+    private Bitmap? _floatingOverlayBitmap;
+    private int _floatingX, _floatingY, _floatingW, _floatingH;
+    private bool _floatingDragging;
+    private double _floatingGrabWx, _floatingGrabWy;
+
     // ─── Static brushes ───────────────────────────────────────────────────────
 
     private static readonly SolidColorBrush CheckerBrushA = new(Avalonia.Media.Color.FromArgb(0xff, 0x2a, 0x2a, 0x2e));
@@ -349,6 +355,9 @@ public class EditorSurface : Control
     public event EventHandler<ImagePixelPickedEventArgs>?       ImagePixelPicked;
     public event EventHandler<ImageSelectionCompletedEventArgs>? ImageSelectionCompleted;
 
+    /// <summary>Nuova posizione (angolo alto-sinistra in pixel mondo) durante il drag dell’overlay fluttuante.</summary>
+    public event EventHandler<FloatingOverlayMoveEventArgs>? FloatingOverlayMoved;
+
     /// <summary>Fired continuamente durante il drag della gomma (coordinate in pixel-immagine).</summary>
     public event EventHandler<EraserStrokeEventArgs>? EraserStroke;
 
@@ -386,6 +395,35 @@ public class EditorSurface : Control
         _committedSelection = box;
         InvalidateVisual();
     }
+
+    /// <summary>Overlay incolla fluttuante (bitmap già scalata per anteprima). Non dispone <paramref name="overlay"/>.</summary>
+    public void SetFloatingOverlay(Bitmap? overlay, int destX, int destY, int destW, int destH)
+    {
+        _floatingOverlayBitmap = overlay;
+        _floatingX = destX;
+        _floatingY = destY;
+        _floatingW = Math.Max(1, destW);
+        _floatingH = Math.Max(1, destH);
+        _floatingDragging = false;
+        InvalidateVisual();
+    }
+
+    public void UpdateFloatingOverlayPosition(int x, int y)
+    {
+        _floatingX = x;
+        _floatingY = y;
+        InvalidateVisual();
+    }
+
+    public void ClearFloatingOverlay()
+    {
+        _floatingOverlayBitmap = null;
+        _floatingDragging = false;
+        _floatingW = _floatingH = 0;
+        InvalidateVisual();
+    }
+
+    public bool IsFloatingOverlayActive => _floatingOverlayBitmap is not null;
 
     /// <summary>
     /// Aggiorna solo le righe [yMin, yMax) del bitmap esistente senza ricrearlo.
@@ -515,6 +553,26 @@ public class EditorSurface : Control
             else if (bmp is not null)
             {
                 context.DrawImage(bmp, new Rect(0, 0, worldW, worldH), new Rect(0, 0, worldW, worldH));
+            }
+
+            if (!inWorkbench && _floatingOverlayBitmap is not null && _floatingW > 0 && _floatingH > 0)
+            {
+                using (context.PushRenderOptions(new RenderOptions
+                       { BitmapInterpolationMode = BitmapInterpolationMode.None }))
+                {
+                    var srcW = _floatingOverlayBitmap.PixelSize.Width;
+                    var srcH = _floatingOverlayBitmap.PixelSize.Height;
+                    context.DrawImage(
+                        _floatingOverlayBitmap,
+                        new Rect(0, 0, srcW, srcH),
+                        new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
+                }
+
+                var fp = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 255, 220, 80)), 1.2 / Math.Max(_viewport.Zoom, 0.0001))
+                {
+                    DashStyle = new DashStyle([3.0, 3.0], 0)
+                };
+                context.DrawRectangle(fp, new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
             }
         }
 
@@ -703,6 +761,27 @@ public class EditorSurface : Control
         }
         if (!cur.Properties.IsLeftButtonPressed) return;
 
+        if (_floatingOverlayBitmap is not null
+            && !IsEraserMode
+            && !IsPipetteMode
+            && !IsSelectionMode
+            && !IsCellClickMode
+            && !(IsFrameEditMode && _frameCells.Count > 0)
+            && !IsTilePreviewMode)
+        {
+            var (fwx, fwy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+            if (fwx >= _floatingX && fwy >= _floatingY
+                && fwx < _floatingX + _floatingW && fwy < _floatingY + _floatingH)
+            {
+                _floatingDragging = true;
+                _floatingGrabWx = fwx - _floatingX;
+                _floatingGrabWy = fwy - _floatingY;
+                e.Pointer.Capture(this);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (IsEraserMode)
         {
             _eraserDragging = true;
@@ -805,6 +884,13 @@ public class EditorSurface : Control
             InvalidateVisual();
             return;
         }
+        if (_floatingDragging)
+        {
+            _floatingDragging = false;
+            e.Pointer.Capture(null);
+            InvalidateVisual();
+            return;
+        }
         if (_selDragging)
         {
             _selDragging = false;
@@ -866,6 +952,15 @@ public class EditorSurface : Control
                 isCommit: false));
             return;
         }
+        if (_floatingDragging)
+        {
+            var (wx, wy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+            var nx = (int)Math.Floor(wx - _floatingGrabWx);
+            var ny = (int)Math.Floor(wy - _floatingGrabWy);
+            FloatingOverlayMoved?.Invoke(this, new FloatingOverlayMoveEventArgs(nx, ny));
+            InvalidateVisual();
+            return;
+        }
         if (_selDragging)
         {
             _selCurScreen = pos;
@@ -922,7 +1017,7 @@ public class EditorSurface : Control
             wx1 = SnapCoordToLines(wx1, xLines, SnapGridSize, worldThresh);
             wy1 = SnapCoordToLines(wy1, yLines, SnapGridSize, worldThresh);
         }
-        return ToAxisAlignedClamped(wx0, wy0, wx1, wy1, imgW, imgH);
+        return AxisAlignedBox.FromWorldCornersHalfOpen(wx0, wy0, wx1, wy1, imgW, imgH);
     }
 
     /// <summary>Costruisce la lista di coordinate X di snap (bordi delle celle, se presenti).</summary>
@@ -967,18 +1062,6 @@ public class EditorSurface : Control
     private static double SnapCoord(double v, int gridSize) =>
         Math.Round(v / gridSize) * gridSize;
 
-    public static AxisAlignedBox ToAxisAlignedClamped(double wx0, double wy0, double wx1, double wy1, int imgW, int imgH)
-    {
-        if (imgW < 1 || imgH < 1) return new AxisAlignedBox(0, 0, 0, 0);
-        var i0x = Math.Clamp((int)Math.Floor(wx0), 0, imgW - 1);
-        var i0y = Math.Clamp((int)Math.Floor(wy0), 0, imgH - 1);
-        var i1x = Math.Clamp((int)Math.Floor(wx1), 0, imgW - 1);
-        var i1y = Math.Clamp((int)Math.Floor(wy1), 0, imgH - 1);
-        return AxisAlignedBox.FromInclusivePixelBounds(
-            Math.Min(i0x, i1x), Math.Min(i0y, i1y),
-            Math.Max(i0x, i1x), Math.Max(i0y, i1y));
-    }
-
     // ─── Draw helpers ─────────────────────────────────────────────────────────
 
     private static void DrawCellOverlay(DrawingContext ctx, List<SpriteCell> cells, double zoom)
@@ -999,14 +1082,32 @@ public class EditorSurface : Control
 
     private static void DrawSliceGrid(DrawingContext ctx, int worldW, int worldH, int rows, int cols, double zoom)
     {
-        var t   = 1.5 / Math.Max(zoom, 0.0001);
+        var (cellW, cellH) = GridSlicer.ComputeCellSize(worldW, worldH, rows, cols);
+        if (cellW < 1 || cellH < 1)
+            return;
+
+        var t = 1.5 / Math.Max(zoom, 0.0001);
         var pen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(220, 255, 180, 0)), t);
-        var cellW = worldW / (double)cols;
-        var cellH = worldH / (double)rows;
-        for (var c = 0; c <= cols; c++)
-            ctx.DrawLine(pen, new Avalonia.Point(c * cellW, 0), new Avalonia.Point(c * cellW, worldH));
-        for (var r = 0; r <= rows; r++)
-            ctx.DrawLine(pen, new Avalonia.Point(0, r * cellH), new Avalonia.Point(worldW, r * cellH));
+
+        // Stessi bordi delle <see cref="SpriteCell"/> da GridSlicer (non worldW/cols in floating).
+        static void AppendBoundary(HashSet<double> set, double v, double max)
+        {
+            if (v >= 0 && v <= max)
+                set.Add(v);
+        }
+
+        var xs = new HashSet<double> { 0, worldW };
+        for (var k = 1; k <= cols; k++)
+            AppendBoundary(xs, Math.Min(k * cellW, worldW), worldW);
+
+        var ys = new HashSet<double> { 0, worldH };
+        for (var k = 1; k <= rows; k++)
+            AppendBoundary(ys, Math.Min(k * cellH, worldH), worldH);
+
+        foreach (var x in xs.OrderBy(v => v))
+            ctx.DrawLine(pen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
+        foreach (var y in ys.OrderBy(v => v))
+            ctx.DrawLine(pen, new Avalonia.Point(0, y), new Avalonia.Point(worldW, y));
     }
 
     private static void DrawFrameWorkbench(DrawingContext ctx, List<AxisAlignedBox> cells, int selectedIdx, double zoom)

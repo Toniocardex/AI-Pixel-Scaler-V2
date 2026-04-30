@@ -50,13 +50,7 @@ public static class PixelArtProcessor
         IReadOnlyList<Rgba32> palette = [];
         if (options.QuantizePalette)
         {
-            var n = Math.Clamp(options.MaxColors, 2, 256);
-            palette = options.Quantizer switch
-            {
-                QuantizerKind.Wu => PaletteExtractorAlgorithms.ExtractWu(image, n),
-                QuantizerKind.Octree => PaletteExtractorAlgorithms.ExtractOctree(image, n),
-                _ => PaletteExtractor.Extract(image, new PaletteExtractor.Options(Colors: n)),
-            };
+            palette = PaletteExtractorRouting.Extract(image, options.Quantizer, options.MaxColors);
             if (palette.Count > 0)
             {
                 PaletteMapper.ApplyInPlace(image, palette, PaletteMapper.DitherMode.None);

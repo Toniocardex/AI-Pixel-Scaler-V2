@@ -1,0 +1,169 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Path.tool-icon">
+    <Setter Property="Width" Value="15"/>
+    <Setter Property="Height" Value="15"/>
+    <Setter Property="Stroke" Value="#cdcdd9"/>
+    <Setter Property="StrokeThickness" Value="1.6"/>
+    <Setter Property="StrokeJoin" Value="Round"/>
+    <Setter Property="StrokeLineCap" Value="Round"/>
+    <Setter Property="Fill" Value="Transparent"/>
+    <Setter Property="Stretch" Value="Uniform"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Path.action-icon">
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="Height" Value="14"/>
+    <Setter Property="Stroke" Value="#cdcdd9"/>
+    <Setter Property="StrokeThickness" Value="1.6"/>
+    <Setter Property="StrokeJoin" Value="Round"/>
+    <Setter Property="StrokeLineCap" Value="Round"/>
+    <Setter Property="Fill" Value="Transparent"/>
+    <Setter Property="Stretch" Value="Uniform"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <Style Selector="Button.tool">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="#cdcdd9"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="9,6"/>
+    <Setter Property="CornerRadius" Value="5"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.tool:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1e1e2e"/>
+  </Style>
+  <Style Selector="Button.tool:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#2a2a40"/>
+  </Style>
+  <Style Selector="Button.tool:disabled Path.tool-icon">
+    <Setter Property="Stroke" Value="#4a4a55"/>
+  </Style>
+  <Style Selector="Button.tool:disabled">
+    <Setter Property="Foreground" Value="#4a4a55"/>
+  </Style>
+
+  <Style Selector="ToggleButton.tool-toggle">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="#aab"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="9,6"/>
+    <Setter Property="CornerRadius" Value="5"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ToggleButton.tool-toggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1e1e2e"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+  </Style>
+  <Style Selector="ToggleButton.tool-toggle:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="#2a3a5e"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+  </Style>
+  <Style Selector="ToggleButton.tool-toggle:checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#324a78"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+  </Style>
+  <Style Selector="ToggleButton.tool-toggle:checked">
+    <Setter Property="Foreground" Value="#cfddff"/>
+  </Style>
+  <Style Selector="ToggleButton.tool-toggle:checked Path.tool-icon">
+    <Setter Property="Stroke" Value="#7a96ff"/>
+  </Style>
+
+  <Style Selector="Border.vsep">
+    <Setter Property="Width" Value="1"/>
+    <Setter Property="Background" Value="#252535"/>
+    <Setter Property="Margin" Value="4,4"/>
+  </Style>
+
+  <Style Selector="NumericUpDown.toolbar">
+    <Setter Property="Background" Value="#0e0e16"/>
+    <Setter Property="Foreground" Value="#cdcdd9"/>
+    <Setter Property="BorderBrush" Value="#252535"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="ShowButtonSpinner" Value="False"/>
+    <Setter Property="MinWidth" Value="44"/>
+  </Style>
+
+  <Style Selector="TextBlock.sectionTitle">
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="Foreground" Value="#c8c8d8"/>
+  </Style>
+  <Style Selector="TextBlock.fieldLabel">
+    <Setter Property="Foreground" Value="#8e8ea8"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Margin" Value="0,10,0,4"/>
+  </Style>
+  <Style Selector="TextBlock.hint">
+    <Setter Property="Foreground" Value="#6c6c84"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="#5c3d9e"/>
+    <Setter Property="Foreground" Value="#f0eeff"/>
+    <Setter Property="Padding" Value="10,7"/>
+    <Setter Property="CornerRadius" Value="5"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#7050c0"/>
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#4a3080"/>
+  </Style>
+
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="#1e1e2e"/>
+    <Setter Property="Foreground" Value="#c7c7d6"/>
+    <Setter Property="Padding" Value="8,6"/>
+    <Setter Property="CornerRadius" Value="5"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#2a2a40"/>
+  </Style>
+
+  <Style Selector="Button.icon">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="#5a88ff"/>
+    <Setter Property="Padding" Value="5,4"/>
+    <Setter Property="CornerRadius" Value="4"/>
+    <Setter Property="FontSize" Value="13"/>
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1a2040"/>
+  </Style>
+
+  <Style Selector="Separator.h">
+    <Setter Property="Background" Value="#1e1e28"/>
+    <Setter Property="Height" Value="1"/>
+    <Setter Property="Margin" Value="0,10,0,6"/>
+  </Style>
+
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="#141420"/>
+    <Setter Property="Foreground" Value="#ccc"/>
+    <Setter Property="BorderBrush" Value="#2a2a3e"/>
+    <Setter Property="Padding" Value="6,4"/>
+    <Setter Property="CornerRadius" Value="4"/>
+    <Setter Property="FontSize" Value="12"/>
+  </Style>
+  <Style Selector="CheckBox">
+    <Setter Property="Foreground" Value="#aaa"/>
+    <Setter Property="FontSize" Value="11"/>
+  </Style>
+  <Style Selector="Expander">
+    <Setter Property="Background" Value="#12121a"/>
+    <Setter Property="Padding" Value="10,8"/>
+  </Style>
+</Styles>

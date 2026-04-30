@@ -34,4 +34,32 @@ public class Modulo6_ExportTests
         var json = JsonExport.Serialize(meta);
         Assert.Contains("\"Id\": \"a\"", json);
     }
+
+    [Fact]
+    public void JsonExport_roundtrip_preserves_palette_id()
+    {
+        var meta = new SpriteSheetMetadata
+        {
+            PaletteId = "pico8",
+            Cells =
+            [
+                new SpriteCellEntry
+                {
+                    Id = "hero",
+                    X = 0,
+                    Y = 0,
+                    Width = 16,
+                    Height = 16,
+                    PivotNdcX = 0.5,
+                    PivotNdcY = 1.0
+                }
+            ]
+        };
+        var json = JsonExport.Serialize(meta);
+        var parsed = JsonExport.Deserialize(json);
+
+        Assert.NotNull(parsed);
+        Assert.Equal("pico8", parsed!.PaletteId);
+        Assert.Single(parsed.Cells);
+    }
 }

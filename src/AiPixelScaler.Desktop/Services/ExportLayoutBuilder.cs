@@ -39,7 +39,10 @@ internal static class ExportLayoutBuilder
         Image<Rgba32> document,
         IReadOnlyList<SpriteCell> cells,
         double pivotX,
-        double pivotY)
+        double pivotY,
+        bool keepUniformCellSize = false,
+        int? customCellWidth = null,
+        int? customCellHeight = null)
     {
         var effectiveCells = cells.Count > 0
             ? cells
@@ -60,7 +63,32 @@ internal static class ExportLayoutBuilder
         if (items.Count == 0)
             return null;
 
-        var pack = AtlasPacker.PackRow(items);
+        AtlasPacker.PackedLayout pack;
+        if (customCellWidth.HasValue || customCellHeight.HasValue)
+        {
+            if (!customCellWidth.HasValue || !customCellHeight.HasValue)
+                throw new InvalidOperationException("Export uniforme personalizzato richiede sia larghezza che altezza.");
+
+            var requestedW = Math.Max(1, customCellWidth.Value);
+            var requestedH = Math.Max(1, customCellHeight.Value);
+            var maxFrameW = items.Max(i => i.img.Width);
+            var maxFrameH = items.Max(i => i.img.Height);
+            if (requestedW < maxFrameW || requestedH < maxFrameH)
+                throw new InvalidOperationException(
+                    $"Cella custom troppo piccola: richiesto {requestedW}×{requestedH}, ma serve almeno {maxFrameW}×{maxFrameH}.");
+
+            pack = AtlasPacker.PackRowUniform(items, requestedW, requestedH);
+        }
+        else if (keepUniformCellSize)
+        {
+            var cellW = effectiveCells.Max(c => Math.Max(1, c.BoundsInAtlas.Width));
+            var cellH = effectiveCells.Max(c => Math.Max(1, c.BoundsInAtlas.Height));
+            pack = AtlasPacker.PackRowUniform(items, cellW, cellH);
+        }
+        else
+        {
+            pack = AtlasPacker.PackRow(items);
+        }
         var entries = pack.Placements.Select(p => new SpriteCellEntry
         {
             Id = p.id,

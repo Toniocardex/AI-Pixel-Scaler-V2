@@ -24,10 +24,13 @@ public partial class AnimationPreviewWindow : Window
 {
     public enum LoopMode { Loop = 0, PingPong = 1, Once = 2 }
 
+    /// <summary>Allineato al default FPS del modulo Sandbox Core (pixel art).</summary>
+    private const int DefaultPreviewFps = 8;
+
     private readonly List<Bitmap> _frameBitmaps = [];
     private int _currentIdx;
     private DispatcherTimer? _timer;
-    private int _fps = 12;
+    private int _fps = DefaultPreviewFps;
     private bool _playing;
     private int _pingPongDir = 1;
     private bool _suppressFrameSliderEvent;
@@ -50,6 +53,7 @@ public partial class AnimationPreviewWindow : Window
         Closing                   += (_, _) => Cleanup();
 
         UpdateBackground();
+        SetFps((int)SliderFps.Value);
     }
 
     /// <summary>
@@ -88,7 +92,7 @@ public partial class AnimationPreviewWindow : Window
         _pingPongDir = 1;
         UpdateFrame();
 
-        Title = $"🎬 Anteprima animazione — {_frameBitmaps.Count} frame";
+        Title = $"Anteprima animazione — {_frameBitmaps.Count} frame";
     }
 
     // ─── Controls ────────────────────────────────────────────────────────────
@@ -97,7 +101,7 @@ public partial class AnimationPreviewWindow : Window
     {
         if (_frameBitmaps.Count <= 1) return;
         _playing = !_playing;
-        BtnPlay.Content = _playing ? "⏸  Pausa" : "▶  Play";
+        BtnPlay.Content = _playing ? "Pausa" : "Play";
         EnsureTimer();
         if (_playing) _timer!.Start(); else _timer!.Stop();
     }
@@ -203,7 +207,7 @@ public partial class AnimationPreviewWindow : Window
     {
         _timer?.Stop();
         _playing = false;
-        BtnPlay.Content = "▶  Play";
+        BtnPlay.Content = "Play";
         if (stopOnly) return;
         DisposeFrames();
         FrameImage.Source = null;
