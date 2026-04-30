@@ -148,15 +148,14 @@
             <TextBlock Text="Rileva sprite" VerticalAlignment="Center" TextWrapping="NoWrap"/>
           </StackPanel>
         </Button>
-        <Menu Classes="toolbar-menu">
-          <MenuItem Classes="toolbar-menu-root"
-                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
-            <MenuItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Path Data="{StaticResource IconCrop}" Classes="tool-icon"/>
-                <TextBlock Text="Selezione" VerticalAlignment="Center" TextWrapping="NoWrap"/>
-              </StackPanel>
-            </MenuItem.Header>
+        <Button Classes="tool"
+                ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Path Data="{StaticResource IconCrop}" Classes="tool-icon"/>
+            <TextBlock Text="Selezione" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+          </StackPanel>
+          <Button.Flyout>
+            <MenuFlyout>
             <MenuItem x:Name="MiToolbarSelectionMode"
                       Header="Seleziona Area"
                       ToolTip.Tip="Disegna un rettangolo sul canvas; dopo il rilascio usa le maniglie azzurre (angoli e lati) per ridimensionare o trascina l’interno per spostare la ROI senza ridisegnarla."/>
@@ -164,8 +163,9 @@
                       Header="Ritaglia a selezione"/>
             <MenuItem x:Name="MiToolbarRemoveSelectedArea"
                       Header="Rimuovi area selezionata (Canc)"/>
-          </MenuItem>
-        </Menu>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
 
         <Border Classes="vsep"/>
 

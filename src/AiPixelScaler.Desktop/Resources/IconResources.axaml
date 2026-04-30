@@ -8,6 +8,7 @@
   <StreamGeometry x:Key="IconChevronLeft">M15 18l-6-6 6-6</StreamGeometry>
   <StreamGeometry x:Key="IconChevronRight">M9 18l6-6-6-6</StreamGeometry>
   <StreamGeometry x:Key="IconCopy">M9 9h11v11H9z M4 4h11v11H4z</StreamGeometry>
+  <StreamGeometry x:Key="IconCrop">M6 2v14a2 2 0 0 0 2 2h14 M18 22V8a2 2 0 0 0-2-2H2</StreamGeometry>
   <StreamGeometry x:Key="IconEraser">M7 21l-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21 M22 21H7 M5 11l9 9</StreamGeometry>
   <StreamGeometry x:Key="IconFilm">M5 3H19A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3Z M7 3v18 M3 7.5h4 M3 12h18 M3 16.5h4 M17 3v18 M17 7.5h4 M17 16.5h4</StreamGeometry>
   <StreamGeometry x:Key="IconFolderOpen">M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6.05A2 2 0 0 1 18.45 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2</StreamGeometry>
