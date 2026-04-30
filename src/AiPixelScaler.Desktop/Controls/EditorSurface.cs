@@ -97,12 +97,25 @@ public class EditorSurface : Control
     private Avalonia.Point _pipettePress;
     private bool _isPipetteMode;
 
+    private enum SelectionAdjustGrip
+    {
+        None,
+        Move,
+        N, Ne, E, Se, S, Sw, W, Nw
+    }
+
     // Selection
     private bool _isSelectionMode;
     private bool _selDragging;
     private Avalonia.Point _selStartScreen;
     private Avalonia.Point _selCurScreen;
     private AxisAlignedBox? _committedSelection;   // selezione persistente (canvas mode)
+
+    /// <summary>Ridimensionamento o spostamento della ROI già confermata (maniglie / interno).</summary>
+    private bool _selAdjustDragging;
+    private SelectionAdjustGrip _selAdjustGrip;
+    private AxisAlignedBox _selAdjustBoxStart;
+    private Avalonia.Point _selAdjustPointerWorldStart;
 
     // Eraser
     private bool _eraserDragging;
@@ -354,6 +367,11 @@ public class EditorSurface : Control
 
     public event EventHandler<ImagePixelPickedEventArgs>?       ImagePixelPicked;
     public event EventHandler<ImageSelectionCompletedEventArgs>? ImageSelectionCompleted;
+
+    /// <summary>
+    /// ROI committed aggiornata (ridimensionamento o spostamento con maniglie). Non sostituisce <see cref="ImageSelectionCompleted"/> al primo disegno.
+    /// </summary>
+    public event EventHandler<ImageSelectionCompletedEventArgs>? CommittedSelectionEdited;
 
     /// <summary>Nuova posizione (angolo alto-sinistra in pixel mondo) durante il drag dell’overlay fluttuante.</summary>
     public event EventHandler<FloatingOverlayMoveEventArgs>? FloatingOverlayMoved;
@@ -661,11 +679,10 @@ public class EditorSurface : Control
                 context.FillRectangle(fillBrush, new Rect(cs.MinX, cs.MinY, cs.Width, cs.Height));
                 context.DrawRectangle(selPen, new Rect(cs.MinX, cs.MinY, cs.Width, cs.Height));
 
-                // Maniglie agli angoli
+                // Maniglie agli angoli e ai lati (hit-test allineato agli stessi punti)
                 var hr = 3.5 / Math.Max(_viewport.Zoom, 0.0001);
                 var hb = new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 80, 220, 255));
-                foreach (var (hx, hy) in new[] { (cs.MinX, cs.MinY), (cs.MaxX, cs.MinY),
-                                                  (cs.MinX, cs.MaxY), (cs.MaxX, cs.MaxY) })
+                foreach (var (hx, hy) in CommittedSelectionGripPoints(cs))
                     context.FillRectangle(hb, new Rect(hx - hr, hy - hr, hr * 2, hr * 2));
             }
             // Info label (in screen space)
@@ -828,6 +845,27 @@ public class EditorSurface : Control
         }
         if (IsSelectionMode)
         {
+            var bmpSel = Bitmap;
+            if (bmpSel is { PixelSize.Width: > 0, PixelSize.Height: > 0 }
+                && !_selDragging
+                && _committedSelection is { IsEmpty: false } csHit)
+            {
+                var grip = HitTestCommittedSelectionGrip(pos, csHit);
+                if (grip != SelectionAdjustGrip.None)
+                {
+                    _selAdjustDragging = true;
+                    _selAdjustGrip = grip;
+                    _selAdjustBoxStart = csHit;
+                    var (wpx, wpy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+                    var (spx, spy) = SnapWorldPoint(wpx, wpy);
+                    _selAdjustPointerWorldStart = new Avalonia.Point(spx, spy);
+                    e.Pointer.Capture(this);
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             _selDragging    = true;
             _selStartScreen = pos;
             _selCurScreen   = pos;
@@ -889,6 +927,16 @@ public class EditorSurface : Control
             _floatingDragging = false;
             e.Pointer.Capture(null);
             InvalidateVisual();
+            return;
+        }
+        if (_selAdjustDragging)
+        {
+            _selAdjustDragging = false;
+            _selAdjustGrip = SelectionAdjustGrip.None;
+            e.Pointer.Capture(null);
+            InvalidateVisual();
+            if (_committedSelection is { IsEmpty: false } fin)
+                CommittedSelectionEdited?.Invoke(this, new ImageSelectionCompletedEventArgs(fin));
             return;
         }
         if (_selDragging)
@@ -959,6 +1007,11 @@ public class EditorSurface : Control
             var ny = (int)Math.Floor(wy - _floatingGrabWy);
             FloatingOverlayMoved?.Invoke(this, new FloatingOverlayMoveEventArgs(nx, ny));
             InvalidateVisual();
+            return;
+        }
+        if (_selAdjustDragging)
+        {
+            ApplyCommittedSelectionAdjustment(pos);
             return;
         }
         if (_selDragging)
@@ -1061,6 +1114,147 @@ public class EditorSurface : Control
 
     private static double SnapCoord(double v, int gridSize) =>
         Math.Round(v / gridSize) * gridSize;
+
+    private static IEnumerable<(double x, double y)> CommittedSelectionGripPoints(AxisAlignedBox cs)
+    {
+        var mx = (cs.MinX + cs.MaxX) * 0.5;
+        var my = (cs.MinY + cs.MaxY) * 0.5;
+        yield return (cs.MinX, cs.MinY);
+        yield return (cs.MaxX, cs.MinY);
+        yield return (cs.MinX, cs.MaxY);
+        yield return (cs.MaxX, cs.MaxY);
+        yield return (mx, cs.MinY);
+        yield return (mx, cs.MaxY);
+        yield return (cs.MinX, my);
+        yield return (cs.MaxX, my);
+    }
+
+    private void ApplyCommittedSelectionAdjustment(Avalonia.Point screenPos)
+    {
+        var bmp = Bitmap;
+        if (bmp is null || bmp.PixelSize.Width < 1 || bmp.PixelSize.Height < 1) return;
+
+        var imgW = bmp.PixelSize.Width;
+        var imgH = bmp.PixelSize.Height;
+        var (wx, wy) = ScreenToImageFloat(screenPos, PanX, PanY, Zoom);
+        var (sx, sy) = SnapWorldPoint(wx, wy);
+        var B0 = _selAdjustBoxStart;
+
+        var nb = _selAdjustGrip switch
+        {
+            SelectionAdjustGrip.Move => AdjustCommittedMove(in B0, sx, sy, imgW, imgH),
+            SelectionAdjustGrip.N => AxisAlignedBox.FromWorldCornersHalfOpen(B0.MinX, sy, B0.MaxX, B0.MaxY, imgW, imgH),
+            SelectionAdjustGrip.Ne => AxisAlignedBox.FromWorldCornersHalfOpen(B0.MinX, sy, sx, B0.MaxY, imgW, imgH),
+            SelectionAdjustGrip.E => AxisAlignedBox.FromWorldCornersHalfOpen(B0.MinX, B0.MinY, sx, B0.MaxY, imgW, imgH),
+            SelectionAdjustGrip.Se => AxisAlignedBox.FromWorldCornersHalfOpen(B0.MinX, B0.MinY, sx, sy, imgW, imgH),
+            SelectionAdjustGrip.S => AxisAlignedBox.FromWorldCornersHalfOpen(B0.MinX, B0.MinY, B0.MaxX, sy, imgW, imgH),
+            SelectionAdjustGrip.Sw => AxisAlignedBox.FromWorldCornersHalfOpen(sx, B0.MinY, B0.MaxX, sy, imgW, imgH),
+            SelectionAdjustGrip.W => AxisAlignedBox.FromWorldCornersHalfOpen(sx, B0.MinY, B0.MaxX, B0.MaxY, imgW, imgH),
+            SelectionAdjustGrip.Nw => AxisAlignedBox.FromWorldCornersHalfOpen(sx, sy, B0.MaxX, B0.MaxY, imgW, imgH),
+            _ => B0
+        };
+
+        if (nb.IsEmpty) return;
+
+        _committedSelection = nb;
+        CommittedSelectionEdited?.Invoke(this, new ImageSelectionCompletedEventArgs(nb));
+        InvalidateVisual();
+    }
+
+    private AxisAlignedBox AdjustCommittedMove(in AxisAlignedBox B0, double sx, double sy, int imgW, int imgH)
+    {
+        var dx = (int)Math.Round(sx - _selAdjustPointerWorldStart.X);
+        var dy = (int)Math.Round(sy - _selAdjustPointerWorldStart.Y);
+        var nmx = B0.MinX + dx;
+        var nmy = B0.MinY + dy;
+        var w = B0.Width;
+        var h = B0.Height;
+        if (w < 1 || h < 1) return B0;
+        if (nmx < 0) nmx = 0;
+        if (nmy < 0) nmy = 0;
+        if (nmx + w > imgW) nmx = imgW - w;
+        if (nmy + h > imgH) nmy = imgH - h;
+        return new AxisAlignedBox(nmx, nmy, nmx + w, nmy + h);
+    }
+
+    private double ScreenDistSq(Avalonia.Point screen, double worldX, double worldY)
+    {
+        var sx = worldX * Zoom + PanX;
+        var sy = worldY * Zoom + PanY;
+        var dx = screen.X - sx;
+        var dy = screen.Y - sy;
+        return dx * dx + dy * dy;
+    }
+
+    private Avalonia.Point WorldToScreen(double worldX, double worldY) =>
+        new(worldX * Zoom + PanX, worldY * Zoom + PanY);
+
+    private static double PointSegmentDistSq(Avalonia.Point p, Avalonia.Point a, Avalonia.Point b)
+    {
+        var vx = b.X - a.X;
+        var vy = b.Y - a.Y;
+        var wx = p.X - a.X;
+        var wy = p.Y - a.Y;
+        var c1 = vx * wx + vy * wy;
+        if (c1 <= 0) return wx * wx + wy * wy;
+        var c2 = vx * vx + vy * vy;
+        if (c2 <= c1)
+        {
+            var dx = p.X - b.X;
+            var dy = p.Y - b.Y;
+            return dx * dx + dy * dy;
+        }
+        var t = c1 / c2;
+        var projx = a.X + t * vx;
+        var projy = a.Y + t * vy;
+        var dx2 = p.X - projx;
+        var dy2 = p.Y - projy;
+        return dx2 * dx2 + dy2 * dy2;
+    }
+
+    private SelectionAdjustGrip HitTestCommittedSelectionGrip(Avalonia.Point screen, in AxisAlignedBox cs)
+    {
+        const double cornerHitSq = 10.0 * 10.0;
+        const double edgeHitSq = 9.0 * 9.0;
+
+        if (ScreenDistSq(screen, cs.MinX, cs.MinY) <= cornerHitSq) return SelectionAdjustGrip.Nw;
+        if (ScreenDistSq(screen, cs.MaxX, cs.MinY) <= cornerHitSq) return SelectionAdjustGrip.Ne;
+        if (ScreenDistSq(screen, cs.MaxX, cs.MaxY) <= cornerHitSq) return SelectionAdjustGrip.Se;
+        if (ScreenDistSq(screen, cs.MinX, cs.MaxY) <= cornerHitSq) return SelectionAdjustGrip.Sw;
+
+        var n0 = WorldToScreen(cs.MinX, cs.MinY);
+        var n1 = WorldToScreen(cs.MaxX, cs.MinY);
+        var s0 = WorldToScreen(cs.MinX, cs.MaxY);
+        var s1 = WorldToScreen(cs.MaxX, cs.MaxY);
+        var w0 = WorldToScreen(cs.MinX, cs.MinY);
+        var w1 = WorldToScreen(cs.MinX, cs.MaxY);
+        var e0 = WorldToScreen(cs.MaxX, cs.MinY);
+        var e1 = WorldToScreen(cs.MaxX, cs.MaxY);
+
+        if (PointSegmentDistSq(screen, n0, n1) <= edgeHitSq) return SelectionAdjustGrip.N;
+        if (PointSegmentDistSq(screen, s0, s1) <= edgeHitSq) return SelectionAdjustGrip.S;
+        if (PointSegmentDistSq(screen, w0, w1) <= edgeHitSq) return SelectionAdjustGrip.W;
+        if (PointSegmentDistSq(screen, e0, e1) <= edgeHitSq) return SelectionAdjustGrip.E;
+
+        var (wx, wy) = ScreenToImageFloat(screen, PanX, PanY, Zoom);
+        if (wx >= cs.MinX && wx < cs.MaxX && wy >= cs.MinY && wy < cs.MaxY)
+            return SelectionAdjustGrip.Move;
+
+        return SelectionAdjustGrip.None;
+    }
+
+    private (double sx, double sy) SnapWorldPoint(double wx, double wy)
+    {
+        if (!SnapToGrid || SnapGridSize <= 0)
+            return (wx, wy);
+
+        var worldThresh = SnapThreshold / Math.Max(Zoom, 0.0001);
+        var xLines = BuildXSnapLines();
+        var yLines = BuildYSnapLines();
+        var sx = SnapCoordToLines(wx, xLines, SnapGridSize, worldThresh);
+        var sy = SnapCoordToLines(wy, yLines, SnapGridSize, worldThresh);
+        return (sx, sy);
+    }
 
     // ─── Draw helpers ─────────────────────────────────────────────────────────
 

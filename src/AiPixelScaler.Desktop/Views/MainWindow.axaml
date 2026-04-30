@@ -204,10 +204,11 @@
           </StackPanel>
         </ToggleButton>
         <Menu Background="Transparent">
-          <MenuItem Header="Selezione"
-                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva, ritaglio a selezione o rimozione area selezionata (Canc).">
+            <MenuItem Header="Selezione"
+                    ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
             <MenuItem x:Name="MiToolbarSelectionMode"
-                      Header="Selezione (ROI non distruttiva)"/>
+                      Header="Seleziona Area"
+                      ToolTip.Tip="Disegna un rettangolo sul canvas; dopo il rilascio usa le maniglie azzurre (angoli e lati) per ridimensionare o trascina l’interno per spostare la ROI senza ridisegnarla."/>
             <MenuItem x:Name="MiToolbarCropToSelection"
                       Header="Ritaglia a selezione"/>
             <MenuItem x:Name="MiToolbarRemoveSelectedArea"

@@ -61,7 +61,7 @@ internal sealed class FloatingPasteCoordinator
         Image<Rgba32>? loaded;
         try
         {
-            loaded = await ClipboardImageReader.TryReadImageAsync(clipboard).ConfigureAwait(true);
+            loaded = await ClipboardBitmapInterop.TryReadImageAsync(clipboard).ConfigureAwait(true);
         }
         catch (Exception ex)
         {

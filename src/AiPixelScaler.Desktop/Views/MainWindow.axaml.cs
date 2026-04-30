@@ -138,6 +138,7 @@ public partial class MainWindow : Window
         ChkSpriteCrop.IsCheckedChanged += (_, _) => UpdateSpriteSelectionMode();
         Editor.ImagePixelPicked += OnEditorImagePixelPicked;
         Editor.ImageSelectionCompleted += OnEditorImageSelectionCompleted;
+        Editor.CommittedSelectionEdited += OnEditorCommittedSelectionEdited;
         Editor.FloatingOverlayMoved += OnEditorFloatingOverlayMoved;
 
         // Pivot
@@ -555,7 +556,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var img = await ClipboardImageReader.TryReadImageAsync(top.Clipboard);
+        var img = await ClipboardBitmapInterop.TryReadImageAsync(top.Clipboard);
         if (img is null)
         {
             SetStatus("Appunti: nessuna immagine disponibile.");
@@ -661,6 +662,16 @@ public partial class MainWindow : Window
         {
             SetStatus($"Ritaglio: {ex.Message}");
         }
+    }
+
+    private void OnEditorCommittedSelectionEdited(object? sender, ImageSelectionCompletedEventArgs e)
+    {
+        if (e.Box.IsEmpty) return;
+        _activeSelectionBox = e.Box;
+        _lastUserRoi = e.Box;
+        if (_pasteModeActive && _viewingPasteSource)
+            _pasteLastSelection = e.Box;
+        UpdateSelectionInfo();
     }
 
     private void OnEditorImagePixelPicked(object? sender, ImagePixelPickedEventArgs e)
@@ -1378,7 +1389,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            await clipboard.SetBitmapAsync(bmp).ConfigureAwait(true);
+            await ClipboardBitmapInterop.SetBitmapAndFlushAsync(clipboard, bmp).ConfigureAwait(true);
             SetStatus($"Copiato negli appunti: {detail}.");
         }
         catch (Exception ex)

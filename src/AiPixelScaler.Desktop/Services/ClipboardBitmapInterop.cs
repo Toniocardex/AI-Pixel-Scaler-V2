@@ -11,10 +11,28 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace AiPixelScaler.Desktop.Services;
 
 /// <summary>
-/// Legge un’immagine dagli appunti (estensione <c>TryGetBitmapAsync</c> di Avalonia 12).
+/// Interoperabilità bitmap ↔ appunti Avalonia 12 (<c>TryGetBitmapAsync</c> / <c>SetBitmapAsync</c>).
+/// La scrittura usa <see cref="SetBitmapAndFlushAsync"/> per il flush su Windows dopo il dispose locale del bitmap.
 /// </summary>
-internal static class ClipboardImageReader
+internal static class ClipboardBitmapInterop
 {
+    /// <summary>
+    /// Imposta il bitmap negli appunti e forza il flush su piattaforme che lo supportano (Windows),
+    /// così i pixel restano disponibili per <see cref="TryReadImageAsync"/> anche dopo il dispose locale del bitmap.
+    /// </summary>
+    internal static async Task SetBitmapAndFlushAsync(IClipboard clipboard, Bitmap bmp)
+    {
+        await clipboard.SetBitmapAsync(bmp).ConfigureAwait(true);
+        try
+        {
+            await clipboard.FlushAsync().ConfigureAwait(true);
+        }
+        catch
+        {
+            // FlushAsync è documentato come no-op dove non supportato; evita regressioni su altre piattaforme.
+        }
+    }
+
     internal static async Task<Image<Rgba32>?> TryReadImageAsync(IClipboard clipboard)
     {
         try
