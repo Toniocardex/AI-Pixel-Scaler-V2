@@ -24,6 +24,15 @@ public sealed class WorkflowShellViewModel
         _ => "Step 1 · Importa"
     };
 
+    public DelegateCommand<WorkflowStep> SelectWorkflowStepCommand { get; }
+    public DelegateCommand AdvanceWorkflowStepCommand { get; }
+
+    public WorkflowShellViewModel()
+    {
+        SelectWorkflowStepCommand = new DelegateCommand<WorkflowStep>(Select);
+        AdvanceWorkflowStepCommand = new DelegateCommand(Advance);
+    }
+
     public void Select(WorkflowStep step) => ActiveStep = step;
 
     public void Advance()

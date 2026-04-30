@@ -133,8 +133,8 @@ public partial class MainWindow : Window
         TxtEraserRadius.ValueChanged += (_, _) =>
             Editor.EraserRadius = (int)(TxtEraserRadius.Value ?? 4);
 
-        Editor.EraserStroke     += OnEraserStroke;
-        Editor.EraserStrokeEnded += (_, _) => { _eraserUndoPushed = false; };
+        Editor.EraserStroke += OnEraserStroke;
+        Editor.EraserStrokeEnded += OnEraserStrokeEnded;
         ChkPipette.IsCheckedChanged += (_, _) => UpdatePipetteMode();
         ChkSpriteCrop.IsCheckedChanged += (_, _) => UpdateSpriteSelectionMode();
         Editor.ImagePixelPicked += OnEditorImagePixelPicked;
@@ -228,10 +228,10 @@ public partial class MainWindow : Window
         BtnWorkspaceGuideAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
-        BtnStepImporta.Click += (_, _) => SelectWorkflowStep(WorkflowShellViewModel.WorkflowStep.Importa);
-        BtnStepPulisci.Click += (_, _) => SelectWorkflowStep(WorkflowShellViewModel.WorkflowStep.Pulisci);
-        BtnStepSliceAllinea.Click += (_, _) => SelectWorkflowStep(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
-        BtnStepEsporta.Click += (_, _) => SelectWorkflowStep(WorkflowShellViewModel.WorkflowStep.Esporta);
+        BtnStepImporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Importa);
+        BtnStepPulisci.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Pulisci);
+        BtnStepSliceAllinea.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
+        BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoAllinea.Click += (_, _) => MainTabs.SelectedIndex = 2;
         BtnGoStilizza.Click += (_, _) =>
         {
@@ -1582,14 +1582,19 @@ public partial class MainWindow : Window
 
     private async Task AdvanceWorkflowStepAsync()
     {
-        _workflowShell.Advance();
+        _workflowShell.AdvanceWorkflowStepCommand.Execute(null);
         SelectWorkflowStep(_workflowShell.ActiveStep);
         await RunWorkspaceGuideActionAsync();
     }
 
+    private void ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep step)
+    {
+        _workflowShell.SelectWorkflowStepCommand.Execute(step);
+        SelectWorkflowStep(step);
+    }
+
     private void SelectWorkflowStep(WorkflowShellViewModel.WorkflowStep step)
     {
-        _workflowShell.Select(step);
         MainTabs.SelectedIndex = step switch
         {
             WorkflowShellViewModel.WorkflowStep.Importa => 0,
@@ -2116,6 +2121,9 @@ public partial class MainWindow : Window
     // ─── Gomma ───────────────────────────────────────────────────────────────
 
     private bool _eraserUndoPushed;
+    private int _eraserDirtyMinY = int.MaxValue;
+    private int _eraserDirtyMaxY = int.MinValue;
+    private long _eraserLastFlushTicks;
 
     private void OnEraserStroke(object? sender, AiPixelScaler.Desktop.Controls.EraserStrokeEventArgs e)
     {
@@ -2144,15 +2152,35 @@ public partial class MainWindow : Window
                     if (dx * dx + dy * dy > r * r) continue;
                     var px = e.ImageX + dx;
                     if (px < 0 || px >= imgW) continue;
-                    row[px] = new Rgba32(row[px].R, row[px].G, row[px].B, 0);
+                    if (row[px].A != 0)
+                        row[px].A = 0;
                 }
             }
         });
 
-        // Aggiorna solo le righe toccate — nessuna ri-codifica PNG
         var yMin = Math.Max(0, e.ImageY - r);
         var yMax = Math.Min(imgH, e.ImageY + r + 1);
-        Editor.UpdateBitmapRegion(_document, yMin, yMax);
+        _eraserDirtyMinY = Math.Min(_eraserDirtyMinY, yMin);
+        _eraserDirtyMaxY = Math.Max(_eraserDirtyMaxY, yMax);
+
+        var now = Environment.TickCount64;
+        if (now - _eraserLastFlushTicks >= 16 && _eraserDirtyMinY < _eraserDirtyMaxY)
+        {
+            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinY, _eraserDirtyMaxY);
+            _eraserLastFlushTicks = now;
+            _eraserDirtyMinY = int.MaxValue;
+            _eraserDirtyMaxY = int.MinValue;
+        }
+    }
+
+    private void OnEraserStrokeEnded(object? sender, EventArgs e)
+    {
+        if (_document is not null && _eraserDirtyMinY < _eraserDirtyMaxY)
+            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinY, _eraserDirtyMaxY);
+
+        _eraserDirtyMinY = int.MaxValue;
+        _eraserDirtyMaxY = int.MinValue;
+        _eraserUndoPushed = false;
     }
 
     // ─── Atlas pulito (clone griglia + manual paste) ─────────────────────────
