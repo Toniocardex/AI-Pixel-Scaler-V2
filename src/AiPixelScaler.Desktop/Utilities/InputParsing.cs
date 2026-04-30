@@ -1,33 +1,13 @@
-using System;
-using System.Globalization;
+using AiPixelScaler.Core.Utilities;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiPixelScaler.Desktop.Utilities;
 
 internal static class InputParsing
 {
-    public static int ParseInt(string? s, int fallback)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return fallback;
-        return int.TryParse(s.Trim(), out var n) ? n : fallback;
-    }
+    public static int ParseInt(string? s, int fallback) => OptionParsing.ParseInt(s, fallback);
 
-    public static bool TryParseHexRgb(string? s, out Rgba32 color)
-    {
-        color = default;
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        var t = s.Trim();
-        if (t.StartsWith("#", StringComparison.Ordinal)) t = t[1..];
-        if (t.Length != 6) return false;
-        if (!uint.TryParse(t, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var v)) return false;
-        color = new Rgba32((byte)(v >> 16), (byte)(v >> 8), (byte)v, 255);
-        return true;
-    }
+    public static bool TryParseHexRgb(string? s, out Rgba32 color) => ColorParsing.TryParseHexRgb(s, out color);
 
-    public static string NormalizeHexRgb(string? value, string fallback)
-    {
-        if (TryParseHexRgb(value, out var color))
-            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        return fallback;
-    }
+    public static string NormalizeHexRgb(string? value, string fallback) => ColorParsing.NormalizeHexRgb(value, fallback);
 }
