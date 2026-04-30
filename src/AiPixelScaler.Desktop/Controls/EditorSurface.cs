@@ -120,6 +120,8 @@ public class EditorSurface : Control
     // Eraser
     private bool _eraserDragging;
     private Avalonia.Point _eraserCurScreen;
+    private int _lastEraserX = int.MinValue;
+    private int _lastEraserY = int.MinValue;
 
     // Frame edit mode (workbench)
     private List<AxisAlignedBox> _frameCells = [];
@@ -902,6 +904,8 @@ public class EditorSurface : Control
         {
             _eraserDragging  = false;
             _eraserCurScreen = pos;
+            _lastEraserX = int.MinValue;
+            _lastEraserY = int.MinValue;
             e.Pointer.Capture(null);
             EraserStrokeEnded?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
@@ -1052,7 +1056,13 @@ public class EditorSurface : Control
         var ix = (int)Math.Floor(wx);
         var iy = (int)Math.Floor(wy);
         if (ix >= 0 && iy >= 0 && ix < bmp.PixelSize.Width && iy < bmp.PixelSize.Height)
+        {
+            if (ix == _lastEraserX && iy == _lastEraserY)
+                return;
+            _lastEraserX = ix;
+            _lastEraserY = iy;
             EraserStroke?.Invoke(this, new EraserStrokeEventArgs(ix, iy, EraserRadius));
+        }
     }
 
     private AxisAlignedBox BuildSelectionBoxInWorld(Avalonia.Point screenA, Avalonia.Point screenB, int imgW, int imgH)
