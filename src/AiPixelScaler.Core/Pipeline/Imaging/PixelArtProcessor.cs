@@ -28,38 +28,20 @@ public static class PixelArtProcessor
 
     public static Result ProcessImageInPlace(Image<Rgba32> image, Options options)
     {
-        var key = options.ChromaColor.Equals(default(Rgba32)) ? new Rgba32(0, 255, 0, 255) : options.ChromaColor;
-        var tol = Math.Max(0, options.ChromaTolerance);
-        var before = PixelArtValidation.CountUniqueColors(image);
-        var steps = new List<string>();
+        var report = PixelArtPipeline.ApplyInPlace(image, new PixelArtPipeline.Options(
+            EnableChroma: options.NormalizeChroma,
+            ChromaSnapRgb: options.ChromaSnapRgb,
+            ChromaColor: options.ChromaColor,
+            ChromaTolerance: options.ChromaTolerance,
+            EnableQuantize: options.QuantizePalette,
+            MaxColors: options.MaxColors,
+            Quantizer: options.Quantizer));
 
-        if (options.NormalizeChroma)
-        {
-            if (options.ChromaSnapRgb)
-            {
-                ChromaKey.SnapKeyRgbInPlace(image, key, tol);
-                steps.Add("chroma-snap");
-            }
-            else
-            {
-                ChromaKey.ApplyInPlace(image, key, tol);
-                steps.Add("chroma-alpha");
-            }
-        }
-
-        IReadOnlyList<Rgba32> palette = [];
-        if (options.QuantizePalette)
-        {
-            palette = PaletteExtractorRouting.Extract(image, options.Quantizer, options.MaxColors);
-            if (palette.Count > 0)
-            {
-                PaletteMapper.ApplyInPlace(image, palette, PaletteMapper.DitherMode.None);
-                steps.Add($"quantize-{options.Quantizer}:{palette.Count}");
-            }
-        }
-
-        var after = PixelArtValidation.CountUniqueColors(image);
-        return new Result(before, after, palette, string.Join(" -> ", steps));
+        return new Result(
+            report.UniqueColorsBefore,
+            report.UniqueColorsAfter,
+            report.Palette,
+            string.Join(" -> ", report.Steps));
     }
 
     public static Result ProcessFile(string inputPath, string outputPath, Options options)
