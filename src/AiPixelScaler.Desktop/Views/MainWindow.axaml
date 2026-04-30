@@ -124,7 +124,7 @@
             <TextBlock Text="Apri immagine" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Button x:Name="BtnRevert" Classes="tool"
+        <Button x:Name="BtnRevert" Classes="tool" IsVisible="False"
                 ToolTip.Tip="Ripristina l'atlas all'immagine originale aperta">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconRevert}" Classes="tool-icon"/>
@@ -149,7 +149,7 @@
             <TextBlock Text="Griglia" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar"
+        <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar" IsVisible="False"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
                        Width="56"
                        ToolTip.Tip="Dimensione celle griglia in px (es. 8, 16, 32, 64…)"/>
@@ -161,7 +161,7 @@
             <TextBlock Text="Magnetica" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtSnapSize" Classes="toolbar"
+        <NumericUpDown x:Name="TxtSnapSize" Classes="toolbar" IsVisible="False"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
                        Width="56" IsEnabled="False"
                        ToolTip.Tip="Passo griglia magnetica in px (rotellina del mouse per aumentare/diminuire)"/>
@@ -172,7 +172,7 @@
             <TextBlock Text="Centra canvas" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool"
+        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool" IsVisible="False"
                 ToolTip.Tip="Rilevamento automatico sprite (CCL): analizza l'immagine e aggiorna celle/lista overlay. Disponibile in ogni tab.">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconWand}" Classes="tool-icon"/>
@@ -190,7 +190,7 @@
             <TextBlock Text="Gomma" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtEraserRadius" Classes="toolbar"
+        <NumericUpDown x:Name="TxtEraserRadius" Classes="toolbar" IsVisible="False"
                        Value="4" Minimum="1" Maximum="64" Increment="1" FormatString="0"
                        Width="44" IsEnabled="False"
                        ToolTip.Tip="Raggio del pennello gomma in pixel-immagine"/>
@@ -210,7 +210,7 @@
             <TextBlock Text="Selezione" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Menu Background="Transparent">
+        <Menu Background="Transparent" IsVisible="False">
             <MenuItem Header="Selezione"
                     ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
             <MenuItem x:Name="MiToolbarSelectionMode"
