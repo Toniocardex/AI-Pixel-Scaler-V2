@@ -35,7 +35,6 @@ public partial class MainWindow : Window
 {
     private const int MaxUndo = 20;
     private const int SelectionCanvasTabIndex = 6;  // indice del tab "Selezione"
-    private enum WorkspaceGuideAction { OpenImage, SliceSprites, ExportPng }
 
     private Image<Rgba32>? _document;
     private Image<Rgba32>? _backup;
@@ -45,8 +44,9 @@ public partial class MainWindow : Window
     private readonly FloatingPasteCoordinator _floatingPaste;
     private readonly PipelineViewModel _pipelineVm = new();
     private bool _isApplyingPipelinePreset;
-    private WorkspaceGuideAction _workspaceGuideAction = WorkspaceGuideAction.OpenImage;
+    private readonly WorkflowShellViewModel _workflowShell = new();
     private readonly WorkspaceTabsController _workspaceTabs = new();
+    private readonly UiPreferencesService _uiPreferences = new();
     private bool _workspaceTabSwitching;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
@@ -82,6 +82,7 @@ public partial class MainWindow : Window
         BtnPanelSandbox.Click += (_, _) => OpenSandbox();
         BtnPanelAnimPreview.Click += (_, _) => OpenAnimationPreview();
         BtnToolbarRilevaSprite.Click += (_, _) => RunCcl();
+        BtnToolbarSelectionQuick.Click += (_, _) => ToggleToolbarSelectionMode();
         MiToolbarSelectionMode.Click += (_, _) => ToggleToolbarSelectionMode();
         MiToolbarCropToSelection.Click += (_, _) => CropToSelection();
         MiToolbarRemoveSelectedArea.Click += (_, _) => RemoveSelectedArea();
@@ -132,8 +133,8 @@ public partial class MainWindow : Window
         TxtEraserRadius.ValueChanged += (_, _) =>
             Editor.EraserRadius = (int)(TxtEraserRadius.Value ?? 4);
 
-        Editor.EraserStroke     += OnEraserStroke;
-        Editor.EraserStrokeEnded += (_, _) => { _eraserUndoPushed = false; };
+        Editor.EraserStroke += OnEraserStroke;
+        Editor.EraserStrokeEnded += OnEraserStrokeEnded;
         ChkPipette.IsCheckedChanged += (_, _) => UpdatePipetteMode();
         ChkSpriteCrop.IsCheckedChanged += (_, _) => UpdateSpriteSelectionMode();
         Editor.ImagePixelPicked += OnEditorImagePixelPicked;
@@ -203,6 +204,9 @@ public partial class MainWindow : Window
         ChkShowAdvancedTabs.IsCheckedChanged += (_, _) =>
         {
             var show = ChkShowAdvancedTabs.IsChecked == true;
+            if (_workspaceTabs.ActiveTab is { } activeTab)
+                activeTab.IsAdvancedMode = show;
+            _uiPreferences.SaveShowAdvancedTabs(show);
             if (!show && (ReferenceEquals(MainTabs.SelectedItem, TabStylize) ||
                           ReferenceEquals(MainTabs.SelectedItem, TabTemplate) ||
                           ReferenceEquals(MainTabs.SelectedItem, TabSelection)))
@@ -222,6 +226,12 @@ public partial class MainWindow : Window
         BtnWorkspaceExportPng.Click += async (_, _) => await ExportPngAsync();
         BtnWorkspaceExportJson.Click += async (_, _) => await ExportJsonAsync();
         BtnWorkspaceGuideAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
+        BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
+        BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
+        BtnStepImporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Importa);
+        BtnStepPulisci.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Pulisci);
+        BtnStepSliceAllinea.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
+        BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoAllinea.Click += (_, _) => MainTabs.SelectedIndex = 2;
         BtnGoStilizza.Click += (_, _) =>
         {
@@ -251,6 +261,9 @@ public partial class MainWindow : Window
             if (ChkSnapSyncGrid.IsChecked == true && ChkSnapGrid.IsChecked == true)
                 TxtSnapSize.Value = TxtWorldGridSize.Value;
         };
+
+        if (_uiPreferences.TryLoadShowAdvancedTabs(out var showAdvancedSaved))
+            ChkShowAdvancedTabs.IsChecked = showAdvancedSaved;
 
         // Crop & POT (asset singolo)
         BtnApplyCropPot.Click    += (_, _) => RunCropPipeline();
@@ -411,6 +424,7 @@ public partial class MainWindow : Window
             _cells,
             _undoCoordinator.Snapshots,
             _hasUserFile,
+            ChkShowAdvancedTabs.IsChecked == true,
             Editor.SliceGridRows,
             Editor.SliceGridCols,
             Editor.SpriteCells,
@@ -427,6 +441,7 @@ public partial class MainWindow : Window
         _backup = runtime.Backup;
         _cells = runtime.Cells;
         _hasUserFile = runtime.HasUserFile;
+        ChkShowAdvancedTabs.IsChecked = state.IsAdvancedMode;
         Editor.SliceGridRows = runtime.GridRows;
         Editor.SliceGridCols = runtime.GridCols;
         Editor.SpriteCells = runtime.SpriteOverlay;
@@ -913,6 +928,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Sicuro impostato.");
+        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -931,6 +947,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Aggressivo+Recupero impostato.");
+        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
         if (ChkPresetApplyNow.IsChecked == true)
             RunPixelPipeline();
@@ -1018,84 +1035,91 @@ public partial class MainWindow : Window
     private PipelineViewModel.PipelineFormState ReadPipelineFormStateFromControls()
     {
         return new PipelineViewModel.PipelineFormState(
-            EnableChroma: ChkPipeChroma.IsChecked == true,
-            EnableChromaSnapRgb: ChkPipeChromaSnapRgb.IsChecked == true,
-            ChromaHex: TxtPipeChromaHex.Text ?? "#00FF00",
-            ChromaTolerance: TxtPipeChromaTol.Text ?? "0",
-            EnableAdvancedCleaner: ChkPipeAdvancedCleaner.IsChecked == true,
-            BilateralSigmaSpatial: TxtPipeBilateralSpatial.Text ?? "1.25",
-            BilateralSigmaRange: TxtPipeBilateralRange.Text ?? "0.085",
-            BilateralPasses: TxtPipeBilateralPasses.Text ?? "1",
-            EnablePixelGridEnforce: ChkPipePixelGridEnforce.IsChecked == true,
-            NativeWidth: TxtPipeNativeW.Text ?? "64",
-            NativeHeight: TxtPipeNativeH.Text ?? "64",
-            EnablePaletteSnap: ChkPipePaletteSnap.IsChecked == true,
-            PaletteId: TxtPipePaletteId.Text ?? string.Empty,
-            PaletteMetadataPath: TxtPipePaletteMetadataPath.Text ?? string.Empty,
-            EnableQuantize: ChkPipeQuant.IsChecked == true,
-            MaxColors: TxtPipeQuantLevels.Text ?? "16",
+            EnableChroma: IsChecked(ChkPipeChroma),
+            EnableChromaSnapRgb: IsChecked(ChkPipeChromaSnapRgb),
+            ChromaHex: TextOrDefault(TxtPipeChromaHex, "#00FF00"),
+            ChromaTolerance: TextOrDefault(TxtPipeChromaTol, "0"),
+            EnableAdvancedCleaner: IsChecked(ChkPipeAdvancedCleaner),
+            BilateralSigmaSpatial: TextOrDefault(TxtPipeBilateralSpatial, "1.25"),
+            BilateralSigmaRange: TextOrDefault(TxtPipeBilateralRange, "0.085"),
+            BilateralPasses: TextOrDefault(TxtPipeBilateralPasses, "1"),
+            EnablePixelGridEnforce: IsChecked(ChkPipePixelGridEnforce),
+            NativeWidth: TextOrDefault(TxtPipeNativeW, "64"),
+            NativeHeight: TextOrDefault(TxtPipeNativeH, "64"),
+            EnablePaletteSnap: IsChecked(ChkPipePaletteSnap),
+            PaletteId: TextOrDefault(TxtPipePaletteId, string.Empty),
+            PaletteMetadataPath: TextOrDefault(TxtPipePaletteMetadataPath, string.Empty),
+            EnableQuantize: IsChecked(ChkPipeQuant),
+            MaxColors: TextOrDefault(TxtPipeQuantLevels, "16"),
             QuantizerIndex: CmbPipeQuantMethod.SelectedIndex,
-            EnableMajorityDenoise: ChkPipeMajorityDenoise.IsChecked == true,
-            MinIsland: TxtMinIsland.Text ?? "2",
-            EnableOutline: ChkPipeOutline.IsChecked == true,
-            OutlineHex: TxtPipeOutlineHex.Text ?? "#000000",
-            EnableAlphaThreshold: ChkAlphaThreshold.IsChecked == true,
-            AlphaThreshold: TxtAlphaThreshold.Text ?? "128");
+            EnableMajorityDenoise: IsChecked(ChkPipeMajorityDenoise),
+            MinIsland: TextOrDefault(TxtMinIsland, "2"),
+            EnableOutline: IsChecked(ChkPipeOutline),
+            OutlineHex: TextOrDefault(TxtPipeOutlineHex, "#000000"),
+            EnableAlphaThreshold: IsChecked(ChkAlphaThreshold),
+            AlphaThreshold: TextOrDefault(TxtAlphaThreshold, "128"));
     }
 
     private void ApplyPipelineFormStateToControls(PipelineViewModel.PipelineFormState formState)
     {
-        ChkPipeChroma.IsChecked = formState.EnableChroma;
-        ChkPipeChromaSnapRgb.IsChecked = formState.EnableChromaSnapRgb;
-        TxtPipeChromaHex.Text = formState.ChromaHex;
-        TxtPipeChromaTol.Text = formState.ChromaTolerance;
-        ChkPipeAdvancedCleaner.IsChecked = formState.EnableAdvancedCleaner;
-        TxtPipeBilateralSpatial.Text = formState.BilateralSigmaSpatial;
-        TxtPipeBilateralRange.Text = formState.BilateralSigmaRange;
-        TxtPipeBilateralPasses.Text = formState.BilateralPasses;
-        ChkPipePixelGridEnforce.IsChecked = formState.EnablePixelGridEnforce;
-        TxtPipeNativeW.Text = formState.NativeWidth;
-        TxtPipeNativeH.Text = formState.NativeHeight;
-        ChkPipePaletteSnap.IsChecked = formState.EnablePaletteSnap;
-        TxtPipePaletteId.Text = formState.PaletteId;
-        TxtPipePaletteMetadataPath.Text = formState.PaletteMetadataPath;
-        ChkPipeQuant.IsChecked = formState.EnableQuantize;
-        TxtPipeQuantLevels.Text = formState.MaxColors;
+        SetChecked(ChkPipeChroma, formState.EnableChroma);
+        SetChecked(ChkPipeChromaSnapRgb, formState.EnableChromaSnapRgb);
+        SetText(TxtPipeChromaHex, formState.ChromaHex);
+        SetText(TxtPipeChromaTol, formState.ChromaTolerance);
+        SetChecked(ChkPipeAdvancedCleaner, formState.EnableAdvancedCleaner);
+        SetText(TxtPipeBilateralSpatial, formState.BilateralSigmaSpatial);
+        SetText(TxtPipeBilateralRange, formState.BilateralSigmaRange);
+        SetText(TxtPipeBilateralPasses, formState.BilateralPasses);
+        SetChecked(ChkPipePixelGridEnforce, formState.EnablePixelGridEnforce);
+        SetText(TxtPipeNativeW, formState.NativeWidth);
+        SetText(TxtPipeNativeH, formState.NativeHeight);
+        SetChecked(ChkPipePaletteSnap, formState.EnablePaletteSnap);
+        SetText(TxtPipePaletteId, formState.PaletteId);
+        SetText(TxtPipePaletteMetadataPath, formState.PaletteMetadataPath);
+        SetChecked(ChkPipeQuant, formState.EnableQuantize);
+        SetText(TxtPipeQuantLevels, formState.MaxColors);
         CmbPipeQuantMethod.SelectedIndex = formState.QuantizerIndex;
-        ChkPipeMajorityDenoise.IsChecked = formState.EnableMajorityDenoise;
-        TxtMinIsland.Text = formState.MinIsland;
-        ChkPipeOutline.IsChecked = formState.EnableOutline;
-        TxtPipeOutlineHex.Text = formState.OutlineHex;
-        ChkAlphaThreshold.IsChecked = formState.EnableAlphaThreshold;
-        TxtAlphaThreshold.Text = formState.AlphaThreshold;
+        SetChecked(ChkPipeMajorityDenoise, formState.EnableMajorityDenoise);
+        SetText(TxtMinIsland, formState.MinIsland);
+        SetChecked(ChkPipeOutline, formState.EnableOutline);
+        SetText(TxtPipeOutlineHex, formState.OutlineHex);
+        SetChecked(ChkAlphaThreshold, formState.EnableAlphaThreshold);
+        SetText(TxtAlphaThreshold, formState.AlphaThreshold);
     }
 
     private void HookPipelinePresetResetOnManualChanges()
     {
-        ChkPipeChroma.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeChromaSnapRgb.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeQuant.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeMajorityDenoise.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeOutline.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkAlphaThreshold.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeChromaHex.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeChromaTol.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeAdvancedCleaner.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeBilateralSpatial.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeBilateralRange.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeBilateralPasses.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipePixelGridEnforce.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeNativeW.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeNativeH.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipePaletteSnap.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipePaletteId.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipePaletteMetadataPath.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeQuantLevels.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtMinIsland.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeOutlineHex.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtAlphaThreshold.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        foreach (var checkBox in new[]
+                 {
+                     ChkPipeChroma, ChkPipeChromaSnapRgb, ChkPipeQuant, ChkPipeMajorityDenoise,
+                     ChkPipeOutline, ChkAlphaThreshold, ChkPipeAdvancedCleaner, ChkPipePixelGridEnforce,
+                     ChkPipePaletteSnap
+                 })
+        {
+            checkBox.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        }
+
+        foreach (var textBox in new[]
+                 {
+                     TxtPipeChromaHex, TxtPipeChromaTol, TxtPipeBilateralSpatial, TxtPipeBilateralRange,
+                     TxtPipeBilateralPasses, TxtPipeNativeW, TxtPipeNativeH, TxtPipePaletteId,
+                     TxtPipePaletteMetadataPath, TxtPipeQuantLevels, TxtMinIsland, TxtPipeOutlineHex,
+                     TxtAlphaThreshold
+                 })
+        {
+            textBox.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        }
+
         CmbPipeQuantMethod.SelectionChanged += (_, _) => ResetPresetOnManualPipelineEdit();
     }
+
+    private static bool IsChecked(Avalonia.Controls.CheckBox checkBox) => checkBox.IsChecked == true;
+
+    private static void SetChecked(Avalonia.Controls.CheckBox checkBox, bool value) => checkBox.IsChecked = value;
+
+    private static string TextOrDefault(Avalonia.Controls.TextBox textBox, string fallback) => textBox.Text ?? fallback;
+
+    private static void SetText(Avalonia.Controls.TextBox textBox, string value) => textBox.Text = value;
 
     private static string? TryResolvePaletteIdFromMetadata(string? metadataPath)
     {
@@ -1120,6 +1144,7 @@ public partial class MainWindow : Window
     {
         if (_isApplyingPipelinePreset) return;
         _pipelineVm.ActivePreset = PipelineViewModel.PresetKind.None;
+        ExpPipelineTechnicalDetails.IsExpanded = true;
         UpdatePipelinePresetBadge();
     }
 
@@ -1538,44 +1563,97 @@ public partial class MainWindow : Window
 
     private async Task RunWorkspaceGuideActionAsync()
     {
-        switch (_workspaceGuideAction)
+        switch (_workflowShell.ActiveStep)
         {
-            case WorkspaceGuideAction.OpenImage:
+            case WorkflowShellViewModel.WorkflowStep.Importa:
                 await OpenImageAsync();
                 break;
-            case WorkspaceGuideAction.SliceSprites:
+            case WorkflowShellViewModel.WorkflowStep.Pulisci:
+                RunQuickProcess();
+                break;
+            case WorkflowShellViewModel.WorkflowStep.SliceAllinea:
                 RunCcl();
                 break;
-            case WorkspaceGuideAction.ExportPng:
+            case WorkflowShellViewModel.WorkflowStep.Esporta:
                 await ExportPngAsync();
                 break;
         }
+    }
+
+    private async Task AdvanceWorkflowStepAsync()
+    {
+        _workflowShell.AdvanceWorkflowStepCommand.Execute(null);
+        SelectWorkflowStep(_workflowShell.ActiveStep);
+        await RunWorkspaceGuideActionAsync();
+    }
+
+    private void ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep step)
+    {
+        _workflowShell.SelectWorkflowStepCommand.Execute(step);
+        SelectWorkflowStep(step);
+    }
+
+    private void SelectWorkflowStep(WorkflowShellViewModel.WorkflowStep step)
+    {
+        MainTabs.SelectedIndex = step switch
+        {
+            WorkflowShellViewModel.WorkflowStep.Importa => 0,
+            WorkflowShellViewModel.WorkflowStep.Pulisci => 1,
+            WorkflowShellViewModel.WorkflowStep.SliceAllinea => 2,
+            WorkflowShellViewModel.WorkflowStep.Esporta => 0,
+            _ => 0
+        };
+        UpdateWorkflowShell();
     }
 
     private void UpdateWorkspaceGuidance()
     {
         if (_document is null)
         {
-            _workspaceGuideAction = WorkspaceGuideAction.OpenImage;
+            _workflowShell.UpdateFromReadiness(hasDocument: false, cleanApplied: false, hasCells: false);
             SetWorkspaceBadge("BLOCCATO", "#3f1f24", "#6a2f39", "#ffd9df");
             TxtWorkspaceDependencyStatus.Text = "Manca immagine sorgente. Apri un file per iniziare.";
-            BtnWorkspaceGuideAction.Content = "Apri immagine";
+            BtnWorkspaceGuideAction.Content = "Step 1 · Importa";
+            UpdateWorkflowShell();
+            return;
+        }
+
+        if (TxtQuickColorsAfter.Text == "-" || string.Equals(TxtQuickColorsBefore.Text, TxtQuickColorsAfter.Text, StringComparison.Ordinal))
+        {
+            _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: false, hasCells: false);
+            SetWorkspaceBadge("IN CORSO", "#203047", "#2e4a6f", "#d4e7ff");
+            TxtWorkspaceDependencyStatus.Text = "Immagine caricata. Applica una pulizia rapida prima del slicing.";
+            BtnWorkspaceGuideAction.Content = "Step 2 · Pulisci";
+            UpdateWorkflowShell();
             return;
         }
 
         if (_cells.Count == 0)
         {
-            _workspaceGuideAction = WorkspaceGuideAction.SliceSprites;
+            _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: true, hasCells: false);
             SetWorkspaceBadge("ATTENZIONE", "#3d3318", "#6d5922", "#ffe8b2");
             TxtWorkspaceDependencyStatus.Text = "Manca slicing: rileva o crea celle sprite prima dell'export frame-based.";
-            BtnWorkspaceGuideAction.Content = "Rileva sprite ora";
+            BtnWorkspaceGuideAction.Content = "Step 3 · Slice/Allinea";
+            UpdateWorkflowShell();
             return;
         }
 
-        _workspaceGuideAction = WorkspaceGuideAction.ExportPng;
+        _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: true, hasCells: true);
         SetWorkspaceBadge("PRONTO", "#173927", "#266344", "#c9f5dd");
         TxtWorkspaceDependencyStatus.Text = $"Slicing pronto: {_cells.Count} celle disponibili. Puoi esportare subito.";
-        BtnWorkspaceGuideAction.Content = "Esporta atlas PNG";
+        BtnWorkspaceGuideAction.Content = "Step 4 · Esporta";
+        UpdateWorkflowShell();
+    }
+
+    private void UpdateWorkflowShell()
+    {
+        BtnStepImporta.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Importa;
+        BtnStepPulisci.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Pulisci;
+        BtnStepSliceAllinea.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.SliceAllinea;
+        BtnStepEsporta.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Esporta;
+
+        TxtWorkflowStepSummary.Text = _workflowShell.StepSummary;
+        BtnWorkflowPrimaryAction.Content = _workflowShell.PrimaryActionLabel;
     }
 
     private void SetWorkspaceBadge(string text, string bgHex, string borderHex, string fgHex)
@@ -2043,6 +2121,9 @@ public partial class MainWindow : Window
     // ─── Gomma ───────────────────────────────────────────────────────────────
 
     private bool _eraserUndoPushed;
+    private int _eraserDirtyMinY = int.MaxValue;
+    private int _eraserDirtyMaxY = int.MinValue;
+    private long _eraserLastFlushTicks;
 
     private void OnEraserStroke(object? sender, AiPixelScaler.Desktop.Controls.EraserStrokeEventArgs e)
     {
@@ -2071,15 +2152,35 @@ public partial class MainWindow : Window
                     if (dx * dx + dy * dy > r * r) continue;
                     var px = e.ImageX + dx;
                     if (px < 0 || px >= imgW) continue;
-                    row[px] = new Rgba32(row[px].R, row[px].G, row[px].B, 0);
+                    if (row[px].A != 0)
+                        row[px].A = 0;
                 }
             }
         });
 
-        // Aggiorna solo le righe toccate — nessuna ri-codifica PNG
         var yMin = Math.Max(0, e.ImageY - r);
         var yMax = Math.Min(imgH, e.ImageY + r + 1);
-        Editor.UpdateBitmapRegion(_document, yMin, yMax);
+        _eraserDirtyMinY = Math.Min(_eraserDirtyMinY, yMin);
+        _eraserDirtyMaxY = Math.Max(_eraserDirtyMaxY, yMax);
+
+        var now = Environment.TickCount64;
+        if (now - _eraserLastFlushTicks >= 16 && _eraserDirtyMinY < _eraserDirtyMaxY)
+        {
+            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinY, _eraserDirtyMaxY);
+            _eraserLastFlushTicks = now;
+            _eraserDirtyMinY = int.MaxValue;
+            _eraserDirtyMaxY = int.MinValue;
+        }
+    }
+
+    private void OnEraserStrokeEnded(object? sender, EventArgs e)
+    {
+        if (_document is not null && _eraserDirtyMinY < _eraserDirtyMaxY)
+            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinY, _eraserDirtyMaxY);
+
+        _eraserDirtyMinY = int.MaxValue;
+        _eraserDirtyMaxY = int.MinValue;
+        _eraserUndoPushed = false;
     }
 
     // ─── Atlas pulito (clone griglia + manual paste) ─────────────────────────
