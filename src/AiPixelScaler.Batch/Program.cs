@@ -1,5 +1,6 @@
 using AiPixelScaler.Core.Pipeline.Export;
 using AiPixelScaler.Core.Pipeline.Imaging;
+using AiPixelScaler.Core.Utilities;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -25,7 +26,7 @@ internal static class Program
         var outputDir = Path.GetFullPath(args[1]);
         var indexed = args.Contains("--indexed", StringComparer.OrdinalIgnoreCase);
         var sharedPalette = args.Contains("--shared-palette", StringComparer.OrdinalIgnoreCase);
-        var paletteN = ParseFlagInt(args, "--palette");
+        var paletteN = OptionParsing.ParseFlagInt(args, "--palette");
         ParseChromaSnap(args, out var snapKey, out var snapTol);
 
         if (!Directory.Exists(inputDir))
@@ -101,17 +102,6 @@ internal static class Program
 
         return 0;
     }
-
-    private static int? ParseFlagInt(string[] args, string flag)
-    {
-        for (var i = 0; i < args.Length - 1; i++)
-        {
-            if (!string.Equals(args[i], flag, StringComparison.OrdinalIgnoreCase)) continue;
-            return int.TryParse(args[i + 1], out var n) ? n : null;
-        }
-        return null;
-    }
-
     private static void ParseChromaSnap(string[] args, out Rgba32? key, out double tol)
     {
         key = null;
@@ -119,24 +109,12 @@ internal static class Program
         for (var i = 0; i < args.Length - 2; i++)
         {
             if (!string.Equals(args[i], "--chroma-snap", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!TryParseHexRgb(args[i + 1], out var k)) break;
+            if (!ColorParsing.TryParseHexRgb(args[i + 1], out var k)) break;
             key = k;
             if (double.TryParse(args[i + 2], System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out var t))
                 tol = Math.Max(0, t);
             break;
         }
-    }
-
-    private static bool TryParseHexRgb(string s, out Rgba32 color)
-    {
-        color = default;
-        var t = s.Trim();
-        if (t.StartsWith('#')) t = t[1..];
-        if (t.Length != 6) return false;
-        if (!uint.TryParse(t, System.Globalization.NumberStyles.HexNumber,
-                System.Globalization.CultureInfo.InvariantCulture, out var v)) return false;
-        color = new Rgba32((byte)(v >> 16), (byte)(v >> 8), (byte)v, 255);
-        return true;
     }
 }

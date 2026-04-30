@@ -18,6 +18,7 @@ public sealed class WorkspaceTabViewModel : IDisposable
     public required int GridCols { get; init; }
     public required List<SpriteCell> SpriteOverlay { get; init; }
     public bool IsDirty { get; set; }
+    public bool IsAdvancedMode { get; set; }
 
     public void Dispose()
     {
