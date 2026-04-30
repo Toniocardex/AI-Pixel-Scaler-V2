@@ -333,29 +333,53 @@
         </StackPanel>
       </Border>
 
-      <!-- ─── CANVAS + overlay stato vuoto ────────────────────────────── -->
-      <Grid Grid.Column="1" Background="#0a0a0e">
-        <ctrl:EditorSurface x:Name="Editor" ClipToBounds="True" Zoom="1"
-                            RenderOptions.BitmapInterpolationMode="None"/>
-        <Border x:Name="EmptyStateDim" ZIndex="8" IsHitTestVisible="False" IsVisible="False"
-                Background="#990a0a12"/>
-        <StackPanel x:Name="EmptyStatePanel" ZIndex="10" IsVisible="False"
-                    VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" MaxWidth="360">
-          <TextBlock x:Name="EmptyStateTitle" Text="Nessun file aperto" Foreground="#b0a8c8"
-                     FontSize="16" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"/>
-          <TextBlock x:Name="EmptyStateSub"
-                     Text="Clic su «Apri immagine» (toolbar) o sotto. Intanto vedi l'atlas di esempio."
-                     Foreground="#5c5a70" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"/>
-          <Button x:Name="EmptyStateOpen" Content="Apri un'immagine" Classes="primary"
-                  HorizontalAlignment="Center" Margin="0,8,0,0"/>
-        </StackPanel>
-        <!-- Bottone espandi pannello — visibile solo quando pannello è collassato -->
-        <Button x:Name="BtnExpandPanel" ZIndex="20"
-                HorizontalAlignment="Right" VerticalAlignment="Top"
-                Margin="0,6,6,0" IsVisible="False" Classes="tool" Padding="7,5"
-                ToolTip.Tip="Espandi pannello strumenti">
-          <Path Data="{StaticResource IconChevronLeft}" Classes="tool-icon"/>
-        </Button>
+      <!-- ─── CANVAS + overlay stato vuoto + scroll workspace ───────────── -->
+      <Grid Grid.Column="1" Background="#0a0a0e"
+            RowDefinitions="*,Auto" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="0" Grid.Column="0">
+          <ctrl:EditorSurface x:Name="Editor" ClipToBounds="True" Zoom="1"
+                              RenderOptions.BitmapInterpolationMode="None"/>
+          <Border x:Name="EmptyStateDim" ZIndex="8" IsHitTestVisible="False" IsVisible="False"
+                  Background="#990a0a12"/>
+          <StackPanel x:Name="EmptyStatePanel" ZIndex="10" IsVisible="False"
+                      VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" MaxWidth="360">
+            <TextBlock x:Name="EmptyStateTitle" Text="Nessun file aperto" Foreground="#b0a8c8"
+                       FontSize="16" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"/>
+            <TextBlock x:Name="EmptyStateSub"
+                       Text="Clic su «Apri immagine» (toolbar) o sotto. Intanto vedi l'atlas di esempio."
+                       Foreground="#5c5a70" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"/>
+            <Button x:Name="EmptyStateOpen" Content="Apri un'immagine" Classes="primary"
+                    HorizontalAlignment="Center" Margin="0,8,0,0"/>
+          </StackPanel>
+          <Button x:Name="BtnExpandPanel" ZIndex="20"
+                  HorizontalAlignment="Right" VerticalAlignment="Top"
+                  Margin="0,6,6,0" IsVisible="False" Classes="tool" Padding="7,5"
+                  ToolTip.Tip="Espandi pannello strumenti">
+            <Path Data="{StaticResource IconChevronLeft}" Classes="tool-icon"/>
+          </Button>
+        </Grid>
+        <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                      Margin="6,0,8,0" Spacing="8">
+            <TextBlock Text="Zoom" Foreground="#7f7f98" VerticalAlignment="Center" FontSize="11"/>
+            <TextBlock x:Name="TxtWorkspaceZoomPct" Text="100 %" Foreground="#cdcdd9"
+                       VerticalAlignment="Center" FontSize="11" MinWidth="44" TextAlignment="Right"/>
+            <Slider x:Name="SliderWorkspaceZoom" Width="168" Minimum="0" Maximum="1000"
+                    Value="500" VerticalAlignment="Center"
+                    ToolTip.Tip="Scala zoom logaritmica verso il 100%: metà corsa da 5% a 100%, metà da 100% a 6400%. Ancoraggio al centro viewport."/>
+          </StackPanel>
+          <ScrollBar x:Name="EditorScrollH" Grid.Column="1"
+                     Orientation="Horizontal" Height="14" VerticalAlignment="Center"
+                     Minimum="0" Maximum="0" Value="0"
+                     IsVisible="False"
+                     ToolTip.Tip="Sposta il foglio orizzontalmente (pan)"/>
+        </Grid>
+        <ScrollBar x:Name="EditorScrollV" Grid.Row="0" Grid.Column="1"
+                   Orientation="Vertical" Width="14"
+                   Minimum="0" Maximum="0" Value="0"
+                   IsVisible="False"
+                   ToolTip.Tip="Sposta il foglio verticalmente (pan)"/>
+        <Border Grid.Row="1" Grid.Column="1" Background="#0a0a0e" Width="14" Height="14"/>
       </Grid>
 
       <!-- ─── SPLITTER ─────────────────────────────────────────────────── -->

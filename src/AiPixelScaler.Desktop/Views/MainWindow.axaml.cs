@@ -18,7 +18,9 @@ using AiPixelScaler.Desktop.Imaging;
 using AiPixelScaler.Desktop.Services;
 using AiPixelScaler.Desktop.Utilities;
 using AiPixelScaler.Desktop.ViewModels;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -33,6 +35,10 @@ namespace AiPixelScaler.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    /// <summary>Allineato a <see cref="EditorSurface"/> rotellina / <see cref="EditorSurface.SetZoomTowardScreenPoint"/>.</summary>
+    private const double WorkspaceZoomSliderMin = 0.05;
+    private const double WorkspaceZoomSliderMax = 64.0;
+
     private const int MaxUndo = 20;
     private const int SelectionCanvasTabIndex = 6;  // indice del tab "Selezione"
 
@@ -53,6 +59,9 @@ public partial class MainWindow : Window
     private readonly WorkspaceTabsController _workspaceTabs = new();
     private readonly UiPreferencesService _uiPreferences = new();
     private bool _workspaceTabSwitching;
+    private bool _workspaceScrollBarSync;
+    private bool _workspaceZoomSliderSync;
+    private int _workspaceScrollBarLayoutDepth;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _toolbarSelectionModeEnabled;
@@ -149,6 +158,8 @@ public partial class MainWindow : Window
         Editor.ImageSelectionCompleted += OnEditorImageSelectionCompleted;
         Editor.CommittedSelectionEdited += OnEditorCommittedSelectionEdited;
         Editor.FloatingOverlayMoved += OnEditorFloatingOverlayMoved;
+
+        InitWorkspaceScrollBars();
 
         // Pivot
         SliderPivotX.ValueChanged += (_, _) => UpdatePivotLabels();
@@ -952,6 +963,209 @@ public partial class MainWindow : Window
         UpdateQuickWorkflowPanel();
         UpdateWorkspaceGuidance();
         UpdateExportCellMinRequiredHint();
+        UpdateWorkspaceZoomSlider();
+        UpdateWorkspaceScrollBars();
+    }
+
+    private void InitWorkspaceScrollBars()
+    {
+        SliderWorkspaceZoom.ValueChanged += OnWorkspaceZoomSliderValueChanged;
+        EditorScrollH.ValueChanged += OnWorkspaceScrollHValueChanged;
+        EditorScrollV.ValueChanged += OnWorkspaceScrollVValueChanged;
+        Editor.PropertyChanged += OnEditorPropertyChangedWorkspaceScroll;
+        Editor.LayoutUpdated += (_, _) =>
+        {
+            if (_workspaceScrollBarLayoutDepth > 0) return;
+            UpdateWorkspaceScrollBars();
+        };
+        UpdateWorkspaceZoomSlider();
+        UpdateWorkspaceScrollBars();
+    }
+
+    private static string FormatWorkspaceZoomPercent(double zoom)
+    {
+        var p = zoom * 100.0;
+        if (Math.Abs(p - Math.Round(p)) < 0.051) return $"{Math.Round(p)} %";
+        return $"{p:0.#} %";
+    }
+
+    /// <summary>
+    /// Posizione slider normalizzata [0,1] → zoom effettivo: prima metà <c>[zoom_min → 1]</c>,
+    /// seconda metà <c>[1 → zoom_max]</c>; dentro ogni metà scala logaritmica (più risoluzione vicino al 100%).
+    /// </summary>
+    private static double WorkspaceZoomFromSliderPosition(double t01)
+    {
+        t01 = Math.Clamp(t01, 0.0, 1.0);
+        var lnMin = Math.Log(WorkspaceZoomSliderMin);
+        var lnMax = Math.Log(WorkspaceZoomSliderMax);
+        if (t01 <= 0.5)
+        {
+            var u = t01 / 0.5;
+            var lnZ = lnMin * (1.0 - u);
+            return Math.Exp(lnZ);
+        }
+
+        var v = (t01 - 0.5) / 0.5;
+        var lnZHi = lnMax * v;
+        return Math.Exp(lnZHi);
+    }
+
+    /// <summary>Inversa di <see cref="WorkspaceZoomFromSliderPosition"/>.</summary>
+    private static double WorkspaceSliderPositionFromZoom(double zoom)
+    {
+        zoom = Math.Clamp(zoom, WorkspaceZoomSliderMin, WorkspaceZoomSliderMax);
+        var lnMin = Math.Log(WorkspaceZoomSliderMin);
+        var lnMax = Math.Log(WorkspaceZoomSliderMax);
+        var lnZ = Math.Log(zoom);
+        if (zoom <= 1.0)
+        {
+            var u = 1.0 - lnZ / lnMin;
+            return 0.5 * Math.Clamp(u, 0.0, 1.0);
+        }
+
+        var v = lnZ / lnMax;
+        return 0.5 + 0.5 * Math.Clamp(v, 0.0, 1.0);
+    }
+
+    private void UpdateWorkspaceZoomSlider()
+    {
+        if (_workspaceZoomSliderSync) return;
+        _workspaceZoomSliderSync = true;
+        try
+        {
+            var z = Math.Clamp(Editor.Zoom, WorkspaceZoomSliderMin, WorkspaceZoomSliderMax);
+            var span = SliderWorkspaceZoom.Maximum - SliderWorkspaceZoom.Minimum;
+            var norm = WorkspaceSliderPositionFromZoom(z);
+            SliderWorkspaceZoom.Value = SliderWorkspaceZoom.Minimum + norm * span;
+            TxtWorkspaceZoomPct.Text = FormatWorkspaceZoomPercent(z);
+        }
+        finally
+        {
+            _workspaceZoomSliderSync = false;
+        }
+    }
+
+    private void OnWorkspaceZoomSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_workspaceZoomSliderSync) return;
+        var span = SliderWorkspaceZoom.Maximum - SliderWorkspaceZoom.Minimum;
+        var t01 = span > 0
+            ? (SliderWorkspaceZoom.Value - SliderWorkspaceZoom.Minimum) / span
+            : 0.5;
+        var zoom = WorkspaceZoomFromSliderPosition(t01);
+        var w = Editor.Bounds.Width;
+        var h = Editor.Bounds.Height;
+        var sx = w > 0 ? w * 0.5 : 0;
+        var sy = h > 0 ? h * 0.5 : 0;
+        Editor.SetZoomTowardScreenPoint(zoom, sx, sy);
+        UpdateWorkspaceScrollBars();
+    }
+
+    private void OnEditorPropertyChangedWorkspaceScroll(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (_workspaceScrollBarSync) return;
+        if (e.Property == EditorSurface.ZoomProperty)
+            UpdateWorkspaceZoomSlider();
+        if (e.Property == EditorSurface.PanXProperty || e.Property == EditorSurface.PanYProperty
+            || e.Property == EditorSurface.ZoomProperty || e.Property == EditorSurface.BitmapProperty
+            || e.Property == EditorSurface.IsFrameEditModeProperty
+            || e.Property == EditorSurface.IsTilePreviewModeProperty)
+            UpdateWorkspaceScrollBars();
+    }
+
+    private bool TryComputeWorkspacePanExtents(out double panMinX, out double panMaxX,
+        out double panMinY, out double panMaxY)
+    {
+        panMinX = panMaxX = panMinY = panMaxY = 0;
+        var vw = Editor.Bounds.Width;
+        var vh = Editor.Bounds.Height;
+        if (vw <= 0 || vh <= 0) return false;
+        if (!Editor.TryGetPanWorldSize(out var ww, out var wh)) return false;
+
+        var z = Math.Max(Editor.Zoom, 0.0001);
+        var iw = ww * z;
+        var ih = wh * z;
+        panMinX = Math.Min(0, vw - iw);
+        panMaxX = Math.Max(0, vw - iw);
+        panMinY = Math.Min(0, vh - ih);
+        panMaxY = Math.Max(0, vh - ih);
+        return true;
+    }
+
+    private void UpdateWorkspaceScrollBars()
+    {
+        if (_workspaceScrollBarLayoutDepth > 0) return;
+        _workspaceScrollBarLayoutDepth++;
+
+        try
+        {
+            if (!TryComputeWorkspacePanExtents(out var panMinX, out var panMaxX, out var panMinY, out var panMaxY))
+            {
+                EditorScrollH.IsVisible = false;
+                EditorScrollV.IsVisible = false;
+                return;
+            }
+
+            var spanX = panMaxX - panMinX;
+            var spanY = panMaxY - panMinY;
+            const double eps = 0.5;
+
+            _workspaceScrollBarSync = true;
+            try
+            {
+                EditorScrollH.Minimum = 0;
+                EditorScrollH.Maximum = Math.Max(0, spanX);
+                EditorScrollH.Value = Math.Clamp(Editor.PanX - panMinX, EditorScrollH.Minimum, EditorScrollH.Maximum);
+                EditorScrollH.SmallChange = Math.Max(1, spanX / 24);
+                EditorScrollH.LargeChange = Math.Max(EditorScrollH.SmallChange, Editor.Bounds.Width * 0.85);
+                EditorScrollH.IsVisible = spanX > eps;
+
+                EditorScrollV.Minimum = 0;
+                EditorScrollV.Maximum = Math.Max(0, spanY);
+                EditorScrollV.Value = Math.Clamp(Editor.PanY - panMinY, EditorScrollV.Minimum, EditorScrollV.Maximum);
+                EditorScrollV.SmallChange = Math.Max(1, spanY / 24);
+                EditorScrollV.LargeChange = Math.Max(EditorScrollV.SmallChange, Editor.Bounds.Height * 0.85);
+                EditorScrollV.IsVisible = spanY > eps;
+            }
+            finally
+            {
+                _workspaceScrollBarSync = false;
+            }
+        }
+        finally
+        {
+            _workspaceScrollBarLayoutDepth--;
+        }
+    }
+
+    private void OnWorkspaceScrollHValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_workspaceScrollBarSync) return;
+        if (!TryComputeWorkspacePanExtents(out var panMinX, out var panMaxX, out _, out _)) return;
+        _workspaceScrollBarSync = true;
+        try
+        {
+            Editor.PanX = Math.Clamp(EditorScrollH.Value + panMinX, panMinX, panMaxX);
+        }
+        finally
+        {
+            _workspaceScrollBarSync = false;
+        }
+    }
+
+    private void OnWorkspaceScrollVValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_workspaceScrollBarSync) return;
+        if (!TryComputeWorkspacePanExtents(out _, out _, out var panMinY, out var panMaxY)) return;
+        _workspaceScrollBarSync = true;
+        try
+        {
+            Editor.PanY = Math.Clamp(EditorScrollV.Value + panMinY, panMinY, panMaxY);
+        }
+        finally
+        {
+            _workspaceScrollBarSync = false;
+        }
     }
 
     private void UpdateExportCellMinRequiredHint()
@@ -2437,7 +2651,7 @@ public partial class MainWindow : Window
 
             // Pulisce la cella prima di incollare (così paste successive non sommano residui)
             ImageUtils.ClearRect(_document, cell.MinX, cell.MinY, cell.Width, cell.Height);
-            _document.Mutate(ctx => ctx.DrawImage(_pasteBuffer, new Point(destX, destY), 1f));
+            _document.Mutate(ctx => ctx.DrawImage(_pasteBuffer, new SixLabors.ImageSharp.Point(destX, destY), 1f));
 
             RefreshView();
             SetStatus($"Incollato in cella {idx} a ({destX}, {destY}). Buffer ancora valido — puoi incollarlo in altre celle.");
@@ -3188,7 +3402,7 @@ public partial class MainWindow : Window
                     dy = cellH / 2 - (ob.MinY + ob.Height / 2);
                 }
 
-                atlas.Mutate(ctx => ctx.DrawImage(frame, new Point(cellX + dx, cellY + dy), 1f));
+                atlas.Mutate(ctx => ctx.DrawImage(frame, new SixLabors.ImageSharp.Point(cellX + dx, cellY + dy), 1f));
                 cells.Add(new SpriteCell($"r{row}c{col}",
                     new AxisAlignedBox(cellX, cellY, cellX + cellW, cellY + cellH)));
             }

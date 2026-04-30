@@ -470,6 +470,51 @@ public class EditorSurface : Control
         return true;
     }
 
+    /// <summary>Imposta lo zoom verso un punto schermo (come la rotellina), clamp 0.05–64.</summary>
+    public void SetZoomTowardScreenPoint(double newZoom, double screenX, double screenY)
+    {
+        var clamped = Math.Clamp(newZoom, 0.05, 64.0);
+        _viewport.Zoom = Zoom;
+        _viewport.PanX = PanX;
+        _viewport.PanY = PanY;
+        _viewport.ZoomAtScreenPoint(clamped, screenX, screenY);
+        Zoom = _viewport.Zoom;
+        PanX = _viewport.PanX;
+        PanY = _viewport.PanY;
+    }
+
+    /// <summary>
+    /// Larghezza/altezza mondo in pixel (coerenti col rendering) per limiti di pan.
+    /// Workbench: massimo delle estensioni delle celle frame; tile preview: atlas ripetuto 3×3.
+    /// </summary>
+    public bool TryGetPanWorldSize(out int worldW, out int worldH)
+    {
+        worldW = worldH = 0;
+        var inWorkbench = IsFrameEditMode && _workbenchRenderFrames.Count > 0;
+        if (inWorkbench)
+        {
+            foreach (var f in _workbenchRenderFrames)
+            {
+                if (f.Cell.MaxX > worldW) worldW = f.Cell.MaxX;
+                if (f.Cell.MaxY > worldH) worldH = f.Cell.MaxY;
+            }
+            return worldW > 0 && worldH > 0;
+        }
+
+        var bmp = Bitmap;
+        if (bmp is null || bmp.PixelSize.Width <= 0 || bmp.PixelSize.Height <= 0) return false;
+
+        worldW = bmp.PixelSize.Width;
+        worldH = bmp.PixelSize.Height;
+        if (IsTilePreviewMode)
+        {
+            worldW *= 3;
+            worldH *= 3;
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Imposta/rimuove la selezione committed (area evidenziata persistente dopo il drag).
     /// Usata dalla modalità canvas-selezione per mostrare l'area selezionata anche dopo il rilascio.
@@ -831,14 +876,8 @@ public class EditorSurface : Control
         var delta = e.Delta.Y;
         if (delta == 0) return;
         var factor  = delta > 0 ? 1.1 : 1 / 1.1;
-        var newZoom = Math.Clamp(Zoom * factor, 0.05, 64.0);
-        _viewport.Zoom = Zoom;
-        _viewport.PanX = PanX;
-        _viewport.PanY = PanY;
-        _viewport.ZoomAtScreenPoint(newZoom, p.X, p.Y);
-        Zoom = _viewport.Zoom;
-        PanX = _viewport.PanX;
-        PanY = _viewport.PanY;
+        var newZoom = Zoom * factor;
+        SetZoomTowardScreenPoint(newZoom, p.X, p.Y);
         e.Handled = true;
     }
 
