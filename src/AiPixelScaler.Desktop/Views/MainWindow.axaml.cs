@@ -47,6 +47,7 @@ public partial class MainWindow : Window
     private bool _isApplyingPipelinePreset;
     private WorkflowStep _activeWorkflowStep = WorkflowStep.Importa;
     private readonly WorkspaceTabsController _workspaceTabs = new();
+    private readonly UiPreferencesService _uiPreferences = new();
     private bool _workspaceTabSwitching;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
@@ -203,6 +204,9 @@ public partial class MainWindow : Window
         ChkShowAdvancedTabs.IsCheckedChanged += (_, _) =>
         {
             var show = ChkShowAdvancedTabs.IsChecked == true;
+            if (_workspaceTabs.ActiveTab is { } activeTab)
+                activeTab.IsAdvancedMode = show;
+            _uiPreferences.SaveShowAdvancedTabs(show);
             if (!show && (ReferenceEquals(MainTabs.SelectedItem, TabStylize) ||
                           ReferenceEquals(MainTabs.SelectedItem, TabTemplate) ||
                           ReferenceEquals(MainTabs.SelectedItem, TabSelection)))
@@ -257,6 +261,9 @@ public partial class MainWindow : Window
             if (ChkSnapSyncGrid.IsChecked == true && ChkSnapGrid.IsChecked == true)
                 TxtSnapSize.Value = TxtWorldGridSize.Value;
         };
+
+        if (_uiPreferences.TryLoadShowAdvancedTabs(out var showAdvancedSaved))
+            ChkShowAdvancedTabs.IsChecked = showAdvancedSaved;
 
         // Crop & POT (asset singolo)
         BtnApplyCropPot.Click    += (_, _) => RunCropPipeline();
@@ -417,6 +424,7 @@ public partial class MainWindow : Window
             _cells,
             _undoCoordinator.Snapshots,
             _hasUserFile,
+            ChkShowAdvancedTabs.IsChecked == true,
             Editor.SliceGridRows,
             Editor.SliceGridCols,
             Editor.SpriteCells,
@@ -433,6 +441,7 @@ public partial class MainWindow : Window
         _backup = runtime.Backup;
         _cells = runtime.Cells;
         _hasUserFile = runtime.HasUserFile;
+        ChkShowAdvancedTabs.IsChecked = state.IsAdvancedMode;
         Editor.SliceGridRows = runtime.GridRows;
         Editor.SliceGridCols = runtime.GridCols;
         Editor.SpriteCells = runtime.SpriteOverlay;
