@@ -124,7 +124,7 @@
             <TextBlock Text="Apri immagine" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Button x:Name="BtnRevert" Classes="tool" IsVisible="False"
+        <Button x:Name="BtnRevert" Classes="tool"
                 ToolTip.Tip="Ripristina l'atlas all'immagine originale aperta">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconRevert}" Classes="tool-icon"/>
@@ -172,7 +172,7 @@
             <TextBlock Text="Centra canvas" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool" IsVisible="False"
+        <Button x:Name="BtnToolbarRilevaSprite" Classes="tool"
                 ToolTip.Tip="Rilevamento automatico sprite (CCL): analizza l'immagine e aggiorna celle/lista overlay. Disponibile in ogni tab.">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconWand}" Classes="tool-icon"/>
@@ -190,7 +190,7 @@
             <TextBlock Text="Gomma" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtEraserRadius" Classes="toolbar" IsVisible="False"
+        <NumericUpDown x:Name="TxtEraserRadius" Classes="toolbar"
                        Value="4" Minimum="1" Maximum="64" Increment="1" FormatString="0"
                        Width="44" IsEnabled="False"
                        ToolTip.Tip="Raggio del pennello gomma in pixel-immagine"/>
@@ -210,7 +210,7 @@
             <TextBlock Text="Selezione" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-        <Menu Background="Transparent" IsVisible="False">
+        <Menu Background="Transparent">
             <MenuItem Header="Selezione"
                     ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
             <MenuItem x:Name="MiToolbarSelectionMode"
