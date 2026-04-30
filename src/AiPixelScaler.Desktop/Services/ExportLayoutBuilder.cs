@@ -52,7 +52,7 @@ internal static class ExportLayoutBuilder
         foreach (var cell in effectiveCells)
         {
             var crop = AtlasCropper.Crop(document, cell.BoundsInAtlas);
-            if (crop.Width == 0)
+            if (crop.Width == 0 || crop.Height == 0)
             {
                 crop.Dispose();
                 continue;

@@ -292,9 +292,9 @@
       <Grid Grid.Column="0" Background="#0a0a0e">
         <ctrl:EditorSurface x:Name="Editor" ClipToBounds="True" Zoom="1"
                             RenderOptions.BitmapInterpolationMode="None"/>
-        <Border x:Name="EmptyStateDim" ZIndex="8" IsHitTestVisible="False" IsVisible="True"
+        <Border x:Name="EmptyStateDim" ZIndex="8" IsHitTestVisible="False" IsVisible="False"
                 Background="#990a0a12"/>
-        <StackPanel x:Name="EmptyStatePanel" ZIndex="10" IsVisible="True"
+        <StackPanel x:Name="EmptyStatePanel" ZIndex="10" IsVisible="False"
                     VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" MaxWidth="360">
           <TextBlock x:Name="EmptyStateTitle" Text="Nessun file aperto" Foreground="#b0a8c8"
                      FontSize="16" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"/>
@@ -389,12 +389,12 @@
                       IsExpanded="False"
                       Margin="0,0,0,6">
               <StackPanel Spacing="4" Margin="0,4,0,0">
-                <TextBlock Classes="hint" Text="Salta alle schede avanzate (Stilizza, Template IA, …) e ad Allinea."/>
+                <TextBlock Classes="hint" Text="Salta alle schede avanzate (Stilizza, Griglia, …) e ad Allinea."/>
                 <Grid ColumnDefinitions="*,6,*" Margin="0,2,0,0">
                   <Button x:Name="BtnGoAllinea" Grid.Column="0" Content="Apri Allinea" Classes="secondary"/>
                   <Button x:Name="BtnGoStilizza" Grid.Column="2" Content="Apri Stilizza" Classes="secondary"/>
                 </Grid>
-                <Button x:Name="BtnGoTemplate" Content="Apri Template IA" Classes="secondary"
+                <Button x:Name="BtnGoTemplate" Content="Apri Griglia" Classes="secondary"
                         HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
               </StackPanel>
             </Expander>
@@ -1259,9 +1259,9 @@
             </TabItem>
 
             <!-- ══════════════════════════════════════════════════════════ -->
-            <!-- TAB: Template IA                                          -->
+            <!-- TAB: Griglia                                              -->
             <!-- ══════════════════════════════════════════════════════════ -->
-            <TabItem x:Name="TabTemplate" Header=" Template IA " IsVisible="False">
+            <TabItem x:Name="TabTemplate" Header=" Griglia " IsVisible="False">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="8" Margin="2,4,2,6">
 
@@ -1386,15 +1386,15 @@
                 <Grid ColumnDefinitions="*,8,*">
                   <Button x:Name="BtnGenerateTemplate" Grid.Column="0" HorizontalAlignment="Stretch"
                           Classes="primary"
-                          ToolTip.Tip="Visualizza il template nel canvas (non sovrascrive l'immagine aperta)">
+                          ToolTip.Tip="Visualizza la griglia nel canvas (non sovrascrive l'immagine aperta)">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
-                      <TextBlock Text="Genera template" VerticalAlignment="Center"/>
+                      <TextBlock Text="Genera griglia" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Button>
                   <Button x:Name="BtnExportTemplate" Grid.Column="2" HorizontalAlignment="Stretch"
                           Classes="secondary"
-                          ToolTip.Tip="Salva il template come file PNG separato su disco">
+                          ToolTip.Tip="Salva la guida griglia come file PNG separato su disco">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
                       <TextBlock Text="Esporta guida PNG" VerticalAlignment="Center"/>
@@ -1403,7 +1403,7 @@
                 </Grid>
 
                 <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,2,0,0"
-                           Text="Il template viene visualizzato nel canvas. 'Esporta guida PNG' lo salva separatamente senza toccare l'immagine caricata."/>
+                           Text="La griglia viene visualizzata nel canvas. «Esporta guida PNG» salva solo la guida, senza toccare l'immagine caricata."/>
 
                 <Separator Margin="0,8,0,4"/>
                 <TextBlock Classes="fieldLabel" Text="Componi spritesheet da frame singoli"/>

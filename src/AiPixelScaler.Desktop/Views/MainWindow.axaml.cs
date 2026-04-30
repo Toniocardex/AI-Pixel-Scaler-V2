@@ -271,7 +271,7 @@ public partial class MainWindow : Window
         Editor.FrameSelected      += OnFrameSelected;
         Editor.FrameDragged       += OnFrameDragged;
 
-        // Template IA
+        // Scheda Griglia (guida / slicing)
         BtnGenerateTemplate.Click += (_, _) => RunGenerateTemplate();
         BtnExportTemplate.Click   += async (_, _) => await ExportTemplateAsync();
         BtnImportFrames.Click     += async (_, _) => await RunImportFramesAsync();
@@ -376,6 +376,30 @@ public partial class MainWindow : Window
     {
         BtnWorkspaceCloseTab.IsEnabled = _workspaceTabs.CanClose;
         TxtWorkspaceContext.Text = _workspaceTabs.ContextText;
+    }
+
+    /// <summary>
+    /// Workspace attivo con contenuto da non sovrascrivere aprendo un file (non solo atlas di benvenuto intatto).
+    /// </summary>
+    private bool IsActiveWorkspaceOccupied()
+    {
+        if (_hasUserFile) return true;
+        if (_workspaceTabs.ActiveTab?.IsDirty == true) return true;
+        if (_cells.Count > 0) return true;
+        if (Editor.SpriteCells.Count > 0) return true;
+        if (Editor.SliceGridRows > 0 && Editor.SliceGridCols > 0) return true;
+        if (_undoCoordinator.Snapshots.Count > 0) return true;
+        return false;
+    }
+
+    private static string WorkspaceTitleFromStorageFile(IStorageFile file)
+    {
+        var name = file.Name;
+        if (string.IsNullOrWhiteSpace(name))
+            return "Immagine";
+        var baseName = Path.GetFileNameWithoutExtension(name);
+        var segment = string.IsNullOrWhiteSpace(baseName) ? name : baseName;
+        return SanitizeFileSegment(segment);
     }
 
     private WorkspaceTabViewModel CaptureWorkspaceState(string title, bool isDirty) =>
@@ -574,7 +598,8 @@ public partial class MainWindow : Window
 
     private void RefreshEmptyState()
     {
-        var show = !_hasUserFile;
+        // Con atlas di benvenuto (nuovo tab / avvio) il canvas è già utilizzabile: niente overlay che suggerisca obbligo di aprire un file.
+        var show = _document is null;
         EmptyStateDim.IsVisible = show;
         EmptyStatePanel.IsVisible = show;
     }
@@ -1430,6 +1455,26 @@ public partial class MainWindow : Window
         {
             await using var stream = await file[0].OpenReadAsync();
             var loaded = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(stream);
+
+            if (IsActiveWorkspaceOccupied())
+            {
+                SaveCurrentWorkspaceState();
+                var tabTitle = WorkspaceTitleFromStorageFile(file[0]);
+                var state = CreateWorkspaceStateFromImage(loaded, tabTitle);
+                loaded.Dispose();
+                _workspaceTabs.AddAndActivate(state);
+                SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+                ResetTransientStateForNewOpenedProject();
+                MainTabs.SelectedIndex = 0;
+                EnterSelectionCanvas(IsRoiSelectionModeRequested());
+                UpdateSelectionInfo();
+                RefreshView();
+                _workspaceTabs.MarkActiveClean();
+                RefreshWorkspaceChrome();
+                SetStatus($"Immagine aperta in nuovo workspace ({tabTitle}): {_document!.Width}×{_document.Height} px.");
+                return;
+            }
+
             _document?.Dispose();
             _document = loaded;
             _backup?.Dispose();
@@ -2503,7 +2548,7 @@ public partial class MainWindow : Window
             OnFrameSelected(this, 0);
     }
 
-    // ─── Template IA ─────────────────────────────────────────────────────────
+    // ─── Griglia (guida template + slicing) ─────────────────────────────────
 
     private Image<Rgba32>? _templateDocument;
 
@@ -2622,18 +2667,18 @@ public partial class MainWindow : Window
             _cells.Clear();
             ClearSliceGrid();
             // Crea celle corrispondenti alla griglia del template
-            _cells = GridSlicer.Slice(_document.Width, _document.Height, opts.Rows, opts.Cols).ToList();
+            _cells = GridSlicer.SliceExact(opts.Cols, opts.Rows, opts.CellWidth, opts.CellHeight).ToList();
             Editor.SpriteCells = _cells;
             RefreshCellList();
             Editor.SetSourceImage(_document);
             EmptyStateDim.IsVisible   = false;
             EmptyStatePanel.IsVisible = false;
-            SetStatus($"Template generato: {_templateDocument.Width}×{_templateDocument.Height} px — " +
+            SetStatus($"Griglia generata: {_templateDocument.Width}×{_templateDocument.Height} px — " +
                       $"{opts.Cols}×{opts.Rows} celle {opts.CellWidth}×{opts.CellHeight} px.");
         }
         catch (Exception ex)
         {
-            SetStatus($"Errore generazione template: {ex.Message}");
+            SetStatus($"Errore generazione griglia: {ex.Message}");
         }
     }
 
@@ -2641,17 +2686,17 @@ public partial class MainWindow : Window
     {
         if (_templateDocument is null)
         {
-            SetStatus("Genera prima un template con '✦ Genera template'.");
+            SetStatus("Genera prima la griglia con «Genera griglia».");
             return;
         }
         try
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Title = "Salva guida template IA come PNG",
+                Title = "Salva guida griglia come PNG",
                 DefaultExtension = "png",
                 FileTypeChoices = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
-                SuggestedFileName = $"ai_guide_{_templateDocument.Width}x{_templateDocument.Height}.png"
+                SuggestedFileName = $"griglia_guida_{_templateDocument.Width}x{_templateDocument.Height}.png"
             });
             if (file is null) return;
 
