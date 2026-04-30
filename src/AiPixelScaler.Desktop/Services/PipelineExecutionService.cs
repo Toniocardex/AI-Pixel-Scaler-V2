@@ -1,4 +1,6 @@
+using System;
 using System.Globalization;
+using System.Linq;
 using AiPixelScaler.Core.Pipeline.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

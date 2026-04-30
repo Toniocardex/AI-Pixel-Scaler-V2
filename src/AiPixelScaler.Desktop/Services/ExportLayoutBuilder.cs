@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using AiPixelScaler.Core.Geometry;
 using AiPixelScaler.Core.Pipeline.Export;
 using AiPixelScaler.Core.Pipeline.Normalization;

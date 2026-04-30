@@ -31,6 +31,7 @@ namespace AiPixelScaler.Desktop.Views;
 public partial class MainWindow : Window
 {
     private const int MaxUndo = 20;
+    private const int SelectionCanvasTabIndex = 6;  // indice del tab "Selezione"
 
     private Image<Rgba32>? _document;
     private Image<Rgba32>? _backup;
@@ -1401,6 +1402,7 @@ public partial class MainWindow : Window
     private async Task ExportJsonAsync()
     {
         if (_document is null) return;
+        var items = new List<(string id, Image<Rgba32> img)>();
         try
         {
             using var layout = ExportLayoutBuilder.Build(_document, _cells, SliderPivotX.Value, SliderPivotY.Value);
@@ -1431,6 +1433,10 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             SetStatus($"Errore export JSON: {ex.Message}");
+        }
+        finally
+        {
+            foreach (var t in items) t.img.Dispose();
         }
     }
 
