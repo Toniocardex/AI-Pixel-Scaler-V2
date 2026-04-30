@@ -41,7 +41,8 @@ public partial class MainWindow : Window
     private List<SpriteCell> _cells = new();
     private (int w, int h) _lastGlobal;
     private bool _hasUserFile;
-    private readonly List<WorkspaceUndoSnapshot> _undoStack = new();
+    private readonly WorkspaceUndoCoordinator _undoCoordinator;
+    private readonly FloatingPasteCoordinator _floatingPaste;
     private readonly PipelineViewModel _pipelineVm = new();
     private bool _isApplyingPipelinePreset;
     private WorkspaceGuideAction _workspaceGuideAction = WorkspaceGuideAction.OpenImage;
@@ -53,16 +54,15 @@ public partial class MainWindow : Window
     private bool             _toolbarSelectionModeEnabled;
     private AxisAlignedBox?  _activeSelectionBox;    // ultima selezione confermata
 
-    // Incolla fluttuante (Ctrl+V) — sorgente ad alta risoluzione + bitmap anteprima sul canvas
-    private Image<Rgba32>? _floatingPasteSource;
-    private double _floatingDisplayScale = 1.0;
-    private int _floatingDestX;
-    private int _floatingDestY;
-    private Bitmap? _floatingPreviewBitmap;
-
     public MainWindow()
     {
         InitializeComponent();
+        _undoCoordinator = new WorkspaceUndoCoordinator(MenuUndo, BtnUndo, MaxUndo, () =>
+        {
+            _workspaceTabs.MarkActiveDirty();
+            RefreshWorkspaceChrome();
+        });
+        _floatingPaste = new FloatingPasteCoordinator(Editor);
         LoadWelcomeDocument();
 
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
@@ -283,7 +283,7 @@ public partial class MainWindow : Window
     {
         if (FocusManager?.GetFocusedElement() is TextBox) return;
 
-        if (_floatingPasteSource is not null)
+        if (_floatingPaste.HasActiveSession)
         {
             if (e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
             {
@@ -325,16 +325,15 @@ public partial class MainWindow : Window
 
     private void TryUndo()
     {
-        ClearFloatingPasteSession();
-        if (_undoStack.Count == 0)
+        _floatingPaste.ClearSession();
+        if (!_undoCoordinator.TryPop(out var s))
         {
             SetStatus("Niente da annullare.");
             return;
         }
-        var s = _undoStack[^1];
-        _undoStack.RemoveAt(_undoStack.Count - 1);
+
         _document?.Dispose();
-        _document = s.Image;
+        _document = s!.Image;
         _cells = s.Cells;
         Editor.SliceGridRows = s.GridRows;
         Editor.SliceGridCols = s.GridCols;
@@ -342,48 +341,18 @@ public partial class MainWindow : Window
         RefreshCellList();
         RefreshView();
         UpdateUndoUi();
-        // Pulisce selezione canvas perché il documento è cambiato
         _activeSelectionBox = null;
         Editor.SetCommittedSelection(null);
         UpdateSelectionInfo();
         SetStatus("Operazione annullata.");
     }
 
-    private bool PushUndo()
-    {
-        if (_document is null) return false;
-        _undoStack.Add(WorkspaceUndoSnapshot.Capture(
-            _document,
-            _cells,
-            Editor.SliceGridRows,
-            Editor.SliceGridCols,
-            Editor.SpriteCells));
-        _workspaceTabs.MarkActiveDirty();
-        RefreshWorkspaceChrome();
-        while (_undoStack.Count > MaxUndo)
-        {
-            var drop = _undoStack[0];
-            _undoStack.RemoveAt(0);
-            drop.Image.Dispose();
-        }
-        UpdateUndoUi();
-        return true;
-    }
+    private bool PushUndo() =>
+        _undoCoordinator.Push(_document, _cells, Editor.SliceGridRows, Editor.SliceGridCols, Editor.SpriteCells);
 
-    private void ClearUndoStack()
-    {
-        foreach (var s in _undoStack)
-            s.Image.Dispose();
-        _undoStack.Clear();
-        UpdateUndoUi();
-    }
+    private void ClearUndoStack() => _undoCoordinator.ClearAndDisposeAll();
 
-    private void UpdateUndoUi()
-    {
-        var can = _undoStack.Count > 0;
-        BtnUndo.IsEnabled = can;
-        MenuUndo.IsEnabled = can;
-    }
+    private void UpdateUndoUi() => _undoCoordinator.UpdateUndoUi();
 
     private void RefreshWorkspaceChrome()
     {
@@ -392,13 +361,13 @@ public partial class MainWindow : Window
     }
 
     private WorkspaceTabViewModel CaptureWorkspaceState(string title, bool isDirty) =>
-        WorkspaceStateFactory.CaptureFromRuntime(
+        WorkspaceRuntimeAdapter.CaptureTabState(
             title,
             isDirty,
             _document,
             _backup,
             _cells,
-            _undoStack,
+            _undoCoordinator.Snapshots,
             _hasUserFile,
             Editor.SliceGridRows,
             Editor.SliceGridCols,
@@ -408,18 +377,18 @@ public partial class MainWindow : Window
     private void RestoreWorkspaceState(WorkspaceTabViewModel state)
     {
         ClearFloatingPasteSession();
-        ClearUndoStack();
         _document?.Dispose();
         _backup?.Dispose();
 
-        _document = state.Document.Clone();
-        _backup = state.Backup.Clone();
-        _cells = WorkspaceUndoSnapshot.CloneCells(state.Cells);
-        _hasUserFile = state.HasUserFile;
-        Editor.SliceGridRows = state.GridRows;
-        Editor.SliceGridCols = state.GridCols;
-        Editor.SpriteCells = WorkspaceUndoSnapshot.CloneCells(state.SpriteOverlay);
-        _undoStack.AddRange(WorkspaceStateFactory.CloneUndoStack(state.UndoStack));
+        var runtime = WorkspaceRuntimeAdapter.RestoreRuntimeSnapshot(state);
+        _document = runtime.Document;
+        _backup = runtime.Backup;
+        _cells = runtime.Cells;
+        _hasUserFile = runtime.HasUserFile;
+        Editor.SliceGridRows = runtime.GridRows;
+        Editor.SliceGridCols = runtime.GridCols;
+        Editor.SpriteCells = runtime.SpriteOverlay;
+        _undoCoordinator.ImportReplacing(runtime.UndoStack);
 
         _activeSelectionBox = null;
         Editor.SetCommittedSelection(null);
@@ -1283,134 +1252,25 @@ public partial class MainWindow : Window
         ClearFloatingPasteSession();
     }
 
-    private void ClearFloatingPasteSession()
-    {
-        _floatingPasteSource?.Dispose();
-        _floatingPasteSource = null;
-        _floatingPreviewBitmap?.Dispose();
-        _floatingPreviewBitmap = null;
-        _floatingDisplayScale = 1.0;
-        Editor.ClearFloatingOverlay();
-    }
+    private void ClearFloatingPasteSession() => _floatingPaste.ClearSession();
 
-    private void OnEditorFloatingOverlayMoved(object? sender, FloatingOverlayMoveEventArgs e)
-    {
-        _floatingDestX = e.X;
-        _floatingDestY = e.Y;
-        Editor.UpdateFloatingOverlayPosition(e.X, e.Y);
-    }
+    private void OnEditorFloatingOverlayMoved(object? sender, FloatingOverlayMoveEventArgs e) =>
+        _floatingPaste.OnOverlayMoved(e);
 
     private async Task TryPasteFromClipboardAsync()
     {
-        if (_document is null)
-        {
-            SetStatus("Apri prima un'immagine.");
-            return;
-        }
-        if (Editor.IsFrameEditMode || _pasteModeActive || Editor.IsTilePreviewMode)
-        {
-            SetStatus("Esci dalla modalità workbench, atlas pulito o anteprima tile prima di incollare dagli appunti.");
-            return;
-        }
-
-        var top = TopLevel.GetTopLevel(this);
-        if (top?.Clipboard is null)
-        {
-            SetStatus("Appunti non disponibili.");
-            return;
-        }
-
-        Image<Rgba32>? loaded;
-        try
-        {
-            loaded = await ClipboardImageReader.TryReadImageAsync(top.Clipboard);
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Lettura appunti: {ex.Message}");
-            return;
-        }
-
-        if (loaded is null)
-        {
-            SetStatus("Appunti: nessuna immagine (PNG/bitmap).");
-            return;
-        }
-
-        ClearFloatingPasteSession();
-        _floatingPasteSource = loaded;
-
-        var dw = _document.Width;
-        var dh = _document.Height;
-        double scale = 1.0;
-
-        if (loaded.Width > dw || loaded.Height > dh)
-        {
-            var choice = await PasteOversizeDialog.ShowAsync(this, loaded.Width, loaded.Height, dw, dh);
-            if (choice == PasteOversizeChoice.Cancel)
-            {
-                ClearFloatingPasteSession();
-                SetStatus("Incolla annullato.");
-                return;
-            }
-            if (choice == PasteOversizeChoice.FitToCanvas)
-                scale = FloatingPasteGeometry.ComputeUniformFitScale(loaded.Width, loaded.Height, dw, dh);
-        }
-
-        _floatingDisplayScale = scale;
-        var (dispW, dispH) = FloatingPasteGeometry.ComputeDisplayDimensions(loaded.Width, loaded.Height, scale);
-        var (cx, cy) = FloatingPasteGeometry.ComputeCenteredTopLeft(dw, dh, dispW, dispH);
-        _floatingDestX = cx;
-        _floatingDestY = cy;
-
-        Image<Rgba32>? resizedPreview = null;
-        try
-        {
-            if (Math.Abs(scale - 1.0) > 1e-9)
-                resizedPreview = NearestNeighborResize.Resize(loaded, dispW, dispH);
-
-            var forBridge = resizedPreview ?? loaded;
-            _floatingPreviewBitmap = Imaging.Rgba32BitmapBridge.ToBitmap(forBridge);
-        }
-        finally
-        {
-            resizedPreview?.Dispose();
-        }
-
-        if (_floatingPreviewBitmap is null)
-        {
-            ClearFloatingPasteSession();
-            SetStatus("Impossibile creare anteprima incolla.");
-            return;
-        }
-
-        Editor.SetFloatingOverlay(_floatingPreviewBitmap, _floatingDestX, _floatingDestY, dispW, dispH);
-        SetStatus("Incolla fluttuante: trascina · Invio conferma · Esc annulla.");
+        await _floatingPaste.TryBeginAsync(
+            _document,
+            TopLevel.GetTopLevel(this)?.Clipboard,
+            () => Editor.IsFrameEditMode || _pasteModeActive || Editor.IsTilePreviewMode,
+            (iw, ih, cw, ch) => PasteOversizeDialog.ShowAsync(this, iw, ih, cw, ch),
+            msg => SetStatus(msg));
     }
 
-    private void CommitFloatingPaste()
-    {
-        if (_document is null || _floatingPasteSource is null)
-            return;
-        try
-        {
-            PushUndo();
-            FloatingPasteComposer.Commit(_document, _floatingPasteSource, _floatingDestX, _floatingDestY, _floatingDisplayScale);
-            ClearFloatingPasteSession();
-            RefreshView();
-            SetStatus("Incolla confermato sul canvas.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore commit incolla: {ex.Message}");
-        }
-    }
+    private void CommitFloatingPaste() =>
+        _floatingPaste.TryCommit(_document, PushUndo, msg => SetStatus(msg), RefreshView);
 
-    private void CancelFloatingPaste()
-    {
-        ClearFloatingPasteSession();
-        SetStatus("Incolla fluttuante annullato.");
-    }
+    private void CancelFloatingPaste() => _floatingPaste.Cancel(msg => SetStatus(msg));
 
     private async Task OpenImageAsync()
     {

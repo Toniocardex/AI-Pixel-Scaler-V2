@@ -1,17 +1,11 @@
 using System.Threading.Tasks;
+using AiPixelScaler.Desktop.Services;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
 namespace AiPixelScaler.Desktop.Views;
-
-internal enum PasteOversizeChoice
-{
-    Cancel,
-    MaintainPixelSize,
-    FitToCanvas
-}
 
 /// <summary>
 /// Chiede come incollare un’immagine più grande del canvas (Mantieni / Adatta / Annulla).
