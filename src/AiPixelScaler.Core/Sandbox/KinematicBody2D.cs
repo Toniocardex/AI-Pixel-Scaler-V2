@@ -30,13 +30,11 @@ public static class KinematicStep
         if (deltaTime <= 0)
             return;
 
-        var ax = 0.0;
-        var ay = 0.0;
         if (inputX != 0 || inputY != 0)
         {
             var len = Math.Sqrt(inputX * inputX + inputY * inputY);
-            ax = inputX / len * p.Acceleration;
-            ay = inputY / len * p.Acceleration;
+            var ax = inputX / len * p.Acceleration;
+            var ay = inputY / len * p.Acceleration;
             body.VelX += ax * deltaTime;
             body.VelY += ay * deltaTime;
         }

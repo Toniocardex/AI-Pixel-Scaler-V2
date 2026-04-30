@@ -153,7 +153,7 @@ public static class CropPipeline
         return new AxisAlignedBox(minX, minY, maxX, maxY);
     }
 
-    private static Result MakeEmptyResult(Options opts, string reason)
+    private static Result MakeEmptyResult(Options _, string reason)
     {
         var img = new Image<Rgba32>(1, 1, new Rgba32(0, 0, 0, 0));
         return new Result

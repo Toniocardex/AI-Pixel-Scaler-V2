@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using AiPixelScaler.Core.Geometry;
 using AiPixelScaler.Core.Pipeline.Export;
@@ -39,7 +38,6 @@ public partial class MainWindow : Window
     private Image<Rgba32>? _document;
     private Image<Rgba32>? _backup;
     private List<SpriteCell> _cells = new();
-    private (int w, int h) _lastGlobal;
     private bool _hasUserFile;
     private readonly WorkspaceUndoCoordinator _undoCoordinator;
     private readonly FloatingPasteCoordinator _floatingPaste;
@@ -50,7 +48,6 @@ public partial class MainWindow : Window
     private bool _workspaceTabSwitching;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
-    private bool             _selectionCanvasMode;   // true = ROI non distruttiva attiva (tab Selezione o menu toolbar)
     private bool             _toolbarSelectionModeEnabled;
     private AxisAlignedBox?  _activeSelectionBox;    // ultima selezione confermata
 
@@ -708,7 +705,7 @@ public partial class MainWindow : Window
         LblPivotY.Text = $"{SliderPivotY.Value:F2}";
     }
 
-    private void SetStatus(string message, [CallerMemberName] string? caller = null) =>
+    private void SetStatus(string message) =>
         TxtStatus.Text = string.IsNullOrEmpty(message) ? "" : $"[{DateTime.Now:HH:mm:ss}] {message}";
 
     private void LoadWelcomeDocument()
@@ -930,16 +927,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private static double ParseDouble(string? s, double fallback)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return fallback;
-        return double.TryParse(s.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : fallback;
-    }
-
     private bool TryBuildPipelineOptions(bool includeOutline, out PixelArtPipeline.Options options, out string error)
     {
         options = default!;
-        error = string.Empty;
 
         if (_document is null)
         {
@@ -1491,8 +1481,6 @@ public partial class MainWindow : Window
         }
         try
         {
-            _lastGlobal = GlobalLayout.ComputeGlobalContentSize(_document, _cells);
-
             // Statistiche complete (max / mediana / p90 / outlier) sulle dimensioni cella
             var cellBoxes = _cells.Select(c => c.BoundsInAtlas).ToList();
             var stats = FrameStatistics.Compute(cellBoxes);
@@ -2634,7 +2622,6 @@ public partial class MainWindow : Window
 
     private void EnterSelectionCanvas(bool enter)
     {
-        _selectionCanvasMode = enter;
         if (enter)
         {
             // Disattiva modalità conflittuali
