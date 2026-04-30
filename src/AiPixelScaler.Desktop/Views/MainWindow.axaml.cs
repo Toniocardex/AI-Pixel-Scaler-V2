@@ -83,6 +83,7 @@ public partial class MainWindow : Window
         BtnPanelSandbox.Click += (_, _) => OpenSandbox();
         BtnPanelAnimPreview.Click += (_, _) => OpenAnimationPreview();
         BtnToolbarRilevaSprite.Click += (_, _) => RunCcl();
+        BtnToolbarSelectionQuick.Click += (_, _) => ToggleToolbarSelectionMode();
         MiToolbarSelectionMode.Click += (_, _) => ToggleToolbarSelectionMode();
         MiToolbarCropToSelection.Click += (_, _) => CropToSelection();
         MiToolbarRemoveSelectedArea.Click += (_, _) => RemoveSelectedArea();
