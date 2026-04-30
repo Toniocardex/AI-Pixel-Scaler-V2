@@ -149,7 +149,7 @@
             <TextBlock Text="Griglia" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar" IsVisible="False"
+        <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
                        Width="56"
                        ToolTip.Tip="Dimensione celle griglia in px (es. 8, 16, 32, 64…)"/>
@@ -161,7 +161,7 @@
             <TextBlock Text="Magnetica" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtSnapSize" Classes="toolbar" IsVisible="False"
+        <NumericUpDown x:Name="TxtSnapSize" Classes="toolbar"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
                        Width="56" IsEnabled="False"
                        ToolTip.Tip="Passo griglia magnetica in px (rotellina del mouse per aumentare/diminuire)"/>
