@@ -81,12 +81,9 @@ public static class PixelArtPipeline
 
         if (options.EnableQuantize && palette.Count == 0)
         {
-            palette = ExtractPalette(image, options.Quantizer, options.MaxColors);
+            palette = PipelineSharedStages.ApplyPaletteReduction(image, options.MaxColors, PaletteMapper.DitherMode.None, options.Quantizer);
             if (palette.Count > 0)
-            {
-                PaletteMapper.ApplyInPlace(image, palette, PaletteMapper.DitherMode.None);
                 steps.Add($"quantize {options.Quantizer} ({palette.Count})");
-            }
         }
 
         if (options.EnablePaletteSnap && PaletteIdResolver.TryResolve(options.PaletteId, out var lockedPalette))
@@ -104,7 +101,7 @@ public static class PixelArtPipeline
 
         if (options.IslandMinArea is { } minIsland && minIsland > 0)
         {
-            IslandDenoise.ApplyInPlace(image, new IslandDenoise.Options(alphaThreshold: 1, minIslandArea: minIsland));
+            PipelineSharedStages.ApplyIslandDenoise(image, minIsland);
             steps.Add($"island denoise (min {minIsland})");
         }
 
@@ -117,7 +114,7 @@ public static class PixelArtPipeline
 
         if (options.AlphaThreshold is { } thr)
         {
-            AlphaThreshold.ApplyInPlace(image, thr);
+            PipelineSharedStages.ApplyAlphaThreshold(image, thr);
             steps.Add($"alpha {thr}");
         }
 
@@ -129,10 +126,9 @@ public static class PixelArtPipeline
 
             if (options.RequantizeAfterRecover && options.EnableQuantize)
             {
-                var pal2 = ExtractPalette(image, options.Quantizer, options.MaxColors);
+                var pal2 = PipelineSharedStages.ApplyPaletteReduction(image, options.MaxColors, PaletteMapper.DitherMode.None, options.Quantizer);
                 if (pal2.Count > 0)
                 {
-                    PaletteMapper.ApplyInPlace(image, pal2, PaletteMapper.DitherMode.None);
                     palette = pal2;
                     steps.Add($"requantize ({pal2.Count})");
                 }
@@ -143,6 +139,4 @@ public static class PixelArtPipeline
         return new Report(before, after, palette, recovered, steps);
     }
 
-    private static IReadOnlyList<Rgba32> ExtractPalette(Image<Rgba32> image, PixelArtProcessor.QuantizerKind quantizer, int maxColors)
-        => PaletteExtractorRouting.Extract(image, quantizer, maxColors);
 }
