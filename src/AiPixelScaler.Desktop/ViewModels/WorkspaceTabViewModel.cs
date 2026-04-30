@@ -14,6 +14,7 @@ public sealed class WorkspaceTabViewModel : IDisposable
     public required List<SpriteCell> Cells { get; init; }
     public required List<WorkspaceUndoSnapshot> UndoStack { get; init; }
     public required bool HasUserFile { get; init; }
+    public required bool CleanApplied { get; init; }
     public required int GridRows { get; init; }
     public required int GridCols { get; init; }
     public required List<SpriteCell> SpriteOverlay { get; init; }

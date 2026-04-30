@@ -16,6 +16,7 @@ internal static class WorkspaceRuntimeAdapter
         public required List<SpriteCell> Cells { get; init; }
         public required List<WorkspaceUndoSnapshot> UndoStack { get; init; }
         public required bool HasUserFile { get; init; }
+        public required bool CleanApplied { get; init; }
         public required int GridRows { get; init; }
         public required int GridCols { get; init; }
         public required List<SpriteCell> SpriteOverlay { get; init; }
@@ -29,6 +30,7 @@ internal static class WorkspaceRuntimeAdapter
         IReadOnlyList<SpriteCell> cells,
         IReadOnlyList<WorkspaceUndoSnapshot> undoStack,
         bool hasUserFile,
+        bool cleanApplied,
         bool isAdvancedMode,
         int gridRows,
         int gridCols,
@@ -42,6 +44,7 @@ internal static class WorkspaceRuntimeAdapter
             cells,
             undoStack,
             hasUserFile,
+            cleanApplied,
             isAdvancedMode,
             gridRows,
             gridCols,
@@ -56,6 +59,7 @@ internal static class WorkspaceRuntimeAdapter
             Cells = WorkspaceUndoSnapshot.CloneCells(tab.Cells),
             UndoStack = WorkspaceStateFactory.CloneUndoStack(tab.UndoStack),
             HasUserFile = tab.HasUserFile,
+            CleanApplied = tab.CleanApplied,
             GridRows = tab.GridRows,
             GridCols = tab.GridCols,
             SpriteOverlay = WorkspaceUndoSnapshot.CloneCells(tab.SpriteOverlay)

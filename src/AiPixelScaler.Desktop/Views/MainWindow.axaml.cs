@@ -40,6 +40,7 @@ public partial class MainWindow : Window
     private Image<Rgba32>? _backup;
     private List<SpriteCell> _cells = new();
     private bool _hasUserFile;
+    private bool _cleanApplied;
     private readonly WorkspaceUndoCoordinator _undoCoordinator;
     private readonly FloatingPasteCoordinator _floatingPaste;
     private readonly PipelineViewModel _pipelineVm = new();
@@ -432,6 +433,7 @@ public partial class MainWindow : Window
             _cells,
             _undoCoordinator.Snapshots,
             _hasUserFile,
+            _cleanApplied,
             ChkShowAdvancedTabs.IsChecked == true,
             Editor.SliceGridRows,
             Editor.SliceGridCols,
@@ -449,6 +451,7 @@ public partial class MainWindow : Window
         _backup = runtime.Backup;
         _cells = runtime.Cells;
         _hasUserFile = runtime.HasUserFile;
+        _cleanApplied = runtime.CleanApplied;
         ChkShowAdvancedTabs.IsChecked = state.IsAdvancedMode;
         Editor.SliceGridRows = runtime.GridRows;
         Editor.SliceGridCols = runtime.GridCols;
@@ -794,6 +797,7 @@ public partial class MainWindow : Window
         CellList.ItemsSource = null;
         TxtGlobal.Text = "—  Esegui prima il passo 2";
         _hasUserFile = false;
+        _cleanApplied = false;
         RefreshEmptyState();
         ClearUndoStack();
         _activeSelectionBox = null;
@@ -815,6 +819,7 @@ public partial class MainWindow : Window
         _document?.Dispose();
         _document = _backup.Clone();
         _cells.Clear();
+        _cleanApplied = false;
         ClearSliceGrid();
         RefreshView();
         CellList.ItemsSource = null;
@@ -1033,6 +1038,7 @@ public partial class MainWindow : Window
         TxtQuickColorsBefore.Text = result.ColorsBeforeText;
         TxtQuickColorsAfter.Text = result.ColorsAfterText;
         TxtQuickPalette.Text = result.PaletteText;
+        _cleanApplied = true;
         ClearSliceGrid();
         _cells.Clear();
         CellList.ItemsSource = null;
@@ -1519,6 +1525,7 @@ public partial class MainWindow : Window
             // TxtAabb rimosso
             TxtGlobal.Text = "—  Esegui prima il passo 2";
             _hasUserFile = true;
+            _cleanApplied = false;
             RefreshEmptyState();
             ClearUndoStack();
             _activeSelectionBox = null;
@@ -1626,7 +1633,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (TxtQuickColorsAfter.Text == "-" || string.Equals(TxtQuickColorsBefore.Text, TxtQuickColorsAfter.Text, StringComparison.Ordinal))
+        if (!_cleanApplied)
         {
             _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: false, hasCells: false);
             SetWorkspaceBadge("IN CORSO", "#203047", "#2e4a6f", "#d4e7ff");
@@ -1675,8 +1682,7 @@ public partial class MainWindow : Window
     private void UpdateWorkflowStepStates()
     {
         var hasDoc = _document is not null;
-        var cleanDone = hasDoc && TxtQuickColorsAfter.Text != "-" &&
-                        !string.Equals(TxtQuickColorsBefore.Text, TxtQuickColorsAfter.Text, StringComparison.Ordinal);
+        var cleanDone = hasDoc && _cleanApplied;
         var hasCells = _cells.Count > 0;
 
         TxtStepImportaState.Text = hasDoc ? "✔ completato" : "● richiesto";
@@ -2847,10 +2853,10 @@ public partial class MainWindow : Window
         RightPanel.IsVisible      = !collapse;
         PanelSplitter.IsVisible   = !collapse;
         BtnExpandPanel.IsVisible  = collapse;
-        MainBodyGrid.ColumnDefinitions[1].Width = collapse
+        MainBodyGrid.ColumnDefinitions[2].Width = collapse
             ? new GridLength(0)
             : new GridLength(4);
-        MainBodyGrid.ColumnDefinitions[2].Width = collapse
+        MainBodyGrid.ColumnDefinitions[3].Width = collapse
             ? new GridLength(0)
             : new GridLength(280);
     }
