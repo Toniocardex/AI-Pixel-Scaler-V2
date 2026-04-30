@@ -1018,84 +1018,91 @@ public partial class MainWindow : Window
     private PipelineViewModel.PipelineFormState ReadPipelineFormStateFromControls()
     {
         return new PipelineViewModel.PipelineFormState(
-            EnableChroma: ChkPipeChroma.IsChecked == true,
-            EnableChromaSnapRgb: ChkPipeChromaSnapRgb.IsChecked == true,
-            ChromaHex: TxtPipeChromaHex.Text ?? "#00FF00",
-            ChromaTolerance: TxtPipeChromaTol.Text ?? "0",
-            EnableAdvancedCleaner: ChkPipeAdvancedCleaner.IsChecked == true,
-            BilateralSigmaSpatial: TxtPipeBilateralSpatial.Text ?? "1.25",
-            BilateralSigmaRange: TxtPipeBilateralRange.Text ?? "0.085",
-            BilateralPasses: TxtPipeBilateralPasses.Text ?? "1",
-            EnablePixelGridEnforce: ChkPipePixelGridEnforce.IsChecked == true,
-            NativeWidth: TxtPipeNativeW.Text ?? "64",
-            NativeHeight: TxtPipeNativeH.Text ?? "64",
-            EnablePaletteSnap: ChkPipePaletteSnap.IsChecked == true,
-            PaletteId: TxtPipePaletteId.Text ?? string.Empty,
-            PaletteMetadataPath: TxtPipePaletteMetadataPath.Text ?? string.Empty,
-            EnableQuantize: ChkPipeQuant.IsChecked == true,
-            MaxColors: TxtPipeQuantLevels.Text ?? "16",
+            EnableChroma: IsChecked(ChkPipeChroma),
+            EnableChromaSnapRgb: IsChecked(ChkPipeChromaSnapRgb),
+            ChromaHex: TextOrDefault(TxtPipeChromaHex, "#00FF00"),
+            ChromaTolerance: TextOrDefault(TxtPipeChromaTol, "0"),
+            EnableAdvancedCleaner: IsChecked(ChkPipeAdvancedCleaner),
+            BilateralSigmaSpatial: TextOrDefault(TxtPipeBilateralSpatial, "1.25"),
+            BilateralSigmaRange: TextOrDefault(TxtPipeBilateralRange, "0.085"),
+            BilateralPasses: TextOrDefault(TxtPipeBilateralPasses, "1"),
+            EnablePixelGridEnforce: IsChecked(ChkPipePixelGridEnforce),
+            NativeWidth: TextOrDefault(TxtPipeNativeW, "64"),
+            NativeHeight: TextOrDefault(TxtPipeNativeH, "64"),
+            EnablePaletteSnap: IsChecked(ChkPipePaletteSnap),
+            PaletteId: TextOrDefault(TxtPipePaletteId, string.Empty),
+            PaletteMetadataPath: TextOrDefault(TxtPipePaletteMetadataPath, string.Empty),
+            EnableQuantize: IsChecked(ChkPipeQuant),
+            MaxColors: TextOrDefault(TxtPipeQuantLevels, "16"),
             QuantizerIndex: CmbPipeQuantMethod.SelectedIndex,
-            EnableMajorityDenoise: ChkPipeMajorityDenoise.IsChecked == true,
-            MinIsland: TxtMinIsland.Text ?? "2",
-            EnableOutline: ChkPipeOutline.IsChecked == true,
-            OutlineHex: TxtPipeOutlineHex.Text ?? "#000000",
-            EnableAlphaThreshold: ChkAlphaThreshold.IsChecked == true,
-            AlphaThreshold: TxtAlphaThreshold.Text ?? "128");
+            EnableMajorityDenoise: IsChecked(ChkPipeMajorityDenoise),
+            MinIsland: TextOrDefault(TxtMinIsland, "2"),
+            EnableOutline: IsChecked(ChkPipeOutline),
+            OutlineHex: TextOrDefault(TxtPipeOutlineHex, "#000000"),
+            EnableAlphaThreshold: IsChecked(ChkAlphaThreshold),
+            AlphaThreshold: TextOrDefault(TxtAlphaThreshold, "128"));
     }
 
     private void ApplyPipelineFormStateToControls(PipelineViewModel.PipelineFormState formState)
     {
-        ChkPipeChroma.IsChecked = formState.EnableChroma;
-        ChkPipeChromaSnapRgb.IsChecked = formState.EnableChromaSnapRgb;
-        TxtPipeChromaHex.Text = formState.ChromaHex;
-        TxtPipeChromaTol.Text = formState.ChromaTolerance;
-        ChkPipeAdvancedCleaner.IsChecked = formState.EnableAdvancedCleaner;
-        TxtPipeBilateralSpatial.Text = formState.BilateralSigmaSpatial;
-        TxtPipeBilateralRange.Text = formState.BilateralSigmaRange;
-        TxtPipeBilateralPasses.Text = formState.BilateralPasses;
-        ChkPipePixelGridEnforce.IsChecked = formState.EnablePixelGridEnforce;
-        TxtPipeNativeW.Text = formState.NativeWidth;
-        TxtPipeNativeH.Text = formState.NativeHeight;
-        ChkPipePaletteSnap.IsChecked = formState.EnablePaletteSnap;
-        TxtPipePaletteId.Text = formState.PaletteId;
-        TxtPipePaletteMetadataPath.Text = formState.PaletteMetadataPath;
-        ChkPipeQuant.IsChecked = formState.EnableQuantize;
-        TxtPipeQuantLevels.Text = formState.MaxColors;
+        SetChecked(ChkPipeChroma, formState.EnableChroma);
+        SetChecked(ChkPipeChromaSnapRgb, formState.EnableChromaSnapRgb);
+        SetText(TxtPipeChromaHex, formState.ChromaHex);
+        SetText(TxtPipeChromaTol, formState.ChromaTolerance);
+        SetChecked(ChkPipeAdvancedCleaner, formState.EnableAdvancedCleaner);
+        SetText(TxtPipeBilateralSpatial, formState.BilateralSigmaSpatial);
+        SetText(TxtPipeBilateralRange, formState.BilateralSigmaRange);
+        SetText(TxtPipeBilateralPasses, formState.BilateralPasses);
+        SetChecked(ChkPipePixelGridEnforce, formState.EnablePixelGridEnforce);
+        SetText(TxtPipeNativeW, formState.NativeWidth);
+        SetText(TxtPipeNativeH, formState.NativeHeight);
+        SetChecked(ChkPipePaletteSnap, formState.EnablePaletteSnap);
+        SetText(TxtPipePaletteId, formState.PaletteId);
+        SetText(TxtPipePaletteMetadataPath, formState.PaletteMetadataPath);
+        SetChecked(ChkPipeQuant, formState.EnableQuantize);
+        SetText(TxtPipeQuantLevels, formState.MaxColors);
         CmbPipeQuantMethod.SelectedIndex = formState.QuantizerIndex;
-        ChkPipeMajorityDenoise.IsChecked = formState.EnableMajorityDenoise;
-        TxtMinIsland.Text = formState.MinIsland;
-        ChkPipeOutline.IsChecked = formState.EnableOutline;
-        TxtPipeOutlineHex.Text = formState.OutlineHex;
-        ChkAlphaThreshold.IsChecked = formState.EnableAlphaThreshold;
-        TxtAlphaThreshold.Text = formState.AlphaThreshold;
+        SetChecked(ChkPipeMajorityDenoise, formState.EnableMajorityDenoise);
+        SetText(TxtMinIsland, formState.MinIsland);
+        SetChecked(ChkPipeOutline, formState.EnableOutline);
+        SetText(TxtPipeOutlineHex, formState.OutlineHex);
+        SetChecked(ChkAlphaThreshold, formState.EnableAlphaThreshold);
+        SetText(TxtAlphaThreshold, formState.AlphaThreshold);
     }
 
     private void HookPipelinePresetResetOnManualChanges()
     {
-        ChkPipeChroma.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeChromaSnapRgb.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeQuant.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeMajorityDenoise.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeOutline.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkAlphaThreshold.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeChromaHex.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeChromaTol.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipeAdvancedCleaner.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeBilateralSpatial.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeBilateralRange.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeBilateralPasses.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipePixelGridEnforce.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeNativeW.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeNativeH.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        ChkPipePaletteSnap.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipePaletteId.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipePaletteMetadataPath.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeQuantLevels.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtMinIsland.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtPipeOutlineHex.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        TxtAlphaThreshold.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        foreach (var checkBox in new[]
+                 {
+                     ChkPipeChroma, ChkPipeChromaSnapRgb, ChkPipeQuant, ChkPipeMajorityDenoise,
+                     ChkPipeOutline, ChkAlphaThreshold, ChkPipeAdvancedCleaner, ChkPipePixelGridEnforce,
+                     ChkPipePaletteSnap
+                 })
+        {
+            checkBox.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        }
+
+        foreach (var textBox in new[]
+                 {
+                     TxtPipeChromaHex, TxtPipeChromaTol, TxtPipeBilateralSpatial, TxtPipeBilateralRange,
+                     TxtPipeBilateralPasses, TxtPipeNativeW, TxtPipeNativeH, TxtPipePaletteId,
+                     TxtPipePaletteMetadataPath, TxtPipeQuantLevels, TxtMinIsland, TxtPipeOutlineHex,
+                     TxtAlphaThreshold
+                 })
+        {
+            textBox.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
+        }
+
         CmbPipeQuantMethod.SelectionChanged += (_, _) => ResetPresetOnManualPipelineEdit();
     }
+
+    private static bool IsChecked(Avalonia.Controls.CheckBox checkBox) => checkBox.IsChecked == true;
+
+    private static void SetChecked(Avalonia.Controls.CheckBox checkBox, bool value) => checkBox.IsChecked = value;
+
+    private static string TextOrDefault(Avalonia.Controls.TextBox textBox, string fallback) => textBox.Text ?? fallback;
+
+    private static void SetText(Avalonia.Controls.TextBox textBox, string value) => textBox.Text = value;
 
     private static string? TryResolvePaletteIdFromMetadata(string? metadataPath)
     {
