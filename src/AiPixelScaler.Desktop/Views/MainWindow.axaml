@@ -541,6 +541,10 @@
                           Content="Preset aggressivo + recupero"
                           Classes="secondary" HorizontalAlignment="Stretch"/>
                 </Grid>
+                <TextBlock x:Name="TxtPipelinePresetBadge"
+                           Classes="hint"
+                           Margin="0,4,0,0"
+                           Text="Preset attivo: Personalizzato"/>
                 <CheckBox x:Name="ChkPresetApplyNow"
                           Content="Applica subito dopo aver impostato i parametri"
                           Margin="0,4,0,0"/>
