@@ -221,7 +221,6 @@ public partial class MainWindow : Window
         BtnExpandPanel.Click   += (_, _) => SetPanelCollapsed(false);
 
         MainTabs.SelectionChanged += OnMainTabChanged;
-        TabStylize.IsVisible = true;
         TabTemplate.IsVisible = true;
         InitAlignGridPanel();
         BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
@@ -232,8 +231,8 @@ public partial class MainWindow : Window
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
         BtnGoAllinea.Click += (_, _) => ActivateStudio(StudioKind.Animation);
-        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 3;
-        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 3;
+        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 2;
+        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 2;
         ChkExportCustomCellSize.IsCheckedChanged += (_, _) =>
         {
             var enabled = ChkExportCustomCellSize.IsChecked == true;
@@ -290,7 +289,7 @@ public partial class MainWindow : Window
         {
             StudioKind.Sprite => 0,
             StudioKind.Animation => 0,
-            StudioKind.Tileset => 3,
+            StudioKind.Tileset => 2,
             _ => MainTabs.SelectedIndex
         };
         SpriteStudioPanel.IsVisible = studio == StudioKind.Sprite;
@@ -1772,7 +1771,7 @@ public partial class MainWindow : Window
             WorkflowShellViewModel.WorkflowStep.Importa => 0,
             WorkflowShellViewModel.WorkflowStep.Pulisci => 0,
             WorkflowShellViewModel.WorkflowStep.SliceAllinea => 0,
-            WorkflowShellViewModel.WorkflowStep.Esporta => 2,
+            WorkflowShellViewModel.WorkflowStep.Esporta => 1,
             _ => 0
         };
         UpdateWorkflowShell();

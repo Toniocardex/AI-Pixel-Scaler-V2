@@ -711,113 +711,6 @@
               </StackPanel>
               </ScrollViewer>
             </TabItem>
-
-            <!-- .......................................................... -->
-            <!-- TAB: Pulizia AI                                          -->
-            <!-- Espone effetti post-pulizia: defringe, palette,           -->`r`n            <!-- Floyd-Steinberg, simmetria forzata.                       -->
-            <!-- .......................................................... -->
-            <TabItem x:Name="TabStylize" Header=" Stilizza ">
-              <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel Spacing="0" Margin="2,4,2,6">
-
-                <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,0,0,4"
-                           Text="Effetti stilistici post-pulizia: palette retro, simmetria, tile ripetibili, padding."/>
-
-                <!-- .. PALETTE REDUCTION (Wu/Octree + presets) ........... -->
-                <TextBlock Classes="fieldLabel" Text="Riduci palette"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Riduce la palette con quantizzatore Wu oppure usa una palette retro fissa (Game Boy, PICO-8, NES, …)."/>
-
-                <!-- Preset selector -->
-                <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Palette:" Foreground="#666"
-                             FontSize="10" VerticalAlignment="Center"/>
-                  <ComboBox x:Name="CmbPalettePreset" Grid.Column="2" SelectedIndex="0"
-                            ToolTip.Tip="Scegli una palette retro o lascia riduzione automatica Wu"
-                            HorizontalAlignment="Stretch">
-                    <ComboBoxItem Content="Auto AI (Wu)"/>
-                    <ComboBoxItem Content="Game Boy DMG (4 verdi)"/>
-                    <ComboBoxItem Content="PICO-8 (16)"/>
-                    <ComboBoxItem Content="NES (16)"/>
-                    <ComboBoxItem Content="Sweetie 16"/>
-                    <ComboBoxItem Content="CGA (4)"/>
-                  </ComboBox>
-                </Grid>
-
-                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Colori palette (solo Auto AI):" Foreground="#666"
-                             FontSize="10" VerticalAlignment="Center"/>
-                  <TextBox x:Name="TxtPaletteColors" Grid.Column="2" Text="16"/>
-                </Grid>
-                <CheckBox x:Name="ChkPaletteDither" Content="Floyd-Steinberg dither in OKLab"
-                          Margin="0,4,0,0"
-                          ToolTip.Tip="Distribuisce l'errore di quantizzazione sui pixel vicini per nascondere il banding"/>
-                <Button x:Name="BtnPaletteReduce" Content="Applica palette"
-                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
-
-                <Separator Classes="h"/>
-
-                <!-- .. SYMMETRY ..........................................- -->
-                <TextBlock Classes="fieldLabel" Text="Forza simmetria (correggi asimmetrie IA)"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Copia una metà sull'altra. Utile per character frontali con piccoli scostamenti generati dall'IA."/>
-                <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
-                  <Button x:Name="BtnMirrorH" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Specchia la metà sinistra sulla destra">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
-                      <TextBlock Text="Simmetria orizzontale" VerticalAlignment="Center"/>
-                    </StackPanel>
-                  </Button>
-                  <Button x:Name="BtnMirrorV" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Specchia la metà superiore sulla inferiore">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
-                      <TextBlock Text="Simmetria verticale" VerticalAlignment="Center"/>
-                    </StackPanel>
-                  </Button>
-                </Grid>
-
-                <Separator Classes="h"/>
-
-                <!-- .. TILESET TOOLS ...................................... -->
-                <TextBlock Classes="fieldLabel" Text="Tileset — rendi tile ripetibile" Margin="0,4,0,0"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Sposta l'immagine di (W/2, H/2) e dithera il seam centrale con Bayer 4×4 deterministico (no gradient blur). Pixel art preservata: niente colori intermedi."/>
-                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Larghezza dither (px):" Foreground="#666"
-                             FontSize="10" VerticalAlignment="Center"/>
-                  <TextBox x:Name="TxtSeamlessBlend" Grid.Column="2" Text="4"
-                           ToolTip.Tip="Banda di transizione attorno al seam centrale (1–16 px). Più ampia = più graduale."/>
-                </Grid>
-                <Button x:Name="BtnMakeTileable" Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0">
-                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                    <Path Data="{StaticResource IconScissors}" Classes="action-icon"/>
-                    <TextBlock Text="Rendi tile ripetibile" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-                <CheckBox x:Name="ChkTilePreview" Content="Anteprima tile 3×3 sul canvas"
-                          Margin="0,4,0,0"
-                          ToolTip.Tip="Mostra il tile ripetuto 9 volte per evidenziare visivamente le cuciture"/>
-
-                <Separator Classes="h"/>
-
-                <!-- .. PADDING ............................................ -->
-                <TextBlock Classes="fieldLabel" Text="Allinea a multiplo di tile"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Aggiunge bordo trasparente per portare le dimensioni a un multiplo di N px. Utile per atlas o tile-set."/>
-                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Multiplo (px):" Foreground="#666"
-                             FontSize="10" VerticalAlignment="Center"/>
-                  <TextBox x:Name="TxtPadMultiple" Grid.Column="2" Text="16"/>
-                </Grid>
-                <Button x:Name="BtnPadToMultiple" Content="Allinea dimensioni"
-                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
-
-              </StackPanel>
-              </ScrollViewer>
-            </TabItem>
-
             <TabItem Header=" Export ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="6" Margin="2,4,2,6">
@@ -880,6 +773,80 @@
             <TabItem x:Name="TabTemplate" Header=" Tileset ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="8" Margin="2,4,2,6">
+                <TextBlock Classes="section-label" Text="Stilizza e seamless"/>
+
+
+                <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,0,0,4"
+                           Text="Effetti Tileset post-pulizia: palette retro, tile ripetibili e padding."/>
+
+                <!-- .. PALETTE REDUCTION (Wu/Octree + presets) ........... -->
+                <TextBlock Classes="fieldLabel" Text="Riduci palette"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Riduce la palette con quantizzatore Wu oppure usa una palette retro fissa (Game Boy, PICO-8, NES)."/>
+
+                <!-- Preset selector -->
+                <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Palette:" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="CmbPalettePreset" Grid.Column="2" SelectedIndex="0"
+                            ToolTip.Tip="Scegli una palette retro o lascia riduzione automatica Wu"
+                            HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="Auto AI (Wu)"/>
+                    <ComboBoxItem Content="Game Boy DMG (4 verdi)"/>
+                    <ComboBoxItem Content="PICO-8 (16)"/>
+                    <ComboBoxItem Content="NES (16)"/>
+                    <ComboBoxItem Content="Sweetie 16"/>
+                    <ComboBoxItem Content="CGA (4)"/>
+                  </ComboBox>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Colori palette (solo Auto AI):" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPaletteColors" Grid.Column="2" Text="16"/>
+                </Grid>
+                <CheckBox x:Name="ChkPaletteDither" Content="Floyd-Steinberg dither"
+                          Margin="0,4,0,0"
+                          ToolTip.Tip="Distribuisce l'errore di quantizzazione sui pixel vicini per nascondere il banding"/>
+                <Button x:Name="BtnPaletteReduce" Content="Applica palette"
+                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+
+                <Separator Classes="h"/>
+
+                <!-- .. TILESET TOOLS ...................................... -->
+                <TextBlock Classes="fieldLabel" Text="Tileset - rendi tile ripetibile" Margin="0,4,0,0"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Sposta l'immagine di (W/2, H/2) e dithera il seam centrale con Bayer 4x4 deterministico (no gradient blur). Pixel art preservata: niente colori intermedi."/>
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Larghezza dither (px):" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtSeamlessBlend" Grid.Column="2" Text="4"
+                           ToolTip.Tip="Banda di transizione attorno al seam centrale (1-16 px). Piu ampia = piu graduale."/>
+                </Grid>
+                <Button x:Name="BtnMakeTileable" Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0">
+                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                    <Path Data="{StaticResource IconScissors}" Classes="action-icon"/>
+                    <TextBlock Text="Rendi tile ripetibile" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <CheckBox x:Name="ChkTilePreview" Content="Anteprima tile 3x3 sul canvas"
+                          Margin="0,4,0,0"
+                          ToolTip.Tip="Mostra il tile ripetuto 9 volte per evidenziare visivamente le cuciture"/>
+
+                <Separator Classes="h"/>
+
+                <!-- .. PADDING ............................................ -->
+                <TextBlock Classes="fieldLabel" Text="Allinea a multiplo di tile"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Aggiunge bordo trasparente per portare le dimensioni a un multiplo di N px. Utile per atlas o tile-set."/>
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Multiplo (px):" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPadMultiple" Grid.Column="2" Text="16"/>
+                </Grid>
+                <Button x:Name="BtnPadToMultiple" Content="Allinea dimensioni"
+                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+                <Separator Classes="h"/>
 
                 <!-- .. NUOVA GRIGLIA .................................... -->
                 <TextBlock Classes="section-label" Text="Nuova griglia"/>

@@ -44,11 +44,11 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 | Preview animazione | Laboratorio/menu | `OpenAnimationPreview` | `_cells`, current atlas | Animation | keep + move | Deve diventare azione primaria Animation Studio. |
 | Sandbox fisica | Laboratorio/menu | `OpenSandbox` | current animation/game preview | Animation | keep | Laboratorio visibile dentro Animation Studio. |
 | Estrai frame da video | Non presente, roadmap | nuovo `VideoFrameExtractor` / import Animation futuro | MP4 H.264 input, FFmpeg rilevabile/configurabile, output PNG, timeline frame workbench | Animation | keep/new | MVP pianificato: apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, estrai PNG e importa nella timeline. Sprite puo' ricevere frame singoli/sequenze brevi solo come destinazione futura secondaria. |
-| Palette/stilizza | Stilizza tab | `RunPaletteReduce`, palette controls | Wu/presets/dither | Tileset | keep + move | Per decisione prodotto, `Stilizza` confluisce in Tileset Studio; Sprite mantiene solo `Quantize` autonomo nel pannello filtri. |
-| Mirror H/V | Stilizza tab | `RunMirror` | document transform | Sprite | keep | Trasformazione sprite. |
-| Tileable seamless | Stilizza tab | `RunMakeTileable` | `SeamlessEdge`, blend | Tileset | keep + move | Appartiene al Tileset Studio. |
-| Tile preview 3x3 | Stilizza tab | `ChkTilePreview` | editor tile preview mode | Tileset | keep + move | Preview pattern. |
-| Pad to multiple | Stilizza tab | `RunPadToMultiple` | `AutoPad` | Tileset | keep + move | Allineamento dimensioni tileset. |
+| Palette/stilizza | Tileset tab | `RunPaletteReduce`, palette controls | Wu/presets/dither | Tileset | moved | `Stilizza` e' confluito in Tileset Studio; Sprite mantiene solo `Quantize` autonomo nel pannello filtri. |
+| Mirror H/V | SpriteStudioView | `RunMirror` | document transform | Sprite | moved | Trasformazione sprite; duplicato rimosso dal blocco Tileset/Stilizza. |
+| Tileable seamless | Tileset tab | `RunMakeTileable` | `SeamlessEdge`, blend | Tileset | moved | Appartiene al Tileset Studio. |
+| Tile preview 3x3 | Tileset tab | `ChkTilePreview` | editor tile preview mode | Tileset | moved | Preview pattern. |
+| Pad to multiple | Tileset tab | `RunPadToMultiple` | `AutoPad` | Tileset | moved | Allineamento dimensioni tileset. |
 | Export PNG | Sprite/Export tab | `ExportController.ExportPngAsync` | layout builder, cells | Sprite | keep + merge UI | Duplicato reale tra quick export e Export tab. |
 | Export JSON | Sprite/Export tab | `ExportController.ExportJsonAsync` | metadata/cells/palette id | Sprite | keep + merge UI | Duplicato reale tra quick export e Export tab. |
 | Export ZIP frames | Export tab | `ExportController.ExportFramesZipAsync` | cells, cropped frames | Animation | keep | Output frame animation. |
