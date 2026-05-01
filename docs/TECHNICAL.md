@@ -43,7 +43,7 @@ La descrizione di un **progetto fratello** basato su React + Vite + Tauri è con
 ## 4. Desktop: shell e viste
 
 - **Shell:** `App.axaml` / `App.axaml.cs` imposta `MainWindow` come finestra principale.
-- **Views:** `MainWindow` - shell temporanea con toolbar, workspace e routing Studio; `StartPageView` - selezione iniziale Sprite/Animation/Tileset; `EditorSurface`; `SandboxWindow` - mini-engine di prova.
+- **Views:** `MainWindow` - shell temporanea con toolbar, workspace e routing Studio; `StartPageView` - selezione iniziale Sprite/Animation/Tileset; `Views/Studios/SpriteStudioView` - pannello operativo Sprite collegato agli handler esistenti; `EditorSurface`; `SandboxWindow` - mini-engine di prova.
 - **Controls:** `EditorSurface` (canvas), `SandboxView` (gioco semplice).
 - **File e export:** `StorageProvider` (Avalonia) per aprire/salvare; export PNG/JSON in code-behind `MainWindow`.
 
@@ -58,6 +58,8 @@ La shell desktop sta migrando in modo progressivo verso tre aree operative:
 - **Tileset Studio:** griglie, crop-to-grid, template, seamless/tile preview ed export Tiled.
 
 `MainWindow` resta per ora la shell di compatibilita': gestisce toolbar, workspace condiviso, stato documento e routing tra Start Page e Studio attivo. La logica applicativa viene estratta gradualmente in controller dedicati sotto `AiPixelScaler.Desktop/Controllers`.
+
+`SpriteStudioView` e' la prima view Studio introdotta: espone import, cleanup, ROI, slicing, floating paste, quantize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni.
 
 ### 4.2 Filtri Sprite Studio
 

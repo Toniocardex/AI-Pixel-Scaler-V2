@@ -4,7 +4,7 @@ Stato: audit approvato come guida di refactor; implementazione progressiva in co
 
 Regola: nessuna rimozione e' stata applicata. Le decisioni `remove` o `merge` sono solo candidate e richiedono conferma.
 
-Nota implementativa corrente: Start Page e routing shell sono stati introdotti. Nel primo passaggio Sprite Studio i filtri di cleanup sono stati riallineati alla matrice: preset come ricette, Quantize come filtro autonomo, Denoise come gruppo separato da Quantize.
+Nota implementativa corrente: Start Page e routing shell sono stati introdotti. Nel primo passaggio Sprite Studio i filtri di cleanup sono stati riallineati alla matrice: preset come ricette, Quantize come filtro autonomo, Denoise come gruppo separato da Quantize. Nel secondo passaggio e' stata introdotta `SpriteStudioView` come pannello operativo dedicato, collegato agli handler esistenti senza rimozioni.
 
 | Funzione | UI attuale | Handler / modulo | Dipendenze principali | Studio destinazione | Decisione proposta | Motivazione |
 |---|---|---|---|---|---|---|
@@ -75,6 +75,7 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 | Laboratorio card + menu Animazione/Sandbox | merge UI in Animation Studio, keep menu shortcut | Stesse funzioni, posizione primaria nel nuovo Studio. |
 | Selezione toolbar + Selezione tab | merge UI in Sprite Studio, keep toolbar shortcut | Stesso stato ROI, oggi disperso in due punti. |
 | Start page card routing + mini Studio navigator attuale | keep Start page, ridurre navigator a breadcrumb dopo migrazione | Lo Studio sara' scelto all'avvio, il mini navigator diventera' secondario. |
+| Sprite Studio view + tab legacy Sprite/Slice/Stilizza/Export/Selezione | migrate incrementally | `SpriteStudioView` e' il nuovo ingresso operativo; i tab legacy restano backplane finche' ogni gruppo non viene migrato e verificato. |
 
 ## Default filtri Sprite Studio
 

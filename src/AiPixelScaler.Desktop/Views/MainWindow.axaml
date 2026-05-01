@@ -5,6 +5,7 @@
         xmlns:ctrl="using:AiPixelScaler.Desktop.Controls"
         xmlns:vm="using:AiPixelScaler.Desktop.ViewModels"
         xmlns:views="using:AiPixelScaler.Desktop.Views"
+        xmlns:studios="using:AiPixelScaler.Desktop.Views.Studios"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="820"
         x:Class="AiPixelScaler.Desktop.Views.MainWindow"
         Title="AI Pixel Studio"
@@ -424,6 +425,8 @@
               <ComboBoxItem Content="Rimuovi sfondo"/>
               <ComboBoxItem Content="Contorno"/>
             </ComboBox>
+
+            <studios:SpriteStudioView x:Name="SpriteStudioPanel" IsVisible="False"/>
 
             <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,6">
               <StackPanel Spacing="4">

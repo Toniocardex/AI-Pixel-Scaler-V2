@@ -20,6 +20,7 @@ using AiPixelScaler.Desktop.Services;
 using AiPixelScaler.Desktop.Utilities;
 using AiPixelScaler.Desktop.ViewModels;
 using AiPixelScaler.Desktop.ViewModels.Studios;
+using AiPixelScaler.Desktop.Views.Studios;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -87,6 +88,7 @@ public partial class MainWindow : Window
         LoadWelcomeDocument();
         StudioShell.IsVisible = false;
         StartPage.StudioSelected += (_, studio) => ActivateStudio(studio);
+        SpriteStudioPanel.ActionRequested += OnSpriteStudioActionRequested;
 
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
@@ -243,8 +245,8 @@ public partial class MainWindow : Window
         BtnStepPulisci.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Pulisci);
         BtnStepSliceAllinea.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
-        BtnGoSprite.Click += (_, _) => MainTabs.SelectedIndex = 0;
-        BtnGoAllinea.Click += (_, _) => MainTabs.SelectedIndex = 2;
+        BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
+        BtnGoAllinea.Click += (_, _) => ActivateStudio(StudioKind.Animation);
         BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 3;
         BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 5;
         BtnSelectAll.Click       += (_, _) => SelectAll();
@@ -318,6 +320,7 @@ public partial class MainWindow : Window
             StudioKind.Tileset => 5,
             _ => MainTabs.SelectedIndex
         };
+        SpriteStudioPanel.IsVisible = studio == StudioKind.Sprite;
         SetStatus($"{studio switch
         {
             StudioKind.Sprite => "Sprite Studio",
@@ -326,6 +329,68 @@ public partial class MainWindow : Window
             _ => "Studio"
         }} attivo.");
         EnterSelectionCanvas(IsRoiSelectionModeRequested());
+    }
+
+    private async void OnSpriteStudioActionRequested(object? sender, SpriteStudioAction action)
+    {
+        switch (action)
+        {
+            case SpriteStudioAction.OpenImage:
+                await OpenImageAsync();
+                break;
+            case SpriteStudioAction.ApplyDefaultPreset:
+                ApplyDefaultPresetToControls();
+                break;
+            case SpriteStudioAction.RunCleanup:
+                RunQuickProcess();
+                break;
+            case SpriteStudioAction.RunOneClickCleanup:
+                RunAiCleanupWizard();
+                break;
+            case SpriteStudioAction.SelectArea:
+                if (!_toolbarSelectionModeEnabled)
+                    ToggleToolbarSelectionMode();
+                MainTabs.SelectedIndex = SelectionCanvasTabIndex;
+                break;
+            case SpriteStudioAction.CropSelection:
+                CropToSelection();
+                break;
+            case SpriteStudioAction.RemoveSelection:
+                RemoveSelectedArea();
+                break;
+            case SpriteStudioAction.DetectSprites:
+                RunCcl();
+                break;
+            case SpriteStudioAction.GridSlice:
+                MainTabs.SelectedIndex = 1;
+                RunGridSlice();
+                break;
+            case SpriteStudioAction.OpenFloatingPaste:
+                MainTabs.SelectedIndex = 1;
+                EnterPasteMode();
+                break;
+            case SpriteStudioAction.OpenQuantize:
+                MainTabs.SelectedIndex = 0;
+                SetStatus("Quantize disponibile in Sprite Studio: abilita il filtro e applica la pipeline.");
+                break;
+            case SpriteStudioAction.ApplyQuantize:
+                MainTabs.SelectedIndex = 0;
+                ChkPipeQuant.IsChecked = true;
+                RunPixelPipeline();
+                break;
+            case SpriteStudioAction.MirrorHorizontal:
+                RunMirror(horizontal: true);
+                break;
+            case SpriteStudioAction.MirrorVertical:
+                RunMirror(horizontal: false);
+                break;
+            case SpriteStudioAction.ExportPng:
+                await ExportPngAsync();
+                break;
+            case SpriteStudioAction.ExportJson:
+                await ExportJsonAsync();
+                break;
+        }
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
