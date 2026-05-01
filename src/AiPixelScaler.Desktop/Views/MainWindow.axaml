@@ -17,7 +17,7 @@
 
   <Window.Styles>
 
-    <!-- ═══ TOOLBAR — Lucide-styled tools ════════════════════════════ -->
+    <!-- ..- TOOLBAR � Lucide-styled tools ............................ -->
     <Style Selector="Path.tool-icon">
       <Setter Property="Width" Value="15"/>
       <Setter Property="Height" Value="15"/>
@@ -90,10 +90,10 @@
   <Grid>
   <DockPanel x:Name="StudioShell">
 
-    <!-- ═══ MENU (File / Moduli) ═══════════════════════════════════════ -->
+    <!-- ..- MENU (File / Moduli) ......................................- -->
     <Menu DockPanel.Dock="Top" Background="#0d0d14" Foreground="#aaa">
       <MenuItem Header="_File">
-        <MenuItem x:Name="MenuOpen" Header="Apri immagine…"   InputGesture="Ctrl+O"/>
+        <MenuItem x:Name="MenuOpen" Header="Apri immagine�"   InputGesture="Ctrl+O"/>
         <MenuItem x:Name="MenuRevert" Header="Ripristina immagine originale"/>
         <Separator/>
         <MenuItem x:Name="MenuExit" Header="Esci" InputGesture="Alt+F4"/>
@@ -104,16 +104,16 @@
                   Header="Copia immagine negli appunti"
                   InputGesture="Ctrl+C"/>
         <MenuItem x:Name="MenuPasteImage"
-                  Header="Incolla immagine nel canvas…"
+                  Header="Incolla immagine nel canvas�"
                   InputGesture="Ctrl+V"/>
       </MenuItem>
       <MenuItem Header="_Strumenti">
-        <MenuItem x:Name="MenuAnimPreview" Header="Anteprima animazione…" InputGesture="Ctrl+Shift+A"/>
-        <MenuItem x:Name="MenuSandbox"     Header="Sandbox fisica in-game…"/>
+        <MenuItem x:Name="MenuAnimPreview" Header="Anteprima animazione�" InputGesture="Ctrl+Shift+A"/>
+        <MenuItem x:Name="MenuSandbox"     Header="Sandbox fisica in-game�"/>
       </MenuItem>
     </Menu>
 
-    <!-- ═══ TOOLBAR (Lucide icons + label) ═══════════════════════════════ -->
+    <!-- ..- TOOLBAR (Lucide icons + label) ..............................- -->
     <Border DockPanel.Dock="Top" Background="#11111a" Padding="10,6" BorderThickness="0,0,0,1"
             BorderBrush="#1e1e2e">
       <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
@@ -152,7 +152,7 @@
           </StackPanel>
         </Button>
         <Button Classes="tool"
-                ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l’interno per spostare), ritaglio a selezione o rimozione area (Canc).">
+                ToolTip.Tip="Menu rapido selezione: ROI non distruttiva (trascina, poi aggiusta con maniglie angoli/lati o trascina l�interno per spostare), ritaglio a selezione o rimozione area (Canc).">
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
             <Path Data="{StaticResource IconCrop}" Classes="tool-icon"/>
             <TextBlock Text="Selezione" VerticalAlignment="Center" TextWrapping="NoWrap"/>
@@ -161,7 +161,7 @@
             <MenuFlyout>
             <MenuItem x:Name="MiToolbarSelectionMode"
                       Header="Seleziona Area"
-                      ToolTip.Tip="Disegna un rettangolo sul canvas; dopo il rilascio usa le maniglie azzurre (angoli e lati) per ridimensionare o trascina l’interno per spostare la ROI senza ridisegnarla."/>
+                      ToolTip.Tip="Disegna un rettangolo sul canvas; dopo il rilascio usa le maniglie azzurre (angoli e lati) per ridimensionare o trascina l�interno per spostare la ROI senza ridisegnarla."/>
             <MenuItem x:Name="MiToolbarCropToSelection"
                       Header="Ritaglia a selezione"/>
             <MenuItem x:Name="MiToolbarRemoveSelectedArea"
@@ -183,10 +183,10 @@
         <NumericUpDown x:Name="TxtWorldGridSize" Classes="toolbar"
                        Value="16" Minimum="1" Maximum="512" Increment="8" FormatString="0"
                        Width="56"
-                       ToolTip.Tip="Dimensione celle griglia in px (es. 8, 16, 32, 64…)"/>
+                       ToolTip.Tip="Dimensione celle griglia in px (es. 8, 16, 32, 64�)"/>
 
         <ToggleButton x:Name="ChkSnapGrid" Classes="tool-toggle"
-                      ToolTip.Tip="Aggancia ritaglio/selezione al multiplo più vicino della griglia magnetica">
+                      ToolTip.Tip="Aggancia ritaglio/selezione al multiplo pi� vicino della griglia magnetica">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconMagnet}" Classes="tool-icon"/>
             <TextBlock Text="Magnetica" VerticalAlignment="Center"/>
@@ -208,7 +208,7 @@
 
         <!-- Eraser tool -->
         <ToggleButton x:Name="ChkEraser" Classes="tool-toggle"
-                      ToolTip.Tip="Modalità gomma: trascina sull'immagine per cancellare pixel (rendi trasparenti)">
+                      ToolTip.Tip="Modalit� gomma: trascina sull'immagine per cancellare pixel (rendi trasparenti)">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconEraser}" Classes="tool-icon"/>
             <TextBlock Text="Gomma" VerticalAlignment="Center"/>
@@ -221,7 +221,7 @@
 
         <!-- Pipette tool -->
         <ToggleButton x:Name="ChkPipette" Classes="tool-toggle"
-                      ToolTip.Tip="Modalità contagocce: clic sull'immagine per campionare il colore">
+                      ToolTip.Tip="Modalit� contagocce: clic sull'immagine per campionare il colore">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <Path Data="{StaticResource IconPipette}" Classes="tool-icon"/>
             <TextBlock Text="Contagocce" VerticalAlignment="Center"/>
@@ -231,13 +231,13 @@
       </StackPanel>
     </Border>
 
-    <!-- ═══ WORKSPACE TABS (fase 2 MVP) ═══════════════════════════════════ -->
+    <!-- ..- WORKSPACE TABS (fase 2 MVP) ..................................- -->
     <Border DockPanel.Dock="Top" Background="#101018" Padding="8,6" BorderThickness="0,0,0,1"
             BorderBrush="#1e1e2e">
       <DockPanel LastChildFill="True">
         <TextBlock x:Name="TxtWorkspaceContext" DockPanel.Dock="Left" Margin="0,0,10,0"
                    Foreground="#8a88a8" FontSize="11" VerticalAlignment="Center"
-                   Text="Workspace 1 · Pulito"/>
+                   Text="Workspace 1 � Pulito"/>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
           <Button x:Name="BtnWorkspaceNewTab" Classes="tool" ToolTip.Tip="Nuovo workspace">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -252,7 +252,7 @@
             </StackPanel>
           </Button>
           <Button x:Name="BtnWorkspaceNewFromClipboard" Classes="tool"
-                  ToolTip.Tip="Apre un nuovo tab workspace con l’immagine negli appunti. Per incollare sul canvas del tab corrente usa Modifica → Incolla o il pulsante nel tab Workspace (Ctrl+V).">
+                  ToolTip.Tip="Apre un nuovo tab workspace con l�immagine negli appunti. Per incollare sul canvas del tab corrente usa Modifica ? Incolla o il pulsante nel tab Workspace (Ctrl+V).">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Path Data="{StaticResource IconPaste}" Classes="tool-icon"/>
               <TextBlock Text="Nuovo tab da appunti" VerticalAlignment="Center"/>
@@ -266,7 +266,7 @@
               <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                 <TextBlock Text="{Binding DisplayTitle}" VerticalAlignment="Center"/>
                 <Button Classes="workspace-tab-close"
-                        Content="×"
+                        Content="�"
                         Tag="{Binding}"
                         Click="OnWorkspaceTabStripCloseClick"
                         IsVisible="{Binding CloseButtonVisible}"
@@ -283,7 +283,7 @@
       </DockPanel>
     </Border>
 
-    <!-- ═══ WORKFLOW ACTION BAR (task-first CTA) ═════════════════════════ -->
+    <!-- ..- WORKFLOW ACTION BAR (task-first CTA) ........................- -->
     <Border DockPanel.Dock="Bottom" Background="#10101a" Padding="10,6"
             BorderThickness="0,1,0,0" BorderBrush="#1e1e2e">
       <Grid ColumnDefinitions="*,Auto,8,Auto">
@@ -291,13 +291,13 @@
                    VerticalAlignment="Center"
                    Foreground="#b5b4ca"
                    FontSize="11"
-                   Text="Step 1/4 · Importa"/>
-        <Button x:Name="BtnWorkflowPrimaryAction" Grid.Column="1" Classes="primary" Content="Step 1 · Importa"/>
+                   Text="Step 1/4 � Importa"/>
+        <Button x:Name="BtnWorkflowPrimaryAction" Grid.Column="1" Classes="primary" Content="Step 1 � Importa"/>
         <Button x:Name="BtnWorkflowNextStep" Grid.Column="3" Classes="secondary" Content="Prossimo step"/>
       </Grid>
     </Border>
 
-    <!-- ═══ STATUS BAR (in basso) ════════════════════════════════════════ -->
+    <!-- ..- STATUS BAR (in basso) ........................................ -->
     <Border DockPanel.Dock="Bottom" Background="#0a0a10" Padding="10,4"
             BorderThickness="0,1,0,0" BorderBrush="#1e1e2e">
       <Grid ColumnDefinitions="Auto,8,*">
@@ -310,33 +310,33 @@
       </Grid>
     </Border>
 
-    <!-- ═══ CORPO PRINCIPALE ════════════════════════════════════════════ -->
+    <!-- ..- CORPO PRINCIPALE ............................................ -->
     <Grid x:Name="MainBodyGrid" ColumnDefinitions="84,*,4,320">
 
-      <!-- ─── LEFT RAIL (workflow task-first) ─────────────────────────── -->
+      <!-- ..- LEFT RAIL (workflow task-first) ..........................- -->
       <Border Grid.Column="0" Background="#0c0c14" BorderBrush="#1e1e2e" BorderThickness="0,0,1,0">
         <StackPanel Margin="8,10" Spacing="8">
           <TextBlock Text="Workflow" Foreground="#7f7f98" FontSize="10" HorizontalAlignment="Center"/>
           <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepImporta" Classes="tool-toggle" Content="1 · Importa"/>
-            <TextBlock x:Name="TxtStepImportaState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+            <ToggleButton x:Name="BtnStepImporta" Classes="tool-toggle" Content="1 � Importa"/>
+            <TextBlock x:Name="TxtStepImportaState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
           </StackPanel>
           <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepPulisci" Classes="tool-toggle" Content="2 · Pulisci"/>
-            <TextBlock x:Name="TxtStepPulisciState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+            <ToggleButton x:Name="BtnStepPulisci" Classes="tool-toggle" Content="2 � Pulisci"/>
+            <TextBlock x:Name="TxtStepPulisciState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
           </StackPanel>
           <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepSliceAllinea" Classes="tool-toggle" Content="3 · Slice"/>
-            <TextBlock x:Name="TxtStepSliceState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+            <ToggleButton x:Name="BtnStepSliceAllinea" Classes="tool-toggle" Content="3 � Slice"/>
+            <TextBlock x:Name="TxtStepSliceState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
           </StackPanel>
           <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepEsporta" Classes="tool-toggle" Content="4 · Esporta"/>
-            <TextBlock x:Name="TxtStepEsportaState" Text="● in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
+            <ToggleButton x:Name="BtnStepEsporta" Classes="tool-toggle" Content="4 � Esporta"/>
+            <TextBlock x:Name="TxtStepEsportaState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
           </StackPanel>
         </StackPanel>
       </Border>
 
-      <!-- ─── CANVAS + overlay stato vuoto + scroll workspace ───────────── -->
+      <!-- ..- CANVAS + overlay stato vuoto + scroll workspace ............- -->
       <Grid Grid.Column="1" Background="#0a0a0e"
             RowDefinitions="*,Auto" ColumnDefinitions="*,Auto">
         <Grid Grid.Row="0" Grid.Column="0">
@@ -349,7 +349,7 @@
             <TextBlock x:Name="EmptyStateTitle" Text="Nessun file aperto" Foreground="#b0a8c8"
                        FontSize="16" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"/>
             <TextBlock x:Name="EmptyStateSub"
-                       Text="Clic su «Apri immagine» (toolbar) o sotto. Intanto vedi l'atlas di esempio."
+                       Text="Clic su �Apri immagine� (toolbar) o sotto. Intanto vedi l'atlas di esempio."
                        Foreground="#5c5a70" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"/>
             <Button x:Name="EmptyStateOpen" Content="Apri un'immagine" Classes="primary"
                     HorizontalAlignment="Center" Margin="0,8,0,0"/>
@@ -369,7 +369,7 @@
                        VerticalAlignment="Center" FontSize="11" MinWidth="44" TextAlignment="Right"/>
             <Slider x:Name="SliderWorkspaceZoom" Width="168" Minimum="0" Maximum="1000"
                     Value="500" VerticalAlignment="Center"
-                    ToolTip.Tip="Scala zoom logaritmica verso il 100%: metà corsa da 5% a 100%, metà da 100% a 6400%. Ancoraggio al centro viewport."/>
+                    ToolTip.Tip="Scala zoom logaritmica verso il 100%: met� corsa da 5% a 100%, met� da 100% a 6400%. Ancoraggio al centro viewport."/>
           </StackPanel>
           <ScrollBar x:Name="EditorScrollH" Grid.Column="1"
                      Orientation="Horizontal" Height="14" VerticalAlignment="Center"
@@ -385,10 +385,10 @@
         <Border Grid.Row="1" Grid.Column="1" Background="#0a0a0e" Width="14" Height="14"/>
       </Grid>
 
-      <!-- ─── SPLITTER ─────────────────────────────────────────────────── -->
+      <!-- ..- SPLITTER ..................................................- -->
       <GridSplitter x:Name="PanelSplitter" Grid.Column="2" Background="#1a1a26" ResizeDirection="Columns"/>
 
-      <!-- ─── PANNELLO DESTRO ───────────────────────────────────────────── -->
+      <!-- ..- PANNELLO DESTRO ............................................- -->
       <Border Grid.Column="3" Background="#0f0f18" x:Name="RightPanel">
         <DockPanel>
 
@@ -442,7 +442,7 @@
                     </StackPanel>
                   </Button>
                   <Button x:Name="BtnPanelSandbox" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Sandbox in-game con fisica (movimento, gravità)">
+                          ToolTip.Tip="Sandbox in-game con fisica (movimento, gravit�)">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconPlay}" Classes="action-icon"/>
                       <TextBlock Text="Sandbox" VerticalAlignment="Center"/>
@@ -474,7 +474,7 @@
               <StackPanel Spacing="0" Margin="2,4,2,6">
                 <TextBlock Classes="fieldLabel" Text="Flusso rapido (consigliato)"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Apri → pulisci → dividi → esporta. Tutto da una sola schermata."/>
+                           Text="Apri ? pulisci ? dividi ? esporta. Tutto da una sola schermata."/>
                 <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,6,0,0">
                   <StackPanel Spacing="4">
                     <TextBlock Classes="hint" Text="Stato dipendenze"/>
@@ -514,16 +514,16 @@
                   <StackPanel Spacing="6">
                     <TextBlock Classes="fieldLabel" Text="Appunti"/>
                     <TextBlock Classes="hint" TextWrapping="Wrap"
-                               Text="Copia (Ctrl+C) salva l’immagine corrente negli appunti — o solo l’area ROI se hai una selezione attiva. Incolla nel canvas (Ctrl+V) mette un’immagine dagli appunti sul foglio (Invio conferma · Esc annulla). «Nuovo tab da appunti» in alto apre un workspace separato."/>
+                               Text="Copia (Ctrl+C) salva l�immagine corrente negli appunti � o solo l�area ROI se hai una selezione attiva. Incolla nel canvas (Ctrl+V) mette un�immagine dagli appunti sul foglio (Invio conferma � Esc annulla). �Nuovo tab da appunti� in alto apre un workspace separato."/>
                     <Button x:Name="BtnWorkspaceCopyToClipboard" Classes="secondary" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Copia bitmap PNG-compatibile negli appunti (intero atlas o selezione ROI). Scorciatoia Ctrl+C — come Modifica → Copia.">
+                            ToolTip.Tip="Copia bitmap PNG-compatibile negli appunti (intero atlas o selezione ROI). Scorciatoia Ctrl+C � come Modifica ? Copia.">
                       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                         <Path Data="{StaticResource IconCopy}" Classes="action-icon"/>
                         <TextBlock Text="Copia negli appunti" VerticalAlignment="Center"/>
                       </StackPanel>
                     </Button>
                     <Button x:Name="BtnWorkspacePasteFromClipboard" Classes="secondary" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Incolla PNG/bitmap dagli appunti sul canvas corrente — come Ctrl+V. Non disponibile in atlas pulito / workbench frame / anteprima tile.">
+                            ToolTip.Tip="Incolla PNG/bitmap dagli appunti sul canvas corrente � come Ctrl+V. Non disponibile in atlas pulito / workbench frame / anteprima tile.">
                       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                         <Path Data="{StaticResource IconPaste}" Classes="action-icon"/>
                         <TextBlock Text="Incolla nel canvas" VerticalAlignment="Center"/>
@@ -557,7 +557,7 @@
                           Margin="0,4,0,0">
                   <StackPanel Spacing="6" Margin="0,8,0,0">
                     <TextBlock Classes="hint" TextWrapping="Wrap"
-                               Text="Tile, offset e gutter con anteprima sul canvas. «Applica ritaglio» tiene solo tile intere (core ImageSharp), azzera offset e rigenera le celle overlay per export."/>
+                               Text="Tile, offset e gutter con anteprima sul canvas. �Applica ritaglio� tiene solo tile intere (core ImageSharp), azzera offset e rigenera le celle overlay per export."/>
                     <CheckBox x:Name="ChkAlignGridPreview" Content="Mostra anteprima griglia" IsChecked="False"/>
                     <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,Auto,Auto">
                       <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
@@ -642,14 +642,14 @@
                   <Border Grid.Column="0" Background="#0a0a14" BorderBrush="#2e3a5a" BorderThickness="1" CornerRadius="6" Padding="8">
                     <StackPanel Spacing="4">
                       <TextBlock Text="Preset Sicuro" FontWeight="SemiBold" Foreground="#cfd9ff"/>
-                      <TextBlock Classes="hint" Text="Prima: pulizia leggera · Dopo: palette più stabile, meno artefatti."/>
+                      <TextBlock Classes="hint" Text="Prima: pulizia leggera � Dopo: palette pi� stabile, meno artefatti."/>
                       <Button x:Name="BtnPresetSafe" Content="Applica preset sicuro" Classes="secondary" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                   </Border>
                   <Border Grid.Column="2" Background="#0a0a14" BorderBrush="#5a3a2e" BorderThickness="1" CornerRadius="6" Padding="8">
                     <StackPanel Spacing="4">
                       <TextBlock Text="Aggressivo + Recupero" FontWeight="SemiBold" Foreground="#ffd8c8"/>
-                      <TextBlock Classes="hint" Text="Prima: rumore/alone marcato · Dopo: pulizia forte con recupero pixel interni."/>
+                      <TextBlock Classes="hint" Text="Prima: rumore/alone marcato � Dopo: pulizia forte con recupero pixel interni."/>
                       <Button x:Name="BtnPresetAggressiveRecover" Content="Applica preset aggressivo" Classes="secondary" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                   </Border>
@@ -664,10 +664,10 @@
 
                 <Separator Classes="h"/>
 
-                <!-- ── AI WIZARD ONE-CLICK (in cima per workflow rapido) ──── -->
+                <!-- .. AI WIZARD ONE-CLICK (in cima per workflow rapido) .... -->
                 <TextBlock Classes="fieldLabel" Text="Pulizia automatica completa"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Esegue in ordine ottimale: rimuove sfondo → defringe → binarizza alpha → median 3×3 → drop pixel isolati. Usa i parametri impostati nei pannelli sotto."/>
+                           Text="Esegue in ordine ottimale: rimuove sfondo ? defringe ? binarizza alpha ? median 3�3 ? drop pixel isolati. Usa i parametri impostati nei pannelli sotto."/>
                 <Button x:Name="BtnAiCleanupAll" Classes="primary" HorizontalAlignment="Stretch" Margin="0,6,0,0">
                   <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                     <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
@@ -679,12 +679,12 @@
 
                 <Separator Classes="h"/>
 
-                <!-- ── DEFRINGE (color decontamination) ────────────────────── -->
-                <TextBlock Classes="fieldLabel" Text="Defringe — alone colorato sui bordi"/>
+                <!-- .. DEFRINGE (color decontamination) ...................... -->
+                <TextBlock Classes="fieldLabel" Text="Defringe � alone colorato sui bordi"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Recupera il colore vero sui pixel semi-trasparenti dai vicini opachi (premultiplied alpha). Funziona solo su immagini con bordi sfumati — opaque-only no-op."/>
+                           Text="Recupera il colore vero sui pixel semi-trasparenti dai vicini opachi (premultiplied alpha). Funziona solo su immagini con bordi sfumati � opaque-only no-op."/>
                 <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Soglia opaco (1–255):" Foreground="#666"
+                  <TextBlock Grid.Column="0" Text="Soglia opaco (1�255):" Foreground="#666"
                              FontSize="10" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtDefringeOpaque" Grid.Column="2" Text="250"/>
                 </Grid>
@@ -693,8 +693,8 @@
 
                 <Separator Classes="h"/>
 
-                <!-- ── MEDIAN 3×3 (denoise that preserves edges) ──────────── -->
-                <TextBlock Classes="fieldLabel" Text="Median 3×3 — denoise senza sfocatura"/>
+                <!-- .. MEDIAN 3�3 (denoise that preserves edges) ............ -->
+                <TextBlock Classes="fieldLabel" Text="Median 3�3 � denoise senza sfocatura"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
                            Text="Filtro mediano per canale: elimina pixel isolati 'salt &amp; pepper' preservando i bordi netti."/>
                 <Button x:Name="BtnMedianFilter" Content="Applica filtro mediano"
@@ -736,7 +736,7 @@
                            PlaceholderText="Colore hex (es. #00FF00)"
                            ToolTip.Tip="Inserisci il colore da rendere trasparente, oppure usa il contagocce"/>
                   <TextBox x:Name="TxtPipeChromaTol" Grid.Column="2" Text="0"
-                           ToolTip.Tip="Tolleranza: 0 = colore esatto, valori più alti = più permissivo"/>
+                           ToolTip.Tip="Tolleranza: 0 = colore esatto, valori pi� alti = pi� permissivo"/>
                   <Button x:Name="BtnPickChroma" Grid.Column="4" Classes="icon"
                           ToolTip.Tip="Clicca per campionare il colore sull'immagine">
                     <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
@@ -826,7 +826,7 @@
                 <Grid ColumnDefinitions="Auto,8,*" Margin="0,4,0,0">
                   <TextBlock Grid.Column="0" Text="Metadata JSON:" Foreground="#666" FontSize="10" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtPipePaletteMetadataPath" Grid.Column="2" Text=""
-                           ToolTip.Tip="Percorso opzionale a JSON con palette_id (usato se palette_id è vuoto)."/>
+                           ToolTip.Tip="Percorso opzionale a JSON con palette_id (usato se palette_id � vuoto)."/>
                 </Grid>
 
                 <Separator Classes="h"/>
@@ -836,10 +836,10 @@
                 <TextBlock Classes="hint" Margin="0,2,0,0"
                            Text="Elimina i bordi sfumati lasciati dall'IA: ogni pixel diventa completamente opaco o trasparente."/>
                 <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Soglia (0–255, default 128):" Foreground="#666"
+                  <TextBlock Grid.Column="0" Text="Soglia (0�255, default 128):" Foreground="#666"
                              FontSize="10" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtAlphaThreshold" Grid.Column="2" Text="128"
-                           ToolTip.Tip="Pixel con alpha &gt; soglia → opaco (255). Pixel con alpha ≤ soglia → trasparente (0)."/>
+                           ToolTip.Tip="Pixel con alpha &gt; soglia ? opaco (255). Pixel con alpha = soglia ? trasparente (0)."/>
                 </Grid>
                   </StackPanel>
                 </Expander>
@@ -854,10 +854,10 @@
                 <Separator Classes="h"/>
 
                 <!-- Ridimensiona -->
-                <TextBlock Classes="fieldLabel" Text="Ridimensiona (pixel art — senza sfocatura)"/>
+                <TextBlock Classes="fieldLabel" Text="Ridimensiona (pixel art � senza sfocatura)"/>
                 <Grid ColumnDefinitions="*,10,*" Margin="0,4,0,0">
                   <TextBox x:Name="TxtNnW" Grid.Column="0" Text="64" PlaceholderText="Larghezza (px)"/>
-                  <TextBlock Grid.Column="1" Text="×" Foreground="#444"
+                  <TextBlock Grid.Column="1" Text="�" Foreground="#444"
                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtNnH" Grid.Column="2" Text="64" PlaceholderText="Altezza (px)"/>
                 </Grid>
@@ -871,123 +871,19 @@
               </ScrollViewer>
             </TabItem>
 
-            <TabItem Header=" Slice ">
-              <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel Spacing="0" Margin="2,4,2,6">
 
-                <TextBlock Classes="hint" Margin="0,0,0,4" TextWrapping="Wrap"
-                           Text="Per il rilevamento automatico usa «Rileva sprite» nella toolbar: aggiorna subito celle e overlay senza cambiare scheda."/>
-
-                <Separator Classes="h"/>
-
-                <TextBlock Classes="fieldLabel" Text="Ritaglio manuale (rettangolo)"/>
-                <CheckBox x:Name="ChkSpriteCrop" Content="Attiva: trascina sull'immagine per ritagliare" />
-                <TextBlock Classes="hint" Margin="0,2,0,4"
-                           Text="Il tasto sinistro disegna la selezione. Pan: tasto centrale. Zoom: rotellina. Rilascia per applicare. Contagocce: disattivato."/>
-
-                <Separator Classes="h"/>
-
-                <!-- Griglia manuale -->
-                <TextBlock Classes="fieldLabel" Text="— oppure dividi a griglia manuale —"/>
-                <Grid ColumnDefinitions="*,8,*" Margin="0,4,0,0">
-                  <StackPanel Grid.Column="0" Spacing="2">
-                    <TextBlock Text="Righe (Y, n° frame in verticale)" Foreground="#7a7a92"
-                               FontSize="10"/>
-                    <TextBox x:Name="TxtRows" Text="2" PlaceholderText="es. 1"
-                             ToolTip.Tip="Numero di righe della griglia (asse Y / verticale). Es. animazione orizzontale = 1 riga."/>
-                  </StackPanel>
-                  <StackPanel Grid.Column="2" Spacing="2">
-                    <TextBlock Text="Colonne (X, n° frame in orizzontale)" Foreground="#7a7a92"
-                               FontSize="10"/>
-                    <TextBox x:Name="TxtCols" Text="2" PlaceholderText="es. 8"
-                             ToolTip.Tip="Numero di colonne della griglia (asse X / orizzontale). Es. animazione walk a 8 frame = 8 colonne."/>
-                  </StackPanel>
-                </Grid>
-                <Button x:Name="BtnGridSlice" Content="Dividi a griglia"
-                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
-
-                <!-- ── ATLAS PULITO (clone griglia + manual paste) ─────────── -->
-                <Separator Classes="h"/>
-                <TextBlock Classes="fieldLabel" Text="Atlas pulito (cloni griglia → seleziona → incolla)"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Crea un atlas vuoto con la stessa griglia. In modalità Sorgente: trascina un rettangolo (anche oltre i bordi cella) → 'Copia'. In modalità Destinazione: clic su una cella per incollare lo sprite centrato."/>
-
-                <Button x:Name="BtnPasteEnter"
-                        Classes="primary" HorizontalAlignment="Stretch" Margin="0,6,0,0"
-                        ToolTip.Tip="Richiede griglia divisa o sprite rilevati">
-                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                    <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
-                    <TextBlock Text="Crea atlas pulito" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-
-                <StackPanel x:Name="PasteActiveBar" IsVisible="False" Spacing="4" Margin="0,6,0,0">
-                  <Grid ColumnDefinitions="*,6,*">
-                    <ToggleButton x:Name="BtnPasteDest" Grid.Column="0"
-                                  Classes="tool-toggle" IsChecked="True" HorizontalAlignment="Stretch"
-                                  HorizontalContentAlignment="Center"
-                                  ToolTip.Tip="Atlas vuoto — clic su una cella per incollare il buffer">
-                      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                        <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
-                        <TextBlock Text="Destinazione" VerticalAlignment="Center"/>
-                      </StackPanel>
-                    </ToggleButton>
-                    <ToggleButton x:Name="BtnPasteSrc" Grid.Column="2"
-                                  Classes="tool-toggle" HorizontalAlignment="Stretch"
-                                  HorizontalContentAlignment="Center"
-                                  ToolTip.Tip="Atlas originale — trascina rettangolo per selezionare uno sprite">
-                      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                        <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
-                        <TextBlock Text="Sorgente" VerticalAlignment="Center"/>
-                      </StackPanel>
-                    </ToggleButton>
-                  </Grid>
-                  <Button x:Name="BtnPasteCopy"
-                          Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Copia l'ultima selezione fatta in modalità Sorgente nel buffer">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <Path Data="{StaticResource IconCopy}" Classes="action-icon"/>
-                      <TextBlock Text="Copia selezione" VerticalAlignment="Center"/>
-                    </StackPanel>
-                  </Button>
-                  <TextBlock x:Name="TxtPasteBufferStatus" Foreground="#7a7a92" FontSize="10"
-                             Text="Buffer: vuoto"/>
-                  <Button x:Name="BtnPasteExit" Content="Esci modalità atlas pulito"
-                          Classes="secondary" HorizontalAlignment="Stretch"/>
-                </StackPanel>
-
-                <!-- Lista sprite trovati -->
-                <TextBlock Classes="fieldLabel" Text="Sprite trovati:"/>
-                <Border Background="#0a0a12" CornerRadius="4" Padding="2">
-                  <ListBox x:Name="CellList" Height="90" Background="Transparent"
-                           FontSize="11" Foreground="#888"/>
-                </Border>
-
-                <Button x:Name="BtnSaveSelectedFrame"
-                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                        ToolTip.Tip="Seleziona un frame nella lista qui sopra, poi clicca per esportarlo come PNG singolo.">
-                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                    <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-                    <TextBlock Text="Esporta frame PNG" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-
-              </StackPanel>
-              </ScrollViewer>
-            </TabItem>
-
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <!-- TAB: Allinea frame (workbench non-distruttivo)            -->
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <TabItem Header=" Animation ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
 
                 <TextBlock Classes="fieldLabel" Text="Allineamento frame"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Modalità non distruttiva: sposta/allinea i frame e applica solo quando confermi."/>
+                           Text="Modalit� non distruttiva: sposta/allinea i frame e applica solo quando confermi."/>
 
-                <!-- ── ENTRA / ESCI ─────────────────────────────────────── -->
+                <!-- .. ENTRA / ESCI ......................................- -->
                 <Button x:Name="BtnAlignEnter"
                         Classes="primary" HorizontalAlignment="Stretch" Margin="0,8,0,0"
                         ToolTip.Tip="Richiede sprite rilevati o griglia divisa">
@@ -1020,11 +916,11 @@
                 <TextBlock Classes="fieldLabel" Text="Azioni rapide"/>
                 <CheckBox x:Name="ChkAlignCenterSnapGrid" Margin="0,4,0,2" IsChecked="True"
                           Content="Aggancia angolo opaco a griglia 8 px dopo il centro"
-                          ToolTip.Tip="Attivo (consigliato con griglia toolbar multipla di 8): dopo il centro geometrico dell'AABB opaca nella cella, il contenuto può spostarsi leggermente così l'angolo in alto a sinistra dell'area opaca nell'atlas cade su multipli di 8 px. Disattiva per centratura pura senza questo rifinitura. Vale anche per «Centra nelle celle» negli strumenti avanzati."/>
+                          ToolTip.Tip="Attivo (consigliato con griglia toolbar multipla di 8): dopo il centro geometrico dell'AABB opaca nella cella, il contenuto pu� spostarsi leggermente cos� l'angolo in alto a sinistra dell'area opaca nell'atlas cade su multipli di 8 px. Disattiva per centratura pura senza questo rifinitura. Vale anche per �Centra nelle celle� negli strumenti avanzati."/>
                 <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
                   <Button x:Name="BtnAlignAllCenter" Grid.Column="0"
                           Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Centra l'AABB opaca di ogni frame nel rettangolo della cella. Se «Aggancia angolo opaco…» è attivo sopra, può applicarsi anche il rifinitura su griglia 8 px (vedi checkbox).">
+                          ToolTip.Tip="Centra l'AABB opaca di ogni frame nel rettangolo della cella. Se �Aggancia angolo opaco�� � attivo sopra, pu� applicarsi anche il rifinitura su griglia 8 px (vedi checkbox).">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
                       <TextBlock Text="Centra tutti" VerticalAlignment="Center"/>
@@ -1050,13 +946,13 @@
 
                 <Separator Classes="h"/>
 
-                <!-- ── AZIONI SU SELEZIONATO ────────────────────────────── -->
+                <!-- .. AZIONI SU SELEZIONATO .............................. -->
                 <TextBlock Classes="fieldLabel" Text="Frame selezionato"/>
                 <TextBlock x:Name="TxtAlignSelected" Classes="hint" Text="Nessuno selezionato"
                            Margin="0,2,0,0"/>
                 <Grid ColumnDefinitions="*,6,*" Margin="0,6,0,0">
                   <Button x:Name="BtnAlignSelCenter" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Come «Centra tutti», solo sul frame selezionato. Rispetta il checkbox «Aggancia angolo opaco…» nella sezione Azioni rapide.">
+                          ToolTip.Tip="Come �Centra tutti�, solo sul frame selezionato. Rispetta il checkbox �Aggancia angolo opaco�� nella sezione Azioni rapide.">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
                       <TextBlock Text="Centra selezionato" VerticalAlignment="Center"/>
@@ -1096,7 +992,7 @@
 
                     <TextBlock Classes="fieldLabel" Text="Parametri estrazione"/>
                     <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                      <TextBlock Grid.Column="0" Text="Padding (px) — cattura overflow:"
+                      <TextBlock Grid.Column="0" Text="Padding (px) � cattura overflow:"
                                  Foreground="#666" FontSize="10" VerticalAlignment="Center"/>
                       <NumericUpDown x:Name="TxtAlignPadding" Grid.Column="2" Value="0"
                                      Minimum="0" Maximum="128" Increment="2" FormatString="0"
@@ -1108,18 +1004,18 @@
                     <TextBlock Classes="fieldLabel" Text="Normalizzazione globale (Bottom-Center)"/>
                     <Button x:Name="BtnGlobal" Content="Avvia analisi dimensioni celle"
                             Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                            ToolTip.Tip="Mostra max / mediana / 90° percentile su W e H di tutte le celle. Avvisa di outlier."/>
+                            ToolTip.Tip="Mostra max / mediana / 90� percentile su W e H di tutte le celle. Avvisa di outlier."/>
                     <TextBlock x:Name="TxtGlobal" Foreground="#555" FontSize="10" Margin="0,4,0,0"
                                TextWrapping="Wrap"
-                               Text="—  Esegui prima la rilevazione sprite"/>
+                               Text="�  Esegui prima la rilevazione sprite"/>
 
                     <TextBlock Text="Politica dimensione cella:" Foreground="#666"
                                FontSize="10" Margin="0,8,0,2"/>
                     <ComboBox x:Name="CmbNormalizePolicy" SelectedIndex="0" HorizontalAlignment="Stretch"
-                              ToolTip.Tip="Max gonfia se c'è un outlier. Mediana = robusta (clippa outlier). P90 = soft cap (perde solo top-10% px).">
-                      <ComboBoxItem Content="Max (classico — può gonfiare per outlier)"/>
-                      <ComboBoxItem Content="Mediana (robusto — clippa outlier)"/>
-                      <ComboBoxItem Content="Percentile 90° (soft cap)"/>
+                              ToolTip.Tip="Max gonfia se c'� un outlier. Mediana = robusta (clippa outlier). P90 = soft cap (perde solo top-10% px).">
+                      <ComboBoxItem Content="Max (classico � pu� gonfiare per outlier)"/>
+                      <ComboBoxItem Content="Mediana (robusto � clippa outlier)"/>
+                      <ComboBoxItem Content="Percentile 90� (soft cap)"/>
                     </ComboBox>
                     <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,4,0,0"
                                Text="Allinea tutti i frame alla baseline inferiore usando la policy selezionata."/>
@@ -1136,25 +1032,25 @@
 
                     <TextBlock Classes="fieldLabel" Text="Crop &amp; POT (asset singolo)"/>
                     <TextBlock Classes="hint" TextWrapping="Wrap"
-                               Text="Pipeline fissa: trim AABB su soglia α (o ROI utente) → padding → AtlasCropper → POT (dopo padding, mai a metà flusso)."/>
+                               Text="Pipeline fissa: trim AABB su soglia a (o ROI utente) ? padding ? AtlasCropper ? POT (dopo padding, mai a met� flusso)."/>
 
-                    <TextBlock Text="Modalità crop:" Foreground="#666" FontSize="10" Margin="0,6,0,2"/>
+                    <TextBlock Text="Modalit� crop:" Foreground="#666" FontSize="10" Margin="0,6,0,2"/>
                     <ComboBox x:Name="CmbCropMode" SelectedIndex="0" HorizontalAlignment="Stretch"
-                              ToolTip.Tip="Trim base = AABB stretto · Trim+pad = AABB allargato di N px · ROI = ultima selezione manuale">
-                      <ComboBoxItem Content="Trim al contenuto (AABB α)"/>
+                              ToolTip.Tip="Trim base = AABB stretto � Trim+pad = AABB allargato di N px � ROI = ultima selezione manuale">
+                      <ComboBoxItem Content="Trim al contenuto (AABB a)"/>
                       <ComboBoxItem Content="Trim al contenuto + padding"/>
                       <ComboBoxItem Content="ROI utente (ultima selezione)"/>
                     </ComboBox>
 
                     <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                      <TextBlock Grid.Column="0" Text="Soglia α (1–255):" Foreground="#666"
+                      <TextBlock Grid.Column="0" Text="Soglia a (1�255):" Foreground="#666"
                                  FontSize="10" VerticalAlignment="Center"/>
                       <NumericUpDown x:Name="TxtCropAlpha" Grid.Column="2" Value="1" Minimum="1" Maximum="255"
                                      Increment="1" FormatString="0" ShowButtonSpinner="False"
-                                     ToolTip.Tip="Pixel con α ≥ soglia sono considerati 'visibili' nell'AABB"/>
+                                     ToolTip.Tip="Pixel con a = soglia sono considerati 'visibili' nell'AABB"/>
                     </Grid>
                     <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                      <TextBlock Grid.Column="0" Text="Padding (px) — solo Trim+pad:" Foreground="#666"
+                      <TextBlock Grid.Column="0" Text="Padding (px) � solo Trim+pad:" Foreground="#666"
                                  FontSize="10" VerticalAlignment="Center"/>
                       <NumericUpDown x:Name="TxtCropPadding" Grid.Column="2" Value="4" Minimum="0" Maximum="64"
                                      Increment="1" FormatString="0" ShowButtonSpinner="False"
@@ -1163,10 +1059,10 @@
 
                     <TextBlock Text="Politica POT:" Foreground="#666" FontSize="10" Margin="0,6,0,2"/>
                     <ComboBox x:Name="CmbCropPot" SelectedIndex="0" HorizontalAlignment="Stretch"
-                              ToolTip.Tip="POT applicata DOPO il padding. Esempio: 192×100 → PerAxis=256×128, Square=256×256.">
+                              ToolTip.Tip="POT applicata DOPO il padding. Esempio: 192�100 ? PerAxis=256�128, Square=256�256.">
                       <ComboBoxItem Content="Nessuna (dimensioni naturali)"/>
-                      <ComboBoxItem Content="Per asse — W'=Np2(W), H'=Np2(H)"/>
-                      <ComboBoxItem Content="Quadrata — side=Np2(max(W,H))"/>
+                      <ComboBoxItem Content="Per asse � W'=Np2(W), H'=Np2(H)"/>
+                      <ComboBoxItem Content="Quadrata � side=Np2(max(W,H))"/>
                     </ComboBox>
 
                     <Button x:Name="BtnApplyCropPot"
@@ -1180,7 +1076,7 @@
 
                     <Button x:Name="BtnCenterInCells"
                             Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                            ToolTip.Tip="Centra il contenuto opaco in ogni cella dell’atlas corrente (senza workbench). La rifinitura su griglia 8 px segue l’opzione «Aggancia angolo opaco a griglia 8 px dopo il centro» nella sezione Azioni rapide sopra (tab Allinea); se disattivata, solo centro geometrico.">
+                            ToolTip.Tip="Centra il contenuto opaco in ogni cella dell�atlas corrente (senza workbench). La rifinitura su griglia 8 px segue l�opzione �Aggancia angolo opaco a griglia 8 px dopo il centro� nella sezione Azioni rapide sopra (tab Allinea); se disattivata, solo centro geometrico.">
                       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                         <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
                         <TextBlock Text="Centra nelle celle" VerticalAlignment="Center"/>
@@ -1188,7 +1084,7 @@
                     </Button>
                     <Button x:Name="BtnSnapCellsToGrid"
                             Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                            ToolTip.Tip="Sposta ogni sprite così che l’angolo in alto a sinistra della cella sia su multipli del passo «Griglia» in toolbar (origine 0,0 atlas). Dimensioni cella invariate. Se due celle finiscono sovrapposte, vince il disegno successivo nell’ordine della lista.">
+                            ToolTip.Tip="Sposta ogni sprite cos� che l�angolo in alto a sinistra della cella sia su multipli del passo �Griglia� in toolbar (origine 0,0 atlas). Dimensioni cella invariate. Se due celle finiscono sovrapposte, vince il disegno successivo nell�ordine della lista.">
                       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                         <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
                         <TextBlock Text="Aggancia alla griglia (toolbar)" VerticalAlignment="Center"/>
@@ -1199,7 +1095,7 @@
 
                     <TextBlock Classes="fieldLabel" Text="Punto di ancoraggio (per engine / export JSON)"/>
                     <TextBlock Classes="hint"
-                               Text="0 = bordo sinistro/alto  ·  0.5 = centro  ·  1 = bordo destro/basso"/>
+                               Text="0 = bordo sinistro/alto  �  0.5 = centro  �  1 = bordo destro/basso"/>
 
                     <Grid ColumnDefinitions="72,*,42" Margin="0,8,0,0">
                       <TextBlock Grid.Column="0" Text="Orizzontale" Foreground="#666" FontSize="10"
@@ -1222,12 +1118,12 @@
               </ScrollViewer>
             </TabItem>
 
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <!-- TAB: Pulizia AI                                          -->
             <!-- Espone gli algoritmi state-of-the-art per ripulire        -->
             <!-- gli sprite IA: defringe premultiplied, K-Means OKLab,    -->
             <!-- Floyd-Steinberg, simmetria forzata.                       -->
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <TabItem x:Name="TabStylize" Header=" Stilizza ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
@@ -1235,10 +1131,10 @@
                 <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,0,0,4"
                            Text="Effetti stilistici post-pulizia: palette retro, simmetria, tile ripetibili, padding."/>
 
-                <!-- ── PALETTE REDUCTION (K-Means OKLab + presets) ──────── -->
+                <!-- .. PALETTE REDUCTION (K-Means OKLab + presets) ........ -->
                 <TextBlock Classes="fieldLabel" Text="Riduci palette (K-Means in OKLab)"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Estrae N colori percettivamente ottimali con K-Means++ in OKLab — oppure usa una palette retro fissa (Game Boy, PICO-8, NES, …)."/>
+                           Text="Estrae N colori percettivamente ottimali con K-Means++ in OKLab � oppure usa una palette retro fissa (Game Boy, PICO-8, NES, �)."/>
 
                 <!-- Preset selector -->
                 <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
@@ -1269,20 +1165,20 @@
 
                 <Separator Classes="h"/>
 
-                <!-- ── SYMMETRY ─────────────────────────────────────────── -->
+                <!-- .. SYMMETRY ..........................................- -->
                 <TextBlock Classes="fieldLabel" Text="Forza simmetria (correggi asimmetrie IA)"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Copia una metà sull'altra. Utile per character frontali con piccoli scostamenti generati dall'IA."/>
+                           Text="Copia una met� sull'altra. Utile per character frontali con piccoli scostamenti generati dall'IA."/>
                 <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
                   <Button x:Name="BtnMirrorH" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Specchia la metà sinistra sulla destra">
+                          ToolTip.Tip="Specchia la met� sinistra sulla destra">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
                       <TextBlock Text="Simmetria orizzontale" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Button>
                   <Button x:Name="BtnMirrorV" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Specchia la metà superiore sulla inferiore">
+                          ToolTip.Tip="Specchia la met� superiore sulla inferiore">
                     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                       <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
                       <TextBlock Text="Simmetria verticale" VerticalAlignment="Center"/>
@@ -1292,15 +1188,15 @@
 
                 <Separator Classes="h"/>
 
-                <!-- ── TILESET TOOLS ────────────────────────────────────── -->
-                <TextBlock Classes="fieldLabel" Text="Tileset — rendi tile ripetibile" Margin="0,4,0,0"/>
+                <!-- .. TILESET TOOLS ...................................... -->
+                <TextBlock Classes="fieldLabel" Text="Tileset � rendi tile ripetibile" Margin="0,4,0,0"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Sposta l'immagine di (W/2, H/2) e dithera il seam centrale con Bayer 4×4 deterministico (no gradient blur). Pixel art preservata: niente colori intermedi."/>
+                           Text="Sposta l'immagine di (W/2, H/2) e dithera il seam centrale con Bayer 4�4 deterministico (no gradient blur). Pixel art preservata: niente colori intermedi."/>
                 <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
                   <TextBlock Grid.Column="0" Text="Larghezza dither (px):" Foreground="#666"
                              FontSize="10" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtSeamlessBlend" Grid.Column="2" Text="4"
-                           ToolTip.Tip="Banda di transizione attorno al seam centrale (1–16 px). Più ampia = più graduale."/>
+                           ToolTip.Tip="Banda di transizione attorno al seam centrale (1�16 px). Pi� ampia = pi� graduale."/>
                 </Grid>
                 <Button x:Name="BtnMakeTileable" Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0">
                   <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
@@ -1308,13 +1204,13 @@
                     <TextBlock Text="Rendi tile ripetibile" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
-                <CheckBox x:Name="ChkTilePreview" Content="Anteprima tile 3×3 sul canvas"
+                <CheckBox x:Name="ChkTilePreview" Content="Anteprima tile 3�3 sul canvas"
                           Margin="0,4,0,0"
                           ToolTip.Tip="Mostra il tile ripetuto 9 volte per evidenziare visivamente le cuciture"/>
 
                 <Separator Classes="h"/>
 
-                <!-- ── PADDING ──────────────────────────────────────────── -->
+                <!-- .. PADDING ............................................ -->
                 <TextBlock Classes="fieldLabel" Text="Allinea a multiplo di tile"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
                            Text="Aggiunge bordo trasparente per portare le dimensioni a un multiplo di N px. Utile per atlas o tile-set."/>
@@ -1347,14 +1243,14 @@
                           Classes="secondary" Content="{}&#123;&#125;  Esporta JSON"
                           ToolTip.Tip="Esporta le coordinate e i pivot degli sprite in formato JSON"/>
                 </Grid>
-                <CheckBox x:Name="ChkExportAtlasIndexedPng" Content="Atlas PNG a palette 8-bit (file più compatto)"
-                          ToolTip.Tip="Salva come PNG indicizzato (PLTE); quantizzazione Wu automatica se non hai già ridotto la palette."/>
+                <CheckBox x:Name="ChkExportAtlasIndexedPng" Content="Atlas PNG a palette 8-bit (file pi� compatto)"
+                          ToolTip.Tip="Salva come PNG indicizzato (PLTE); quantizzazione Wu automatica se non hai gi� ridotto la palette."/>
                 <CheckBox x:Name="ChkExportKeepCellSize" Content="Mantieni dimensione cella (atlas non compatto)"
-                          ToolTip.Tip="Ogni frame occupa una cella uniforme W×H (presa dalle celle correnti) invece del pack compatto tight. Utile per animazioni con frame fissi."/>
-                <CheckBox x:Name="ChkExportCustomCellSize" Content="Uniforme personalizzato (W×H)"
+                          ToolTip.Tip="Ogni frame occupa una cella uniforme W�H (presa dalle celle correnti) invece del pack compatto tight. Utile per animazioni con frame fissi."/>
+                <CheckBox x:Name="ChkExportCustomCellSize" Content="Uniforme personalizzato (W�H)"
                           ToolTip.Tip="Usa una dimensione cella fissa scelta manualmente per tutti i frame. Se troppo piccola rispetto ai frame reali, l'export viene bloccato."/>
                 <Grid ColumnDefinitions="*,8,80,8,80" Margin="0,2,0,0">
-                  <TextBlock Grid.Column="0" Text="Cella custom (W×H):" Foreground="#666"
+                  <TextBlock Grid.Column="0" Text="Cella custom (W�H):" Foreground="#666"
                              FontSize="10" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtExportCellW" Grid.Column="2" Text="208" IsEnabled="False"/>
                   <TextBox x:Name="TxtExportCellH" Grid.Column="4" Text="256" IsEnabled="False"/>
@@ -1386,17 +1282,17 @@
               </ScrollViewer>
             </TabItem>
 
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <!-- TAB: Griglia                                              -->
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <TabItem x:Name="TabTemplate" Header=" Tileset ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="8" Margin="2,4,2,6">
 
-                <!-- ── NUOVA GRIGLIA ──────────────────────────────────── -->
+                <!-- .. NUOVA GRIGLIA .................................... -->
                 <TextBlock Classes="section-label" Text="Nuova griglia"/>
 
-                <!-- Tile W × H -->
+                <!-- Tile W � H -->
                 <Grid ColumnDefinitions="*,12,Auto,12,*">
                   <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Classes="hint" Text="Tile W (px)"/>
@@ -1404,7 +1300,7 @@
                                    Increment="8" FormatString="0"
                                    ToolTip.Tip="Larghezza di ogni cella in pixel"/>
                   </StackPanel>
-                  <TextBlock Grid.Column="2" Text="×" VerticalAlignment="Bottom"
+                  <TextBlock Grid.Column="2" Text="�" VerticalAlignment="Bottom"
                              Margin="0,0,0,6" Foreground="#5c5a70" FontSize="14"/>
                   <StackPanel Grid.Column="4" Spacing="2">
                     <TextBlock Classes="hint" Text="Tile H (px)"/>
@@ -1416,16 +1312,16 @@
 
                 <!-- Preset size buttons -->
                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                  <Button x:Name="TplPreset16"  Classes="secondary" Content="16×16"  Margin="0,0,4,4" Padding="6,2"/>
-                  <Button x:Name="TplPreset24"  Classes="secondary" Content="24×24"  Margin="0,0,4,4" Padding="6,2"/>
-                  <Button x:Name="TplPreset32"  Classes="secondary" Content="32×32"  Margin="0,0,4,4" Padding="6,2"/>
-                  <Button x:Name="TplPreset48"  Classes="secondary" Content="48×48"  Margin="0,0,4,4" Padding="6,2"/>
-                  <Button x:Name="TplPreset64"  Classes="primary"   Content="64×64"  Margin="0,0,4,4" Padding="6,2"/>
-                  <Button x:Name="TplPreset128" Classes="secondary" Content="128×128" Margin="0,0,4,4" Padding="6,2"/>
-                  <Button x:Name="TplPreset256" Classes="secondary" Content="256×256" Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset16"  Classes="secondary" Content="16�16"  Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset24"  Classes="secondary" Content="24�24"  Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset32"  Classes="secondary" Content="32�32"  Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset48"  Classes="secondary" Content="48�48"  Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset64"  Classes="primary"   Content="64�64"  Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset128" Classes="secondary" Content="128�128" Margin="0,0,4,4" Padding="6,2"/>
+                  <Button x:Name="TplPreset256" Classes="secondary" Content="256�256" Margin="0,0,4,4" Padding="6,2"/>
                 </WrapPanel>
 
-                <!-- Colonne × Righe -->
+                <!-- Colonne � Righe -->
                 <Grid ColumnDefinitions="*,12,Auto,12,*">
                   <StackPanel Grid.Column="0" Spacing="2">
                     <TextBlock Classes="hint" Text="Colonne"/>
@@ -1433,7 +1329,7 @@
                                    Increment="1" FormatString="0"
                                    ToolTip.Tip="Numero di colonne della griglia"/>
                   </StackPanel>
-                  <TextBlock Grid.Column="2" Text="×" VerticalAlignment="Bottom"
+                  <TextBlock Grid.Column="2" Text="�" VerticalAlignment="Bottom"
                              Margin="0,0,0,6" Foreground="#5c5a70" FontSize="14"/>
                   <StackPanel Grid.Column="4" Spacing="2">
                     <TextBlock Classes="hint" Text="Righe"/>
@@ -1445,15 +1341,15 @@
 
                 <!-- info riepilogo -->
                 <TextBlock x:Name="TplInfoLabel" Classes="hint"
-                           Text="16 frame · 256×256 px"
+                           Text="16 frame � 256�256 px"
                            Foreground="#7a78a0" Margin="0,0,0,2"/>
 
-                <!-- ── PIVOT POINT ────────────────────────────────────── -->
+                <!-- .. PIVOT POINT ...................................... -->
                 <TextBlock Classes="section-label" Text="Pivot Point" Margin="0,4,0,0"/>
 
                 <Grid ColumnDefinitions="Auto,12,*">
 
-                  <!-- selettore 3×3 -->
+                  <!-- selettore 3�3 -->
                   <Grid Grid.Column="0" RowDefinitions="28,28,28" ColumnDefinitions="28,28,28"
                         ToolTip.Tip="Seleziona la posizione del pivot in ogni cella">
                     <RadioButton x:Name="TplPivotTL" GroupName="TplPivot" Grid.Row="0" Grid.Column="0"
@@ -1481,7 +1377,7 @@
                   <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center">
                     <TextBlock x:Name="TplPivotLabel" Text="Center" FontWeight="SemiBold"
                                Foreground="#c8c0e0"/>
-                    <TextBlock x:Name="TplPivotCoords" Text="x=0.50 · y=0.50"
+                    <TextBlock x:Name="TplPivotCoords" Text="x=0.50 � y=0.50"
                                Classes="hint" FontFamily="Consolas,Monospace"/>
                     <StackPanel Orientation="Horizontal" Spacing="6" x:Name="TplCustomXYPanel" IsVisible="False">
                       <NumericUpDown x:Name="TplPivotX" Value="0.5" Minimum="0" Maximum="1"
@@ -1495,7 +1391,7 @@
 
                 </Grid>
 
-                <!-- ── RIFERIMENTI (AI GUIDE) ─────────────────────────── -->
+                <!-- .. RIFERIMENTI (AI GUIDE) ..........................- -->
                 <TextBlock Classes="section-label" Text="Riferimenti (AI guide)" Margin="0,4,0,0"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
                            Text="Controlla cosa includere nel PNG guida (sfondo trasparente). Puoi lasciare solo i bordi senza pivot/indici."
@@ -1509,7 +1405,7 @@
                   <CheckBox x:Name="TplShowTint"     IsChecked="False" Content="Tinta alternata" Margin="0,0,12,4"/>
                 </WrapPanel>
 
-                <!-- ── AZIONI ─────────────────────────────────────────── -->
+                <!-- .. AZIONI ..........................................- -->
                 <Separator Margin="0,6,0,4"/>
                 <Grid ColumnDefinitions="*,8,*">
                   <Button x:Name="BtnGenerateTemplate" Grid.Column="0" HorizontalAlignment="Stretch"
@@ -1531,12 +1427,12 @@
                 </Grid>
 
                 <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,2,0,0"
-                           Text="La griglia viene visualizzata nel canvas. «Esporta guida PNG» salva solo la guida, senza toccare l'immagine caricata."/>
+                           Text="La griglia viene visualizzata nel canvas. �Esporta guida PNG� salva solo la guida, senza toccare l'immagine caricata."/>
 
                 <Separator Margin="0,8,0,4"/>
                 <TextBlock Classes="fieldLabel" Text="Componi spritesheet da frame singoli"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Seleziona più PNG (un file = un frame). Vengono disposti in ordine alfabetico, centrati nelle celle della griglia definita sopra. Diventa l'immagine di lavoro principale."/>
+                           Text="Seleziona pi� PNG (un file = un frame). Vengono disposti in ordine alfabetico, centrati nelle celle della griglia definita sopra. Diventa l'immagine di lavoro principale."/>
                 <Button x:Name="BtnImportFrames"
                         Classes="primary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
                         ToolTip.Tip="Apre un selettore multi-file PNG e compone la spritesheet centrata nella griglia corrente.">
@@ -1550,88 +1446,10 @@
               </ScrollViewer>
             </TabItem>
 
-            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- .......................................................... -->
             <!-- TAB: Selezione libera                                    -->
-            <!-- Area di lavoro semplice: seleziona → esporta o ritaglia -->
-            <!-- ══════════════════════════════════════════════════════════ -->
-            <TabItem x:Name="TabSelection" Header=" Selezione ">
-              <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel Spacing="0" Margin="2,4,2,6">
-
-                <TextBlock Classes="fieldLabel" Text="Selezione libera"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Trascina sull'immagine per definire un'area. Pan: tasto centrale. Zoom: rotellina. Se la griglia magnetica (toolbar) è attiva, la selezione si aggancia ai bordi delle celle o alla griglia."/>
-
-                <!-- Stato selezione corrente -->
-                <TextBlock Classes="fieldLabel" Text="Selezione corrente" Margin="0,8,0,0"/>
-                <Border Background="#0a0a14" CornerRadius="4" Padding="8,7" Margin="0,4,0,0"
-                        BorderBrush="#1e1e2e" BorderThickness="1">
-                  <TextBlock x:Name="TxtSelectionInfo" Foreground="#7a78a0" FontSize="11"
-                             FontFamily="Consolas,Monospace" TextWrapping="Wrap"
-                             Text="Nessuna selezione.&#x0a;Trascina sull'immagine per iniziare."/>
-                </Border>
-
-                <Separator Classes="h"/>
-
-                <!-- Azioni rapide -->
-                <Grid ColumnDefinitions="*,6,*" Margin="0,4,0,0">
-                  <Button x:Name="BtnSelectAll" Grid.Column="0"
-                          Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Seleziona l'intera immagine corrente">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <Path Data="{StaticResource IconSelectAll}" Classes="action-icon"/>
-                      <TextBlock Text="Seleziona tutto" VerticalAlignment="Center"/>
-                    </StackPanel>
-                  </Button>
-                  <Button x:Name="BtnClearSelection" Grid.Column="2"
-                          Classes="secondary" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Rimuove la selezione corrente">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <Path Data="{StaticResource IconX}" Classes="action-icon"/>
-                      <TextBlock Text="Deseleziona" VerticalAlignment="Center"/>
-                    </StackPanel>
-                  </Button>
-                </Grid>
-
-                <Separator Classes="h"/>
-
-                <!-- Esporta / Ritaglia -->
-                <TextBlock Classes="fieldLabel" Text="Esporta / Modifica"/>
-                <Button x:Name="BtnExportSelection"
-                        Classes="primary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                        IsEnabled="False"
-                        ToolTip.Tip="Salva l'area selezionata come file PNG separato">
-                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                    <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-                    <TextBlock Text="Esporta area PNG" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-                <Button x:Name="BtnCropToSelection"
-                        Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                        IsEnabled="False"
-                        ToolTip.Tip="Sostituisce il documento con la selezione ritagliata (annullabile con Ctrl+Z)">
-                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                    <Path Data="{StaticResource IconScissors}" Classes="action-icon"/>
-                    <TextBlock Text="Ritaglia selezione" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-
-                <Separator Classes="h"/>
-
-                <!-- Griglia magnetica -->
-                <TextBlock Classes="fieldLabel" Text="Griglia magnetica"/>
-                <TextBlock Classes="hint" TextWrapping="Wrap" Margin="0,2,0,4"
-                           Text="Attiva 'Magnetica' nella toolbar per agganciare la selezione. Se ci sono celle definite (tab Dividi), lo snap segue i bordi delle celle; altrimenti usa il passo griglia."/>
-                <CheckBox x:Name="ChkSnapSyncGrid" Content="Sincronizza passo snap con griglia principale"
-                          IsChecked="True"
-                          ToolTip.Tip="Quando attivo, modificare la dimensione della griglia principale aggiorna automaticamente il passo della griglia magnetica"/>
-                <TextBlock Classes="hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                           Text="Soglia di aggancio celle: entro 18 px schermo il cursore si aggancia al bordo cella; oltre, si usa la griglia regolare."/>
-
-              </StackPanel>
-              </ScrollViewer>
-            </TabItem>
-
+            <!-- Area di lavoro semplice: seleziona ? esporta o ritaglia -->
+            <!-- .......................................................... -->
             <TabItem Header=" Guida ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
@@ -1643,9 +1461,9 @@
                 <TextBlock Classes="fieldLabel" Text="Scelta veloce per tipo animazione"/>
                 <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0">
                   <StackPanel Spacing="4">
-                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Idle: usa Piedi (tutti) per tenere stabile il contatto a terra."/>
-                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Run/Walk: prima Piedi (tutti), poi piccoli ritocchi solo sui frame che saltano."/>
-                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Attack/Cast: parti con Centra tutti, poi correggi i keyframe forti con Centra selezionato."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="� Idle: usa Piedi (tutti) per tenere stabile il contatto a terra."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="� Run/Walk: prima Piedi (tutti), poi piccoli ritocchi solo sui frame che saltano."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="� Attack/Cast: parti con Centra tutti, poi correggi i keyframe forti con Centra selezionato."/>
                   </StackPanel>
                 </Border>
 
@@ -1653,9 +1471,9 @@
                 <TextBlock Classes="fieldLabel" Text="Quando usare Centra nel layout"/>
                 <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0">
                   <StackPanel Spacing="4">
-                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Debug rapido di un frame singolo fuori asse."/>
-                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Confronto silhouette/proporzioni al centro dell'atlas."/>
-                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="• Non usarlo come default per tutta l'animazione: per coerenza gameplay preferisci la baseline."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="� Debug rapido di un frame singolo fuori asse."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="� Confronto silhouette/proporzioni al centro dell'atlas."/>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="� Non usarlo come default per tutta l'animazione: per coerenza gameplay preferisci la baseline."/>
                   </StackPanel>
                 </Border>
 

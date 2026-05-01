@@ -43,7 +43,6 @@ public partial class MainWindow : Window
     private const double WorkspaceZoomSliderMax = 64.0;
 
     private const int MaxUndo = 20;
-    private const int SelectionCanvasTabIndex = 6;  // indice del tab "Selezione"
 
     private Image<Rgba32>? _document;
     private Image<Rgba32>? _backup;
@@ -69,7 +68,9 @@ public partial class MainWindow : Window
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _toolbarSelectionModeEnabled;
+    private bool             _manualSpriteCropMode;
     private AxisAlignedBox?  _activeSelectionBox;    // ultima selezione confermata
+    private int              _selectedSpriteCellIndex = -1;
 
     public MainWindow()
     {
@@ -125,9 +126,7 @@ public partial class MainWindow : Window
         TxtWorldGridSize.ValueChanged += (_, _) =>
         {
             Editor.WorldGridSize = (int)(TxtWorldGridSize.Value ?? 16);
-            // Auto-sync passo snap se sincronizzazione attiva
-            if (ChkSnapSyncGrid.IsChecked == true)
-                TxtSnapSize.Value = TxtWorldGridSize.Value;
+            TxtSnapSize.Value = TxtWorldGridSize.Value;
         };
 
         ChkSnapGrid.IsCheckedChanged += (_, _) =>
@@ -135,8 +134,8 @@ public partial class MainWindow : Window
             var on = ChkSnapGrid.IsChecked == true;
             Editor.SnapToGrid     = on;
             TxtSnapSize.IsEnabled = on;
-            // Quando si attiva la magnetica, sincronizza il passo con la griglia principale
-            if (on && ChkSnapSyncGrid.IsChecked == true)
+            // Quando si attiva la magnetica, sincronizza il passo con la griglia principale.
+            if (on)
                 TxtSnapSize.Value = TxtWorldGridSize.Value;
         };
         TxtSnapSize.ValueChanged += (_, _) =>
@@ -152,7 +151,7 @@ public partial class MainWindow : Window
             if (on)
             {
                 ChkPipette.IsChecked    = false;
-                ChkSpriteCrop.IsChecked = false;
+                SetManualSpriteCropMode(false);
             }
         };
         TxtEraserRadius.ValueChanged += (_, _) =>
@@ -161,7 +160,6 @@ public partial class MainWindow : Window
         Editor.EraserStroke += OnEraserStroke;
         Editor.EraserStrokeEnded += OnEraserStrokeEnded;
         ChkPipette.IsCheckedChanged += (_, _) => UpdatePipetteMode();
-        ChkSpriteCrop.IsCheckedChanged += (_, _) => UpdateSpriteSelectionMode();
         Editor.ImagePixelPicked += OnEditorImagePixelPicked;
         Editor.ImageSelectionCompleted += OnEditorImageSelectionCompleted;
         Editor.CommittedSelectionEdited += OnEditorCommittedSelectionEdited;
@@ -195,10 +193,6 @@ public partial class MainWindow : Window
         BtnDenoise.Click   += (_, _) => RunDenoise();
         BtnNnResize.Click  += (_, _) => RunNearestResize();
 
-        // Passo 2 — Dividi
-        BtnGridSlice.Click        += (_, _) => RunGridSlice();
-        BtnSaveSelectedFrame.Click += async (_, _) => await SaveSelectedFrameAsync();
-
         // Passo 3 — Allinea
         BtnGlobal.Click         += (_, _) => RunGlobalScan();
         BtnBaselineAlign.Click  += (_, _) => RunBaselineAlignment();
@@ -215,23 +209,15 @@ public partial class MainWindow : Window
         ChkTilePreview.IsCheckedChanged += (_, _) =>
             Editor.IsTilePreviewMode = ChkTilePreview.IsChecked == true;
 
-        // Atlas pulito (clone griglia + manual paste)
-        BtnPasteEnter.Click  += (_, _) => EnterPasteMode();
-        BtnPasteExit.Click   += (_, _) => ExitPasteMode();
-        BtnPasteCopy.Click   += (_, _) => CopySourceSelectionToBuffer();
-        BtnPasteDest.Click   += (_, _) => SwitchPasteView(toSource: false);
-        BtnPasteSrc.Click    += (_, _) => SwitchPasteView(toSource: true);
         Editor.CellClicked   += (_, idx) => OnCellPasteClicked(idx);
 
         // Pannello destro — comprimi/espandi
         BtnCollapsePanel.Click += (_, _) => SetPanelCollapsed(true);
         BtnExpandPanel.Click   += (_, _) => SetPanelCollapsed(false);
 
-        // Tab Selezione libera
         MainTabs.SelectionChanged += OnMainTabChanged;
         TabStylize.IsVisible = true;
         TabTemplate.IsVisible = true;
-        TabSelection.IsVisible = true;
         BtnWorkspaceOpen.Click += async (_, _) => await OpenImageAsync();
         BtnWorkspaceCopyToClipboard.Click += async (_, _) => await TryCopyImageToClipboardAsync();
         BtnWorkspacePasteFromClipboard.Click += async (_, _) => await TryPasteFromClipboardAsync();
@@ -247,12 +233,8 @@ public partial class MainWindow : Window
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
         BtnGoAllinea.Click += (_, _) => ActivateStudio(StudioKind.Animation);
-        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 3;
-        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 5;
-        BtnSelectAll.Click       += (_, _) => SelectAll();
-        BtnClearSelection.Click  += (_, _) => ClearSelection();
-        BtnExportSelection.Click += async (_, _) => await ExportSelectionAsync();
-        BtnCropToSelection.Click += (_, _) => CropToSelection();
+        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 2;
+        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 4;
         ChkExportCustomCellSize.IsCheckedChanged += (_, _) =>
         {
             var enabled = ChkExportCustomCellSize.IsChecked == true;
@@ -262,12 +244,6 @@ public partial class MainWindow : Window
         };
         TxtExportCellW.TextChanged += (_, _) => UpdateExportCellMinRequiredHint();
         TxtExportCellH.TextChanged += (_, _) => UpdateExportCellMinRequiredHint();
-        ChkSnapSyncGrid.IsCheckedChanged += (_, _) =>
-        {
-            if (ChkSnapSyncGrid.IsChecked == true && ChkSnapGrid.IsChecked == true)
-                TxtSnapSize.Value = TxtWorldGridSize.Value;
-        };
-
         // Crop & POT (asset singolo)
         BtnApplyCropPot.Click    += (_, _) => RunCropPipeline();
         BtnCenterInCells.Click   += (_, _) => RunCenterInCells();
@@ -316,8 +292,8 @@ public partial class MainWindow : Window
         MainTabs.SelectedIndex = studio switch
         {
             StudioKind.Sprite => 0,
-            StudioKind.Animation => 2,
-            StudioKind.Tileset => 5,
+            StudioKind.Animation => 1,
+            StudioKind.Tileset => 4,
             _ => MainTabs.SelectedIndex
         };
         SpriteStudioPanel.IsVisible = studio == StudioKind.Sprite;
@@ -377,7 +353,6 @@ public partial class MainWindow : Window
             case SpriteStudioAction.SelectArea:
                 if (!_toolbarSelectionModeEnabled)
                     ToggleToolbarSelectionMode();
-                MainTabs.SelectedIndex = SelectionCanvasTabIndex;
                 break;
             case SpriteStudioAction.SelectAll:
                 SelectAll();
@@ -395,24 +370,19 @@ public partial class MainWindow : Window
                 RemoveSelectedArea();
                 break;
             case SpriteStudioAction.ToggleManualCrop:
-                ChkSpriteCrop.IsChecked = SpriteStudioPanel.IsManualCropEnabled;
-                MainTabs.SelectedIndex = 1;
+                SetManualSpriteCropMode(SpriteStudioPanel.IsManualCropEnabled);
                 break;
             case SpriteStudioAction.DetectSprites:
                 RunCcl();
                 break;
             case SpriteStudioAction.GridSlice:
-                TxtRows.Text = SpriteStudioPanel.GridRowsText;
-                TxtCols.Text = SpriteStudioPanel.GridColsText;
-                MainTabs.SelectedIndex = 1;
                 RunGridSlice();
                 break;
             case SpriteStudioAction.SaveSelectedFrame:
-                CellList.SelectedIndex = SpriteStudioPanel.SelectedCellIndex;
-                await SaveSelectedFrameAsync();
+                _selectedSpriteCellIndex = SpriteStudioPanel.SelectedCellIndex;
+                await SaveSelectedFrameAsync(_selectedSpriteCellIndex);
                 break;
             case SpriteStudioAction.OpenFloatingPaste:
-                MainTabs.SelectedIndex = 1;
                 EnterPasteMode();
                 break;
             case SpriteStudioAction.PasteDestination:
@@ -833,7 +803,7 @@ public partial class MainWindow : Window
         var on = ChkPipette.IsChecked == true;
         if (on)
         {
-            ChkSpriteCrop.IsChecked = false;
+            SetManualSpriteCropMode(false);
             _toolbarSelectionModeEnabled = false;
             Editor.IsSelectionMode = false;
         }
@@ -844,14 +814,13 @@ public partial class MainWindow : Window
             : "";
     }
 
-    private void UpdateSpriteSelectionMode()
+    private void SetManualSpriteCropMode(bool on)
     {
-        var on = ChkSpriteCrop.IsChecked == true;
+        _manualSpriteCropMode = on;
         SpriteStudioPanel.IsManualCropEnabled = on;
         if (on)
             ChkPipette.IsChecked = false;
-        // In modalità ROI non distruttiva la selezione resta attiva
-        Editor.IsSelectionMode = on || IsRoiSelectionModeRequested();
+        ApplyEditorSelectionMode();
     }
 
     private void OnEditorImageSelectionCompleted(object? sender, ImageSelectionCompletedEventArgs e)
@@ -897,8 +866,8 @@ public partial class MainWindow : Window
             _document = cropped;
             _cells.Clear();
             ClearSliceGrid();
-            CellList.ItemsSource = null;
-            ChkSpriteCrop.IsChecked = false;
+            ClearSpriteCellList();
+            SetManualSpriteCropMode(false);
             RefreshView();
             SetStatus($"Ritaglio applicato: {_document.Width}×{_document.Height} px. Annulla (Ctrl+Z) se serve.");
         }
@@ -987,7 +956,7 @@ public partial class MainWindow : Window
         _cells.Clear();
         ClearSliceGrid();
         RefreshView();
-        CellList.ItemsSource = null;
+        ClearSpriteCellList();
         TxtGlobal.Text = "—  Esegui prima il passo 2";
         _hasUserFile = false;
         _cleanApplied = false;
@@ -1015,7 +984,7 @@ public partial class MainWindow : Window
         _cleanApplied = false;
         ClearSliceGrid();
         RefreshView();
-        CellList.ItemsSource = null;
+        ClearSpriteCellList();
         _workspaceTabs.MarkActiveClean();
         RefreshWorkspaceChrome();
         SetStatus("Immagine ripristinata all'originale.");
@@ -1105,7 +1074,7 @@ public partial class MainWindow : Window
         if (_document is null)
         {
             _cells.Clear();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             return;
         }
 
@@ -1114,7 +1083,7 @@ public partial class MainWindow : Window
         if (cols < 1 || rows < 1)
         {
             _cells.Clear();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             Editor.SpriteCells = [];
             return;
         }
@@ -1478,13 +1447,18 @@ public partial class MainWindow : Window
     {
         var rows = _cells.Select(c =>
             $"{c.Id}  [{c.BoundsInAtlas.MinX},{c.BoundsInAtlas.MinY} → {c.BoundsInAtlas.Width}×{c.BoundsInAtlas.Height}]").ToList();
-        CellList.ItemsSource = rows;
         SpriteStudioPanel.SetCells(rows);
     }
 
-    private async Task SaveSelectedFrameAsync()
+    private void ClearSpriteCellList()
     {
-        await SlicingController.SaveSelectedFrameAsync(_document, _cells, CellList.SelectedIndex, StorageProvider, SetStatus);
+        _selectedSpriteCellIndex = -1;
+        SpriteStudioPanel.SetCells([]);
+    }
+
+    private async Task SaveSelectedFrameAsync(int selectedCellIndex)
+    {
+        await SlicingController.SaveSelectedFrameAsync(_document, _cells, selectedCellIndex, StorageProvider, SetStatus);
     }
     private bool TryBuildPipelineOptions(bool includeOutline, out PixelArtPipeline.Options options, out string error)
     {
@@ -1520,7 +1494,7 @@ public partial class MainWindow : Window
         _cleanApplied = true;
         ClearSliceGrid();
         _cells.Clear();
-        CellList.ItemsSource = null;
+        ClearSpriteCellList();
         RefreshView();
         SetStatus(result.StatusText);
     }
@@ -1678,7 +1652,7 @@ public partial class MainWindow : Window
         {
             PushUndo();
             transform(_document);
-            if (clearCells) { ClearSliceGrid(); _cells.Clear(); CellList.ItemsSource = null; }
+            if (clearCells) { ClearSliceGrid(); _cells.Clear(); ClearSpriteCellList(); }
             RefreshView();
             SetStatus(successMsg);
         }
@@ -1701,7 +1675,7 @@ public partial class MainWindow : Window
             _document = next;
             ClearSliceGrid();
             _cells.Clear();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             RefreshView();
             SetStatus(successMsg);
         }
@@ -1758,8 +1732,6 @@ public partial class MainWindow : Window
         _pasteLastSelection = null;
         _pasteModeActive = false;
         _viewingPasteSource = false;
-        BtnPasteEnter.IsVisible = true;
-        PasteActiveBar.IsVisible = false;
         Editor.IsCellClickMode = false;
         UpdatePasteBufferStatus();
 
@@ -1771,7 +1743,7 @@ public partial class MainWindow : Window
         _toolbarSelectionModeEnabled = false;
         ChkPipette.IsChecked = false;
         ChkEraser.IsChecked = false;
-        ChkSpriteCrop.IsChecked = false;
+        SetManualSpriteCropMode(false);
         Editor.IsPipetteMode = false;
         PipetteHintBar.IsVisible = false;
         Editor.IsEraserMode = false;
@@ -1857,7 +1829,7 @@ public partial class MainWindow : Window
             _cells.Clear();
             ClearSliceGrid();
             ResetTransientStateForNewOpenedProject();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             // TxtAabb rimosso
             TxtGlobal.Text = "—  Esegui prima il passo 2";
             _hasUserFile = true;
@@ -1894,8 +1866,8 @@ public partial class MainWindow : Window
     {
         var cells = SlicingController.RunGridSlice(
             _document,
-            TxtRows.Text,
-            TxtCols.Text,
+            SpriteStudioPanel.GridRowsText,
+            SpriteStudioPanel.GridColsText,
             () => PushUndo(),
             (rows, cols) =>
             {
@@ -1948,9 +1920,9 @@ public partial class MainWindow : Window
         MainTabs.SelectedIndex = step switch
         {
             WorkflowShellViewModel.WorkflowStep.Importa => 0,
-            WorkflowShellViewModel.WorkflowStep.Pulisci => 1,
-            WorkflowShellViewModel.WorkflowStep.SliceAllinea => 2,
-            WorkflowShellViewModel.WorkflowStep.Esporta => 0,
+            WorkflowShellViewModel.WorkflowStep.Pulisci => 0,
+            WorkflowShellViewModel.WorkflowStep.SliceAllinea => 0,
+            WorkflowShellViewModel.WorkflowStep.Esporta => 3,
             _ => 0
         };
         UpdateWorkflowShell();
@@ -2199,7 +2171,7 @@ public partial class MainWindow : Window
             _document = newDoc;
             _cells.Clear();
             ClearSliceGrid();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             RefreshView();
             SetStatus($"Crop applicato: {result.Description}.");
         }
@@ -2243,7 +2215,7 @@ public partial class MainWindow : Window
 
             ClearSliceGrid();
             _cells.Clear();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             RefreshView();
             SetStatus($"Pulizia AI: {report}");
         }
@@ -2358,7 +2330,7 @@ public partial class MainWindow : Window
             _document = padded;
             ClearSliceGrid();
             _cells.Clear();
-            CellList.ItemsSource = null;
+            ClearSpriteCellList();
             RefreshView();
             SetStatus($"Allineato a multiplo di {m} px → {_document.Width}×{_document.Height}.");
         }
@@ -2495,12 +2467,7 @@ public partial class MainWindow : Window
             _pasteLastSelection = null;
             _pasteModeActive = true;
 
-            BtnPasteEnter.IsVisible = false;
-            PasteActiveBar.IsVisible = true;
-
             // Default: vista destinazione, click su cella per incollare
-            BtnPasteDest.IsChecked = true;
-            BtnPasteSrc.IsChecked  = false;
             SwitchPasteView(toSource: false);
 
             UpdatePasteBufferStatus();
@@ -2516,8 +2483,6 @@ public partial class MainWindow : Window
     {
         if (!_pasteModeActive) return;
         _viewingPasteSource = toSource;
-        BtnPasteDest.IsChecked = !toSource;
-        BtnPasteSrc.IsChecked  =  toSource;
 
         if (toSource)
         {
@@ -2526,7 +2491,7 @@ public partial class MainWindow : Window
             Editor.IsSelectionMode = true;
             Editor.IsCellClickMode = false;
             Editor.SpriteCells = [];                 // niente overlay celle sulla sorgente
-            ChkSpriteCrop.IsChecked = false;         // evita conflitto con il crop manuale
+            SetManualSpriteCropMode(false);          // evita conflitto con il crop manuale
             SetStatus("Vista SORGENTE: trascina un rettangolo per selezionare uno sprite, poi 'Copia'.");
         }
         else
@@ -2536,7 +2501,7 @@ public partial class MainWindow : Window
             Editor.IsSelectionMode = false;
             Editor.IsCellClickMode = true;
             Editor.SpriteCells = _cells;             // mostra griglia di destinazione
-            ChkSpriteCrop.IsChecked = false;
+            SetManualSpriteCropMode(false);
             SetStatus(_pasteBuffer is null
                 ? "Vista DESTINAZIONE: copia prima qualcosa dalla sorgente."
                 : $"Vista DESTINAZIONE: clicca su una cella per incollare il buffer ({_pasteBuffer.Width}×{_pasteBuffer.Height} px, centrato).");
@@ -2606,8 +2571,6 @@ public partial class MainWindow : Window
         _pasteLastSelection = null;
         _pasteModeActive = false;
         _viewingPasteSource = false;
-        BtnPasteEnter.IsVisible = true;
-        PasteActiveBar.IsVisible = false;
         Editor.IsSelectionMode = false;
         Editor.IsCellClickMode = false;
         // Ripristina la vista sull'atlas pulito che è ora _document
@@ -2620,7 +2583,6 @@ public partial class MainWindow : Window
         var status = _pasteBuffer is null
             ? "Buffer: vuoto"
             : $"Buffer: {_pasteBuffer.Width}×{_pasteBuffer.Height} px";
-        TxtPasteBufferStatus.Text = status;
         SpriteStudioPanel.SetPasteState(_pasteModeActive, _viewingPasteSource, status);
     }
 
@@ -3131,11 +3093,11 @@ public partial class MainWindow : Window
     }
 
     private bool IsRoiSelectionModeRequested() =>
-        MainTabs.SelectedIndex == SelectionCanvasTabIndex || _toolbarSelectionModeEnabled;
+        _toolbarSelectionModeEnabled;
 
     private void ApplyEditorSelectionMode()
     {
-        Editor.IsSelectionMode = ChkSpriteCrop.IsChecked == true || IsRoiSelectionModeRequested();
+        Editor.IsSelectionMode = _manualSpriteCropMode || IsRoiSelectionModeRequested();
     }
 
     private void EnterSelectionCanvas(bool enter)
@@ -3143,7 +3105,7 @@ public partial class MainWindow : Window
         if (enter)
         {
             // Disattiva modalità conflittuali
-            ChkSpriteCrop.IsChecked = false;
+            SetManualSpriteCropMode(false);
             ChkPipette.IsChecked    = false;
             Editor.IsPipetteMode    = false;
             // Attiva strumento selezione
@@ -3206,19 +3168,13 @@ public partial class MainWindow : Window
     {
         _cells.Clear();
         ClearSliceGrid();
-        CellList.ItemsSource = null;
+        ClearSpriteCellList();
     }
     private void UpdateSelectionInfo()
     {
-        // I controlli potrebbero non essere ancora inizializzati durante il caricamento
-        if (TxtSelectionInfo is null) return;
-
         if (_activeSelectionBox is null)
         {
             const string noSelectionText = "Nessuna selezione.\nTrascina sull'immagine per iniziare.";
-            TxtSelectionInfo.Text        = noSelectionText;
-            BtnExportSelection.IsEnabled = false;
-            BtnCropToSelection.IsEnabled = false;
             SpriteStudioPanel.SetSelectionInfo(noSelectionText, hasSelection: false);
             return;
         }
@@ -3228,9 +3184,6 @@ public partial class MainWindow : Window
             $"Origine (↖): ({b.MinX}, {b.MinY}) px\n" +
             $"Dimensione: {b.Width} × {b.Height} px\n" +
             $"Ultimo pixel incluso (↘): ({b.MaxX - 1}, {b.MaxY - 1})";
-        TxtSelectionInfo.Text = selectionText;
-        BtnExportSelection.IsEnabled = true;
-        BtnCropToSelection.IsEnabled = true;
         SpriteStudioPanel.SetSelectionInfo(selectionText, hasSelection: true);
     }
 
