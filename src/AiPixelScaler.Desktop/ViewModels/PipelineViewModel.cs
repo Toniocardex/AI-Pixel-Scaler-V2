@@ -67,7 +67,7 @@ public sealed class PipelineViewModel
 
     public bool EnableQuantize { get; set; }
     public int MaxColors { get; set; } = 16;
-    public PixelArtProcessor.QuantizerKind Quantizer { get; set; } = PixelArtProcessor.QuantizerKind.KMeansOklab;
+    public PixelArtProcessor.QuantizerKind Quantizer { get; set; } = PixelArtProcessor.QuantizerKind.Wu;
     public bool EnableAdvancedCleaner { get; set; }
     public double BilateralSigmaSpatial { get; set; } = 1.25;
     public double BilateralSigmaRange { get; set; } = 0.085;
@@ -108,7 +108,7 @@ public sealed class PipelineViewModel
         PaletteMetadataPath = string.Empty;
         EnableQuantize = false;
         MaxColors = 16;
-        Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab;
+        Quantizer = PixelArtProcessor.QuantizerKind.Wu;
         EnableMajorityDenoise = false;
         IslandMinArea = 2;
         EnableOutline = false;
@@ -131,7 +131,7 @@ public sealed class PipelineViewModel
         PaletteMetadataPath = string.Empty;
         EnableQuantize = false;
         MaxColors = 16;
-        Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab;
+        Quantizer = PixelArtProcessor.QuantizerKind.Wu;
         EnableMajorityDenoise = true;
         IslandMinArea = 2;
         AlphaThreshold = 112;
@@ -156,7 +156,7 @@ public sealed class PipelineViewModel
         PaletteMetadataPath = string.Empty;
         EnableQuantize = false;
         MaxColors = 16;
-        Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab;
+        Quantizer = PixelArtProcessor.QuantizerKind.Wu;
         EnableMajorityDenoise = true;
         IslandMinArea = 3;
         AlphaThreshold = 144;
@@ -217,8 +217,7 @@ public sealed class PipelineViewModel
             MaxColors: normalized.MaxColors.ToString(CultureInfo.InvariantCulture),
             QuantizerIndex: normalized.Quantizer switch
             {
-                PixelArtProcessor.QuantizerKind.Wu => 1,
-                PixelArtProcessor.QuantizerKind.Octree => 2,
+                PixelArtProcessor.QuantizerKind.Octree => 1,
                 _ => 0
             },
             EnableMajorityDenoise: normalized.EnableMajorityDenoise,
@@ -280,9 +279,8 @@ public sealed class PipelineViewModel
         MaxColors = ParseIntInRange(formState.MaxColors, 16, 2, 256);
         Quantizer = formState.QuantizerIndex switch
         {
-            1 => PixelArtProcessor.QuantizerKind.Wu,
-            2 => PixelArtProcessor.QuantizerKind.Octree,
-            _ => PixelArtProcessor.QuantizerKind.KMeansOklab,
+            1 => PixelArtProcessor.QuantizerKind.Octree,
+            _ => PixelArtProcessor.QuantizerKind.Wu,
         };
         EnableMajorityDenoise = majorityEnabled;
         var defaultMinIsland = ActivePreset == PresetKind.AggressiveRecover ? 3 : 2;

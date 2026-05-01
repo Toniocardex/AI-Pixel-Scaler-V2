@@ -114,7 +114,7 @@ public class PalettePresetsTests
     [Fact]
     public void CleanAI_ReturnsEmptyToSignalAdaptive()
     {
-        // CleanAI = quantizzazione adattiva via K-Means (no preset fisso)
+        // CleanAI = quantizzazione adattiva via Wu (no preset fisso)
         var palette = PalettePresets.Get(PalettePresets.Preset.CleanAI);
         Assert.Empty(palette);
     }

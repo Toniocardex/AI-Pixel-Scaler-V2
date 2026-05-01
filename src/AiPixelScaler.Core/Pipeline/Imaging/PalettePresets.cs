@@ -13,7 +13,7 @@ public static class PalettePresets
 {
     public enum Preset
     {
-        /// <summary>Quantizzazione automatica via K-Means in OKLab (palette adattiva).</summary>
+    /// <summary>Quantizzazione automatica via Wu (palette adattiva).</summary>
         CleanAI,
 
         /// <summary>Game Boy DMG (1989) — 4 verdi.</summary>

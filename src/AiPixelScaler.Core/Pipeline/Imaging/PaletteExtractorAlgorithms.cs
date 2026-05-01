@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 namespace AiPixelScaler.Core.Pipeline.Imaging;
 
 /// <summary>
-/// Estrazione palette tramite quantizzatori ImageSharp (Wu, Octree), alternativi al K-Means OKLab.
+/// Estrazione palette tramite quantizzatori ImageSharp (Wu, Octree).
 /// </summary>
 public static class PaletteExtractorAlgorithms
 {

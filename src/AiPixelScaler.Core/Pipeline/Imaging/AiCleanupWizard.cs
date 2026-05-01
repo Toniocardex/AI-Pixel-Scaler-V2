@@ -96,7 +96,7 @@ public static class AiCleanupWizard
                 image,
                 n,
                 o.PaletteDither ? PaletteMapper.DitherMode.FloydSteinberg : PaletteMapper.DitherMode.None,
-                PixelArtProcessor.QuantizerKind.KMeansOklab);
+                PixelArtProcessor.QuantizerKind.Wu);
             if (palette.Count > 0)
                 report.Steps.Add($"palette {palette.Count}{(o.PaletteDither ? " +dither" : "")}");
         }

@@ -23,7 +23,7 @@ public class PlanFeatures_Tests
             ChromaTolerance: 0,
             QuantizePalette: true,
             MaxColors: 2,
-            Quantizer: PixelArtProcessor.QuantizerKind.KMeansOklab));
+            Quantizer: PixelArtProcessor.QuantizerKind.Wu));
 
         Assert.True(result.UniqueColorsBefore >= result.UniqueColorsAfter);
         Assert.InRange(result.UniqueColorsAfter, 1, 2);
@@ -245,7 +245,7 @@ public class PlanFeatures_Tests
         var before = PixelArtValidation.CountUniqueColors(img);
         AlphaThreshold.ApplyInPlace(img, 144);
         var filled = MissingPixelFill.FillInternalTransparentInPlace(img, iterations: 2);
-        var pal = PaletteExtractor.Extract(img, new PaletteExtractor.Options(Colors: 16));
+        var pal = PaletteExtractorAlgorithms.ExtractWu(img, 16);
         PaletteMapper.ApplyInPlace(img, pal, PaletteMapper.DitherMode.None);
         var after = PixelArtValidation.CountUniqueColors(img);
 

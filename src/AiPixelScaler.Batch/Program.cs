@@ -66,7 +66,7 @@ internal static class Program
                     ChromaTolerance: snapTol,
                     EnableQuantize: globalPalette is null && paletteN is >= 2 and <= 256,
                     MaxColors: paletteN.GetValueOrDefault(16),
-                    Quantizer: PixelArtProcessor.QuantizerKind.KMeansOklab);
+                    Quantizer: PixelArtProcessor.QuantizerKind.Wu);
                 PixelArtPipeline.ApplyInPlace(image, options);
 
                 IReadOnlyList<Rgba32>? palette = globalPalette;

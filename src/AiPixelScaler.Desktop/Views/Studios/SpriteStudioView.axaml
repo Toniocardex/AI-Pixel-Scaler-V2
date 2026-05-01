@@ -122,7 +122,6 @@
               <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"/>
             </Grid>
             <ComboBox x:Name="CmbSpriteQuantizeMethod" SelectedIndex="0" HorizontalAlignment="Stretch">
-              <ComboBoxItem Content="K-Means OKLab"/>
               <ComboBoxItem Content="Wu (ImageSharp)"/>
               <ComboBoxItem Content="Octree"/>
             </ComboBox>

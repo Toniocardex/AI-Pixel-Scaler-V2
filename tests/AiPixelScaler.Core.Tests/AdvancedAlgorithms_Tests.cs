@@ -127,7 +127,7 @@ public class PaletteTests
         for (var y = 0; y < 10; y++)
         for (var x = 0; x < 10; x++)
             img[x, y] = x < 5 ? new Rgba32(255, 0, 0, 255) : new Rgba32(0, 0, 255, 255);
-        var palette = PaletteExtractor.Extract(img, new(Colors: 2));
+        var palette = PaletteExtractorAlgorithms.ExtractWu(img, 2);
         Assert.Equal(2, palette.Count);
         // entrambi i colori devono essere "vicini" a uno dei due originali
         var hasRed  = palette.Any(c => c.R > 200 && c.G < 50  && c.B < 50);

@@ -52,6 +52,31 @@ public partial class MainWindow : Window
     private readonly WorkspaceUndoCoordinator _undoCoordinator;
     private readonly FloatingPasteCoordinator _floatingPaste;
     private readonly PipelineViewModel _pipelineVm = new();
+    private PipelineViewModel.PipelineFormState _pipelineFormState = new(
+        EnableChroma: false,
+        EnableChromaSnapRgb: false,
+        ChromaHex: "#00FF00",
+        ChromaTolerance: "0",
+        EnableAdvancedCleaner: false,
+        BilateralSigmaSpatial: "1.25",
+        BilateralSigmaRange: "0.085",
+        BilateralPasses: "1",
+        EnablePixelGridEnforce: false,
+        NativeWidth: "64",
+        NativeHeight: "64",
+        EnablePaletteSnap: false,
+        PaletteId: string.Empty,
+        PaletteMetadataPath: string.Empty,
+        EnableQuantize: false,
+        MaxColors: "16",
+        QuantizerIndex: 0,
+        EnableMajorityDenoise: false,
+        MinIsland: "2",
+        EnableOutline: false,
+        OutlineHex: "#000000",
+        EnableAlphaThreshold: true,
+        AlphaThreshold: "128");
+    private string _quickColorsAfterText = "-";
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
     private readonly DelegateCommand _runQuickProcessCommand;
@@ -115,11 +140,6 @@ public partial class MainWindow : Window
         MenuAnimPreview.Click += (_, _) => OpenAnimationPreview();
         EmptyStateOpen.Click += async (_, _) => await OpenImageAsync();
 
-        // Contagocce inline accanto ai color picker
-        BtnPickChroma.Click  += (_, _) => ActivatePipette(0);
-        BtnPickEdge.Click    += (_, _) => ActivatePipette(1);
-        BtnPickOutline.Click += (_, _) => ActivatePipette(2);
-
         // Canvas
         ChkWorldGrid.IsCheckedChanged += (_, _) =>
             Editor.ShowGrid = ChkWorldGrid.IsChecked == true;
@@ -171,13 +191,6 @@ public partial class MainWindow : Window
         SliderPivotX.ValueChanged += (_, _) => UpdatePivotLabels();
         SliderPivotY.ValueChanged += (_, _) => UpdatePivotLabels();
 
-        // Passo 1 — Pulisci
-        BtnQuickProcess.Click += (_, _) => _runQuickProcessCommand.Execute(null);
-        BtnPresetDefault.Click += (_, _) => _applyDefaultPresetCommand.Execute(null);
-        BtnPresetSafe.Click += (_, _) => _applySafePresetCommand.Execute(null);
-        BtnPresetAggressiveRecover.Click += (_, _) => _applyAggressivePresetCommand.Execute(null);
-        BtnPipeApply.Click += (_, _) => _applyPipelineCommand.Execute(null);
-        HookPipelinePresetResetOnManualChanges();
         _isApplyingPipelinePreset = true;
         try
         {
@@ -189,21 +202,13 @@ public partial class MainWindow : Window
         }
 
         UpdatePipelinePresetBadge();
-        BtnEdgeBfs.Click   += (_, _) => RunEdgeBackground();
-        BtnDenoise.Click   += (_, _) => RunDenoise();
-        BtnNnResize.Click  += (_, _) => RunNearestResize();
 
         // Passo 3 — Allinea
         BtnGlobal.Click         += (_, _) => RunGlobalScan();
         BtnBaselineAlign.Click  += (_, _) => RunBaselineAlignment();
 
-        // Passo 4 — Pulizia AI
-        BtnAiCleanupAll.Click += (_, _) => RunAiCleanupWizard();
-        BtnDefringe.Click     += (_, _) => RunDefringe();
-        BtnMedianFilter.Click += (_, _) => RunMedianFilter();
+        // Stilizza / Tileset legacy
         BtnPaletteReduce.Click += (_, _) => RunPaletteReduce();
-        BtnMirrorH.Click      += (_, _) => RunMirror(horizontal: true);
-        BtnMirrorV.Click      += (_, _) => RunMirror(horizontal: false);
         BtnPadToMultiple.Click += (_, _) => RunPadToMultiple();
         BtnMakeTileable.Click += (_, _) => RunMakeTileable();
         ChkTilePreview.IsCheckedChanged += (_, _) =>
@@ -218,13 +223,7 @@ public partial class MainWindow : Window
         MainTabs.SelectionChanged += OnMainTabChanged;
         TabStylize.IsVisible = true;
         TabTemplate.IsVisible = true;
-        BtnWorkspaceOpen.Click += async (_, _) => await OpenImageAsync();
-        BtnWorkspaceCopyToClipboard.Click += async (_, _) => await TryCopyImageToClipboardAsync();
-        BtnWorkspacePasteFromClipboard.Click += async (_, _) => await TryPasteFromClipboardAsync();
-        BtnWorkspaceExportPng.Click += async (_, _) => await ExportPngAsync();
-        BtnWorkspaceExportJson.Click += async (_, _) => await ExportJsonAsync();
         InitAlignGridPanel();
-        BtnWorkspaceGuideAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
         BtnStepImporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Importa);
@@ -233,8 +232,8 @@ public partial class MainWindow : Window
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
         BtnGoAllinea.Click += (_, _) => ActivateStudio(StudioKind.Animation);
-        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 2;
-        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 4;
+        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 3;
+        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 3;
         ChkExportCustomCellSize.IsCheckedChanged += (_, _) =>
         {
             var enabled = ChkExportCustomCellSize.IsChecked == true;
@@ -270,8 +269,6 @@ public partial class MainWindow : Window
         InitTemplateTab();
 
         // Passo 5 — Esporta
-        BtnExportPng.Click       += async (_, _) => await ExportPngAsync();
-        BtnExportJson.Click      += async (_, _) => await ExportJsonAsync();
         BtnExportTiled.Click     += async (_, _) => await ExportTiledMapJsonAsync();
         BtnExportFramesZip.Click += async (_, _) => await ExportFramesZipAsync();
 
@@ -292,8 +289,8 @@ public partial class MainWindow : Window
         MainTabs.SelectedIndex = studio switch
         {
             StudioKind.Sprite => 0,
-            StudioKind.Animation => 1,
-            StudioKind.Tileset => 4,
+            StudioKind.Animation => 0,
+            StudioKind.Tileset => 3,
             _ => MainTabs.SelectedIndex
         };
         SpriteStudioPanel.IsVisible = studio == StudioKind.Sprite;
@@ -399,7 +396,7 @@ public partial class MainWindow : Window
                 break;
             case SpriteStudioAction.ApplyQuantize:
                 ApplySpriteCleanupStateToControls();
-                ChkPipeQuant.IsChecked = true;
+                _pipelineFormState = _pipelineFormState with { EnableQuantize = true };
                 RunPixelPipeline();
                 break;
             case SpriteStudioAction.MirrorHorizontal:
@@ -409,8 +406,6 @@ public partial class MainWindow : Window
                 RunMirror(horizontal: false);
                 break;
             case SpriteStudioAction.ResizeNearest:
-                TxtNnW.Text = SpriteStudioPanel.ResizeWidthText;
-                TxtNnH.Text = SpriteStudioPanel.ResizeHeightText;
                 RunNearestResize();
                 break;
             case SpriteStudioAction.ExportPng:
@@ -425,41 +420,45 @@ public partial class MainWindow : Window
     private void ApplySpriteCleanupStateToControls()
     {
         var state = SpriteStudioPanel.GetCleanupState();
-        ChkPipeChroma.IsChecked = state.EnableChroma;
-        TxtPipeChromaHex.Text = state.ChromaHex;
-        TxtPipeChromaTol.Text = state.ChromaTolerance;
-        TxtEdgeKeyHex.Text = state.EdgeHex;
-        TxtEdgeTol.Text = state.EdgeTolerance;
-        ChkAlphaThreshold.IsChecked = state.EnableAlphaThreshold;
-        TxtAlphaThreshold.Text = state.AlphaThreshold;
-        TxtDefringeOpaque.Text = state.DefringeOpaque;
-        ChkPipeOutline.IsChecked = state.EnableOutline;
-        TxtPipeOutlineHex.Text = state.OutlineHex;
-        TxtMinIsland.Text = state.MinIsland;
-        ChkPipeMajorityDenoise.IsChecked = state.EnableMajorityDenoise;
-        ChkPipeQuant.IsChecked = state.EnableQuantize;
-        TxtPipeQuantLevels.Text = state.QuantizeColors;
-        CmbPipeQuantMethod.SelectedIndex = state.QuantizeMethodIndex;
+        _pipelineFormState = _pipelineFormState with
+        {
+            EnableChroma = state.EnableChroma,
+            ChromaHex = state.ChromaHex,
+            ChromaTolerance = state.ChromaTolerance,
+            EnableChromaSnapRgb = false,
+            EnableAlphaThreshold = state.EnableAlphaThreshold,
+            AlphaThreshold = state.AlphaThreshold,
+            EnableOutline = state.EnableOutline,
+            OutlineHex = state.OutlineHex,
+            EnableMajorityDenoise = state.EnableMajorityDenoise,
+            MinIsland = state.MinIsland,
+            EnableQuantize = state.EnableQuantize,
+            MaxColors = state.QuantizeColors,
+            QuantizerIndex = state.QuantizeMethodIndex,
+            EnableAdvancedCleaner = false,
+            EnablePixelGridEnforce = false,
+            EnablePaletteSnap = false
+        };
     }
 
     private void SyncSpriteCleanupStateFromControls()
     {
         SpriteStudioPanel.SetCleanupState(new SpriteCleanupState(
-            EnableChroma: ChkPipeChroma.IsChecked == true,
-            ChromaHex: TxtPipeChromaHex.Text ?? string.Empty,
-            ChromaTolerance: TxtPipeChromaTol.Text ?? string.Empty,
-            EdgeHex: TxtEdgeKeyHex.Text ?? string.Empty,
-            EdgeTolerance: TxtEdgeTol.Text ?? string.Empty,
-            EnableAlphaThreshold: ChkAlphaThreshold.IsChecked == true,
-            AlphaThreshold: TxtAlphaThreshold.Text ?? string.Empty,
-            DefringeOpaque: TxtDefringeOpaque.Text ?? string.Empty,
-            EnableOutline: ChkPipeOutline.IsChecked == true,
-            OutlineHex: TxtPipeOutlineHex.Text ?? string.Empty,
-            MinIsland: TxtMinIsland.Text ?? string.Empty,
-            EnableMajorityDenoise: ChkPipeMajorityDenoise.IsChecked == true,
-            EnableQuantize: ChkPipeQuant.IsChecked == true,
-            QuantizeColors: TxtPipeQuantLevels.Text ?? string.Empty,
-            QuantizeMethodIndex: CmbPipeQuantMethod.SelectedIndex));
+            EnableChroma: _pipelineFormState.EnableChroma,
+            ChromaHex: _pipelineFormState.ChromaHex,
+            ChromaTolerance: _pipelineFormState.ChromaTolerance,
+            EdgeHex: _pipelineFormState.ChromaHex,
+            EdgeTolerance: _pipelineFormState.ChromaTolerance,
+            EnableAlphaThreshold: _pipelineFormState.EnableAlphaThreshold,
+            AlphaThreshold: _pipelineFormState.AlphaThreshold,
+            DefringeOpaque: "250",
+            EnableOutline: _pipelineFormState.EnableOutline,
+            OutlineHex: _pipelineFormState.OutlineHex,
+            MinIsland: _pipelineFormState.MinIsland,
+            EnableMajorityDenoise: _pipelineFormState.EnableMajorityDenoise,
+            EnableQuantize: _pipelineFormState.EnableQuantize,
+            QuantizeColors: _pipelineFormState.MaxColors,
+            QuantizeMethodIndex: _pipelineFormState.QuantizerIndex));
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
@@ -895,15 +894,16 @@ public partial class MainWindow : Window
         switch (CmbPipetteTarget.SelectedIndex)
         {
             case 0:
-                TxtPipeChromaHex.Text = hx;
+                _pipelineFormState = _pipelineFormState with { ChromaHex = hx };
                 break;
             case 1:
-                TxtEdgeKeyHex.Text = hx;
+                _pipelineFormState = _pipelineFormState with { ChromaHex = hx };
                 break;
             case 2:
-                TxtPipeOutlineHex.Text = hx;
+                _pipelineFormState = _pipelineFormState with { OutlineHex = hx };
                 break;
         }
+        SyncSpriteCleanupStateFromControls();
         SetStatus($"Pipetta: {hx}  pixel ({e.X},{e.Y})  A={p.A}");
     }
 
@@ -997,72 +997,21 @@ public partial class MainWindow : Window
         Editor.SpriteCells = [];
     }
 
-    private void InitAlignGridPanel()
-    {
-        ChkAlignGridPreview.IsCheckedChanged += (_, _) => PushAlignGridToEditor();
-        TxtAlignCellW.ValueChanged += (_, _) => PushAlignGridToEditor();
-        TxtAlignCellH.ValueChanged += (_, _) => PushAlignGridToEditor();
-        TxtAlignOffX.ValueChanged += (_, _) => PushAlignGridToEditor();
-        TxtAlignOffY.ValueChanged += (_, _) => PushAlignGridToEditor();
-        TxtAlignSpaceX.ValueChanged += (_, _) => PushAlignGridToEditor();
-        TxtAlignSpaceY.ValueChanged += (_, _) => PushAlignGridToEditor();
-        BtnAlignGridCrop.Click += (_, _) => RunCropToAlignGrid();
-        PushAlignGridToEditor();
-    }
+    private void InitAlignGridPanel() => PushAlignGridToEditor();
 
     private void PushAlignGridToEditor()
     {
-        Editor.ShowAlignGrid = ChkAlignGridPreview.IsChecked == true;
-        Editor.AlignGridCellWidth = Math.Max(1, (int)(TxtAlignCellW.Value ?? 32));
-        Editor.AlignGridCellHeight = Math.Max(1, (int)(TxtAlignCellH.Value ?? 32));
-        Editor.AlignGridOffsetX = Math.Max(0, (int)(TxtAlignOffX.Value ?? 0));
-        Editor.AlignGridOffsetY = Math.Max(0, (int)(TxtAlignOffY.Value ?? 0));
-        Editor.AlignGridSpacingX = Math.Max(0, (int)(TxtAlignSpaceX.Value ?? 0));
-        Editor.AlignGridSpacingY = Math.Max(0, (int)(TxtAlignSpaceY.Value ?? 0));
+        Editor.ShowAlignGrid = false;
+        Editor.AlignGridCellWidth = 32;
+        Editor.AlignGridCellHeight = 32;
+        Editor.AlignGridOffsetX = 0;
+        Editor.AlignGridOffsetY = 0;
+        Editor.AlignGridSpacingX = 0;
+        Editor.AlignGridSpacingY = 0;
     }
 
-    private void RunCropToAlignGrid()
-    {
-        if (_document is null)
-        {
-            SetStatus("Nessuna immagine aperta.");
-            return;
-        }
-
-        var cw = Math.Max(1, (int)(TxtAlignCellW.Value ?? 32));
-        var ch = Math.Max(1, (int)(TxtAlignCellH.Value ?? 32));
-        var sx = Math.Max(0, (int)(TxtAlignSpaceX.Value ?? 0));
-        var sy = Math.Max(0, (int)(TxtAlignSpaceY.Value ?? 0));
-        var ox = Math.Max(0, (int)(TxtAlignOffX.Value ?? 0));
-        var oy = Math.Max(0, (int)(TxtAlignOffY.Value ?? 0));
-
-        try
-        {
-            if (!PushUndo())
-                return;
-
-            var cropped = GridAlignmentCropper.CropToValidGrid(_document, ox, oy, cw, ch, sx, sy);
-            _document.Dispose();
-            _document = cropped;
-
-            TxtAlignOffX.Value = 0;
-            TxtAlignOffY.Value = 0;
-            PushAlignGridToEditor();
-
-            RegenerateCellsFromAlignGridAfterCrop(cw, ch, sx, sy);
-
-            _workspaceTabs.MarkActiveDirty();
-            RefreshView();
-            RefreshCellList();
-            UpdateWorkspaceGuidance();
-            UpdateWorkflowShell();
-            SetStatus($"Ritaglio griglia: {cropped.Width}×{cropped.Height} px — {_cells.Count} celle overlay.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore ritaglio griglia: {ex.Message}");
-        }
-    }
+    private void RunCropToAlignGrid() =>
+        SetStatus("Ritaglio griglia spostato nel Tileset Studio.");
 
     /// <summary>
     /// Dopo crop con offset azzerato: rigenera la lista sprite con gutter, senza SliceGridRows/Cols (la griglia arancione usa snap-8).
@@ -1346,19 +1295,13 @@ public partial class MainWindow : Window
     {
         if (_document is null)
         {
-            TxtQuickColorsBefore.Text = "-";
-            TxtQuickColorsAfter.Text = "-";
-            TxtQuickPalette.Text = string.Empty;
+            _quickColorsAfterText = "-";
             return;
         }
 
         var count = PixelArtValidation.CountUniqueColors(_document);
-        TxtQuickColorsBefore.Text = count.ToString(CultureInfo.InvariantCulture);
-        if (string.IsNullOrWhiteSpace(TxtQuickColorsAfter.Text) || TxtQuickColorsAfter.Text == "-")
-            TxtQuickColorsAfter.Text = count.ToString(CultureInfo.InvariantCulture);
-
-        var previewPalette = PaletteExtractor.Extract(_document, new PaletteExtractor.Options(Colors: 16));
-        TxtQuickPalette.Text = string.Join(" ", previewPalette.Select(ToHexRgb));
+        if (string.IsNullOrWhiteSpace(_quickColorsAfterText) || _quickColorsAfterText == "-")
+            _quickColorsAfterText = count.ToString(CultureInfo.InvariantCulture);
     }
 
     private static string ToHexRgb(Rgba32 c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
@@ -1401,7 +1344,6 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Default impostato.");
-        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
     }
 
@@ -1418,10 +1360,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Sicuro impostato.");
-        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
-        if (ChkPresetApplyNow.IsChecked == true)
-            RunPixelPipeline();
     }
 
     private void ApplyAggressivePresetToControls()
@@ -1437,10 +1376,7 @@ public partial class MainWindow : Window
             _isApplyingPipelinePreset = false;
         }
         SetStatus("Preset Aggressivo+Recupero impostato.");
-        ExpPipelineTechnicalDetails.IsExpanded = false;
         UpdatePipelinePresetBadge();
-        if (ChkPresetApplyNow.IsChecked == true)
-            RunPixelPipeline();
     }
 
     private void RefreshCellList()
@@ -1481,16 +1417,13 @@ public partial class MainWindow : Window
         if (_document is null) return;
         PushUndo();
         var result = PipelineExecutionService.RunInPlace(_document, options, label, ToHexRgb);
-        TxtPipelineLastRun.Text = result.LastRunText;
         if (!result.Succeeded)
         {
             SetStatus(result.StatusText);
             return;
         }
 
-        TxtQuickColorsBefore.Text = result.ColorsBeforeText;
-        TxtQuickColorsAfter.Text = result.ColorsAfterText;
-        TxtQuickPalette.Text = result.PaletteText;
+        _quickColorsAfterText = result.ColorsAfterText;
         _cleanApplied = true;
         ClearSliceGrid();
         _cells.Clear();
@@ -1501,91 +1434,18 @@ public partial class MainWindow : Window
 
     private PipelineViewModel.PipelineFormState ReadPipelineFormStateFromControls()
     {
-        return new PipelineViewModel.PipelineFormState(
-            EnableChroma: IsChecked(ChkPipeChroma),
-            EnableChromaSnapRgb: IsChecked(ChkPipeChromaSnapRgb),
-            ChromaHex: TextOrDefault(TxtPipeChromaHex, "#00FF00"),
-            ChromaTolerance: TextOrDefault(TxtPipeChromaTol, "0"),
-            EnableAdvancedCleaner: IsChecked(ChkPipeAdvancedCleaner),
-            BilateralSigmaSpatial: TextOrDefault(TxtPipeBilateralSpatial, "1.25"),
-            BilateralSigmaRange: TextOrDefault(TxtPipeBilateralRange, "0.085"),
-            BilateralPasses: TextOrDefault(TxtPipeBilateralPasses, "1"),
-            EnablePixelGridEnforce: IsChecked(ChkPipePixelGridEnforce),
-            NativeWidth: TextOrDefault(TxtPipeNativeW, "64"),
-            NativeHeight: TextOrDefault(TxtPipeNativeH, "64"),
-            EnablePaletteSnap: IsChecked(ChkPipePaletteSnap),
-            PaletteId: TextOrDefault(TxtPipePaletteId, string.Empty),
-            PaletteMetadataPath: TextOrDefault(TxtPipePaletteMetadataPath, string.Empty),
-            EnableQuantize: IsChecked(ChkPipeQuant),
-            MaxColors: TextOrDefault(TxtPipeQuantLevels, "16"),
-            QuantizerIndex: CmbPipeQuantMethod.SelectedIndex,
-            EnableMajorityDenoise: IsChecked(ChkPipeMajorityDenoise),
-            MinIsland: TextOrDefault(TxtMinIsland, "2"),
-            EnableOutline: IsChecked(ChkPipeOutline),
-            OutlineHex: TextOrDefault(TxtPipeOutlineHex, "#000000"),
-            EnableAlphaThreshold: IsChecked(ChkAlphaThreshold),
-            AlphaThreshold: TextOrDefault(TxtAlphaThreshold, "128"));
+        return _pipelineFormState;
     }
 
     private void ApplyPipelineFormStateToControls(PipelineViewModel.PipelineFormState formState)
     {
-        SetChecked(ChkPipeChroma, formState.EnableChroma);
-        SetChecked(ChkPipeChromaSnapRgb, formState.EnableChromaSnapRgb);
-        SetText(TxtPipeChromaHex, formState.ChromaHex);
-        SetText(TxtPipeChromaTol, formState.ChromaTolerance);
-        SetChecked(ChkPipeAdvancedCleaner, formState.EnableAdvancedCleaner);
-        SetText(TxtPipeBilateralSpatial, formState.BilateralSigmaSpatial);
-        SetText(TxtPipeBilateralRange, formState.BilateralSigmaRange);
-        SetText(TxtPipeBilateralPasses, formState.BilateralPasses);
-        SetChecked(ChkPipePixelGridEnforce, formState.EnablePixelGridEnforce);
-        SetText(TxtPipeNativeW, formState.NativeWidth);
-        SetText(TxtPipeNativeH, formState.NativeHeight);
-        SetChecked(ChkPipePaletteSnap, formState.EnablePaletteSnap);
-        SetText(TxtPipePaletteId, formState.PaletteId);
-        SetText(TxtPipePaletteMetadataPath, formState.PaletteMetadataPath);
-        SetChecked(ChkPipeQuant, formState.EnableQuantize);
-        SetText(TxtPipeQuantLevels, formState.MaxColors);
-        CmbPipeQuantMethod.SelectedIndex = formState.QuantizerIndex;
-        SetChecked(ChkPipeMajorityDenoise, formState.EnableMajorityDenoise);
-        SetText(TxtMinIsland, formState.MinIsland);
-        SetChecked(ChkPipeOutline, formState.EnableOutline);
-        SetText(TxtPipeOutlineHex, formState.OutlineHex);
-        SetChecked(ChkAlphaThreshold, formState.EnableAlphaThreshold);
-        SetText(TxtAlphaThreshold, formState.AlphaThreshold);
+        _pipelineFormState = formState;
         SyncSpriteCleanupStateFromControls();
     }
 
     private void HookPipelinePresetResetOnManualChanges()
     {
-        foreach (var checkBox in new[]
-                 {
-                     ChkPipeChroma, ChkPipeChromaSnapRgb, ChkPipeQuant, ChkPipeMajorityDenoise,
-                     ChkPipeOutline, ChkAlphaThreshold, ChkPipeAdvancedCleaner, ChkPipePixelGridEnforce,
-                     ChkPipePaletteSnap
-                 })
-        {
-            checkBox.IsCheckedChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        }
-
-        foreach (var textBox in new[]
-                 {
-                     TxtPipeChromaHex, TxtPipeChromaTol, TxtPipeBilateralSpatial, TxtPipeBilateralRange,
-                     TxtPipeBilateralPasses, TxtPipeNativeW, TxtPipeNativeH, TxtPipePaletteId,
-                     TxtPipePaletteMetadataPath, TxtPipeQuantLevels, TxtMinIsland, TxtPipeOutlineHex,
-                     TxtAlphaThreshold
-                 })
-        {
-            textBox.TextChanged += (_, _) => ResetPresetOnManualPipelineEdit();
-        }
-
-        CmbPipeQuantMethod.SelectionChanged += (_, _) => ResetPresetOnManualPipelineEdit();
     }
-
-    private static bool IsChecked(Avalonia.Controls.CheckBox checkBox) => checkBox.IsChecked == true;
-
-    private static void SetChecked(Avalonia.Controls.CheckBox checkBox, bool value) => checkBox.IsChecked = value;
-
-    private static string TextOrDefault(Avalonia.Controls.TextBox textBox, string fallback) => textBox.Text ?? fallback;
 
     private static void SetText(Avalonia.Controls.TextBox textBox, string value) => textBox.Text = value;
 
@@ -1612,20 +1472,10 @@ public partial class MainWindow : Window
     {
         if (_isApplyingPipelinePreset) return;
         _pipelineVm.ActivePreset = PipelineViewModel.PresetKind.None;
-        ExpPipelineTechnicalDetails.IsExpanded = true;
         UpdatePipelinePresetBadge();
     }
 
-    private void UpdatePipelinePresetBadge()
-    {
-        TxtPipelinePresetBadge.Text = _pipelineVm.ActivePreset switch
-        {
-            PipelineViewModel.PresetKind.Default => "Preset attivo: Default",
-            PipelineViewModel.PresetKind.Safe => "Preset attivo: Sicuro",
-            PipelineViewModel.PresetKind.AggressiveRecover => "Preset attivo: Aggressivo + Recupero",
-            _ => "Preset attivo: Personalizzato"
-        };
-    }
+    private void UpdatePipelinePresetBadge() { }
 
     private void RunPixelPipeline()
     {
@@ -1686,8 +1536,8 @@ public partial class MainWindow : Window
 
     private void RunNearestResize()
     {
-        var tw = Math.Max(1, InputParsing.ParseInt(TxtNnW.Text, 64));
-        var th = Math.Max(1, InputParsing.ParseInt(TxtNnH.Text, 64));
+        var tw = Math.Max(1, InputParsing.ParseInt(SpriteStudioPanel.ResizeWidthText, 64));
+        var th = Math.Max(1, InputParsing.ParseInt(SpriteStudioPanel.ResizeHeightText, 64));
         RunReplaceTransform(
             src => NearestNeighborResize.Resize(src, tw, th, 0, 0),
             $"Immagine ridimensionata a {tw}×{th} px.",
@@ -1696,12 +1546,12 @@ public partial class MainWindow : Window
 
     private void RunEdgeBackground()
     {
-        if (!InputParsing.TryParseHexRgb(TxtEdgeKeyHex.Text, out var key))
+        if (!InputParsing.TryParseHexRgb(_pipelineFormState.ChromaHex, out var key))
         {
             SetStatus("Edge BFS: key hex non valida.");
             return;
         }
-        var tol = Math.Max(0, InputParsing.ParseInt(TxtEdgeTol.Text, 8));
+        var tol = Math.Max(0, InputParsing.ParseInt(_pipelineFormState.ChromaTolerance, 8));
         RunTransform(
             img => EdgeBackgroundFill.ApplyInPlace(img, key, tol),
             "Sfondo rimosso dal bordo dell'immagine.",
@@ -1854,7 +1704,7 @@ public partial class MainWindow : Window
 
     private void RunDenoise()
     {
-        var minA = Math.Max(1, InputParsing.ParseInt(TxtMinIsland.Text, 2));
+        var minA = Math.Max(1, InputParsing.ParseInt(_pipelineFormState.MinIsland, 2));
         RunTransform(
             img => IslandDenoise.ApplyInPlace(img, new IslandDenoise.Options(1, minA)),
             $"Pixel isolati rimossi (soglia: {minA} px).",
@@ -1922,7 +1772,7 @@ public partial class MainWindow : Window
             WorkflowShellViewModel.WorkflowStep.Importa => 0,
             WorkflowShellViewModel.WorkflowStep.Pulisci => 0,
             WorkflowShellViewModel.WorkflowStep.SliceAllinea => 0,
-            WorkflowShellViewModel.WorkflowStep.Esporta => 3,
+            WorkflowShellViewModel.WorkflowStep.Esporta => 2,
             _ => 0
         };
         UpdateWorkflowShell();
@@ -1933,9 +1783,6 @@ public partial class MainWindow : Window
         if (_document is null)
         {
             _workflowShell.UpdateFromReadiness(hasDocument: false, cleanApplied: false, hasCells: false);
-            SetWorkspaceBadge("BLOCCATO", "#3f1f24", "#6a2f39", "#ffd9df");
-            TxtWorkspaceDependencyStatus.Text = "Manca immagine sorgente. Apri un file per iniziare.";
-            BtnWorkspaceGuideAction.Content = "Step 1 · Importa";
             UpdateWorkflowShell();
             return;
         }
@@ -1943,9 +1790,6 @@ public partial class MainWindow : Window
         if (!_cleanApplied)
         {
             _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: false, hasCells: false);
-            SetWorkspaceBadge("IN CORSO", "#203047", "#2e4a6f", "#d4e7ff");
-            TxtWorkspaceDependencyStatus.Text = "Immagine caricata. Applica una pulizia rapida prima del slicing.";
-            BtnWorkspaceGuideAction.Content = "Step 2 · Pulisci";
             UpdateWorkflowShell();
             return;
         }
@@ -1953,17 +1797,11 @@ public partial class MainWindow : Window
         if (_cells.Count == 0)
         {
             _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: true, hasCells: false);
-            SetWorkspaceBadge("ATTENZIONE", "#3d3318", "#6d5922", "#ffe8b2");
-            TxtWorkspaceDependencyStatus.Text = "Manca slicing: rileva o crea celle sprite prima dell'export frame-based.";
-            BtnWorkspaceGuideAction.Content = "Step 3 · Slice/Allinea";
             UpdateWorkflowShell();
             return;
         }
 
         _workflowShell.UpdateFromReadiness(hasDocument: true, cleanApplied: true, hasCells: true);
-        SetWorkspaceBadge("PRONTO", "#173927", "#266344", "#c9f5dd");
-        TxtWorkspaceDependencyStatus.Text = $"Slicing pronto: {_cells.Count} celle disponibili. Puoi esportare subito.";
-        BtnWorkspaceGuideAction.Content = "Step 4 · Esporta";
         UpdateWorkflowShell();
     }
 
@@ -1998,13 +1836,7 @@ public partial class MainWindow : Window
         TxtStepEsportaState.Text = !hasCells ? "🔒 bloccato" : "● pronto";
     }
 
-    private void SetWorkspaceBadge(string text, string bgHex, string borderHex, string fgHex)
-    {
-        TxtWorkspaceDependencyBadge.Text = text;
-        WorkspaceDependencyBadge.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(bgHex));
-        WorkspaceDependencyBadge.BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(borderHex));
-        TxtWorkspaceDependencyBadge.Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(fgHex));
-    }
+    private void SetWorkspaceBadge(string text, string bgHex, string borderHex, string fgHex) { }
 
     private void RunCcl()
     {
@@ -2188,13 +2020,12 @@ public partial class MainWindow : Window
         {
             PushUndo();
 
-            // Legge i parametri attuali dall'UI dei pannelli sottostanti
-            InputParsing.TryParseHexRgb(TxtEdgeKeyHex.Text, out var bgKey);
-            var bgTol = Math.Max(0, InputParsing.ParseInt(TxtEdgeTol.Text, 8));
-            var alphaThr = (byte)Math.Clamp(InputParsing.ParseInt(TxtAlphaThreshold.Text, 128), 0, 255);
-            var defOpaque = (byte)Math.Clamp(InputParsing.ParseInt(TxtDefringeOpaque.Text, 250), 1, 255);
-            var minIsland = Math.Max(1, InputParsing.ParseInt(TxtMinIsland.Text, 4));
-            var palColors = Math.Clamp(InputParsing.ParseInt(TxtPaletteColors.Text, 16), 2, 64);
+            InputParsing.TryParseHexRgb(_pipelineFormState.ChromaHex, out var bgKey);
+            var bgTol = Math.Max(0, InputParsing.ParseInt(_pipelineFormState.ChromaTolerance, 8));
+            var alphaThr = (byte)Math.Clamp(InputParsing.ParseInt(_pipelineFormState.AlphaThreshold, 128), 0, 255);
+            const byte defOpaque = 250;
+            var minIsland = Math.Max(1, InputParsing.ParseInt(_pipelineFormState.MinIsland, 4));
+            var palColors = Math.Clamp(InputParsing.ParseInt(_pipelineFormState.MaxColors, 16), 2, 64);
 
             var report = AiCleanupWizard.Apply(_document, new AiCleanupWizard.Options
             {
@@ -2208,9 +2039,9 @@ public partial class MainWindow : Window
                 DenoiseSpike    = true,
                 DenoiseIslands  = true,
                 IslandMinSize   = minIsland,
-                ReducePalette   = ChkWizardPaletteReduce.IsChecked == true,
+                ReducePalette   = _pipelineFormState.EnableQuantize,
                 PaletteColors   = palColors,
-                PaletteDither   = ChkPaletteDither.IsChecked == true,
+                PaletteDither   = false,
             });
 
             ClearSliceGrid();
@@ -2230,7 +2061,7 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            var opaque = (byte)Math.Clamp(InputParsing.ParseInt(TxtDefringeOpaque.Text, 250), 1, 255);
+            const byte opaque = 250;
             // Pre-flight: defringe agisce solo su pixel semi-trasparenti (0 < α < opaque).
             // Se non ce ne sono, è no-op → avvisa l'utente esplicitamente.
             var semiCount = ImageUtils.CountSemiTransparent(_document, opaque);
@@ -2264,12 +2095,12 @@ public partial class MainWindow : Window
             IReadOnlyList<Rgba32> palette;
             string label;
 
-            if (presetIdx <= 0) // Auto AI (K-Means)
+            if (presetIdx <= 0)
             {
                 var n = Math.Clamp(InputParsing.ParseInt(TxtPaletteColors.Text, 16), 2, 64);
-                palette = PaletteExtractor.Extract(_document, new PaletteExtractor.Options(Colors: n));
+                palette = PaletteExtractorAlgorithms.ExtractWu(_document, n);
                 if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
-                label = $"Auto AI {palette.Count}";
+                label = $"Auto AI Wu {palette.Count}";
             }
             else
             {
@@ -2367,7 +2198,7 @@ public partial class MainWindow : Window
             ChkExportKeepCellSize.IsChecked == true,
             TxtExportCellW.Text,
             TxtExportCellH.Text,
-            TxtPipePaletteId.Text,
+            _pipelineFormState.PaletteId,
             StorageProvider,
             SetStatus);
     }

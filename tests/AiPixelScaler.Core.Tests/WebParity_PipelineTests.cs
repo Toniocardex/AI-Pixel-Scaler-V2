@@ -39,4 +39,18 @@ public class WebParity_PipelineTests
         Assert.Equal(0, img[0, 0].A);
         Assert.Equal(255, img[1, 1].A);
     }
+
+    [Fact]
+    public void EdgeBackground_stops_at_sobel_edge()
+    {
+        using var img = new Image<Rgba32>(7, 7, new Rgba32(240, 240, 240, 255));
+        for (var y = 2; y <= 4; y++)
+        for (var x = 2; x <= 4; x++)
+            img[x, y] = new Rgba32(20, 20, 20, 255);
+
+        EdgeBackgroundFill.ApplyInPlace(img, new Rgba32(240, 240, 240, 255), 0);
+
+        Assert.Equal(0, img[0, 0].A);
+        Assert.Equal(255, img[3, 3].A);
+    }
 }

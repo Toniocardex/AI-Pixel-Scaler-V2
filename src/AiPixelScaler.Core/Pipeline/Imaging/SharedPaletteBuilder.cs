@@ -17,7 +17,7 @@ public static class SharedPaletteBuilder
             using var img = Image.Load<Rgba32>(path);
             if (chromaSnapKey.HasValue)
                 ChromaKey.SnapKeyRgbInPlace(img, chromaSnapKey.Value, Math.Max(0, chromaSnapTolerance));
-            foreach (var c in PaletteExtractor.Extract(img, new PaletteExtractor.Options(Colors: Math.Clamp(maxColors, 2, 256))))
+            foreach (var c in PaletteExtractorAlgorithms.ExtractWu(img, Math.Clamp(maxColors, 2, 256)))
                 union.Add(c);
         }
 
@@ -26,6 +26,6 @@ public static class SharedPaletteBuilder
         var i = 0;
         foreach (var c in union)
             synthetic[i++, 0] = c;
-        return PaletteExtractor.Extract(synthetic, new PaletteExtractor.Options(Colors: Math.Clamp(maxColors, 2, 256)));
+        return PaletteExtractorAlgorithms.ExtractWu(synthetic, Math.Clamp(maxColors, 2, 256));
     }
 }

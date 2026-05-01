@@ -21,7 +21,7 @@ public static class PixelArtPipeline
         string? PaletteId = null,
         bool EnableQuantize = true,
         int MaxColors = 16,
-        PixelArtProcessor.QuantizerKind Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab,
+        PixelArtProcessor.QuantizerKind Quantizer = PixelArtProcessor.QuantizerKind.Wu,
         bool EnableMajorityDenoise = false,
         int MajorityMinSameNeighbors = 2,
         int? IslandMinArea = null,

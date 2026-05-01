@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace AiPixelScaler.Core.Pipeline.Imaging;
 
 /// <summary>
-/// Routing centralizzato per estrazione palette (KMeans OKLab vs Wu vs Octree).
+/// Routing centralizzato per estrazione palette tramite quantizzatori ImageSharp.
 /// Evita duplicazioni tra PixelArtPipeline, PixelArtProcessor e AdvancedPixelCleaner.
 /// </summary>
 internal static class PaletteExtractorRouting
@@ -14,9 +14,8 @@ internal static class PaletteExtractorRouting
         var n = Math.Clamp(maxColors, 2, 256);
         return quantizer switch
         {
-            PixelArtProcessor.QuantizerKind.Wu => PaletteExtractorAlgorithms.ExtractWu(image, n),
             PixelArtProcessor.QuantizerKind.Octree => PaletteExtractorAlgorithms.ExtractOctree(image, n),
-            _ => PaletteExtractor.Extract(image, new PaletteExtractor.Options(Colors: n)),
+            _ => PaletteExtractorAlgorithms.ExtractWu(image, n),
         };
     }
 }

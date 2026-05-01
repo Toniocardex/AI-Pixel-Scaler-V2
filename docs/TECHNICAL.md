@@ -70,7 +70,7 @@ Il pannello di pulizia Sprite distingue i filtri reali dai preset:
 - **Alpha Clean:** raggruppa chroma key, rimozione sfondo collegato al bordo e alpha threshold.
 - **Edge Refinement:** raggruppa defringe e outline.
 - **Denoise:** raggruppa median, isole minime e denoise a maggioranza 3x3.
-- **Quantize:** filtro autonomo con colori massimi e metodo (`K-Means OKLab`, `Wu`, `Octree`); non viene attivato automaticamente dai preset.
+- **Quantize:** filtro autonomo con colori massimi e metodo (`Wu`, `Octree`); non viene attivato automaticamente dai preset.
 
 ### 4.3 Roadmap Animation Studio: Video Frame Extractor
 

@@ -7,7 +7,7 @@ namespace AiPixelScaler.Core.Pipeline.Imaging;
 
 public static class PixelArtProcessor
 {
-    public enum QuantizerKind { KMeansOklab, Wu, Octree }
+    public enum QuantizerKind { Wu, Octree }
     public enum ExportKind { RgbaPng, IndexedPng8 }
 
     public sealed record Options(
@@ -17,7 +17,7 @@ public static class PixelArtProcessor
         double ChromaTolerance = 0,
         bool QuantizePalette = true,
         int MaxColors = 32,
-        QuantizerKind Quantizer = QuantizerKind.KMeansOklab,
+        QuantizerKind Quantizer = QuantizerKind.Wu,
         ExportKind Export = ExportKind.RgbaPng);
 
     public sealed record Result(
