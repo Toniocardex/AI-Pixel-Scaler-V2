@@ -4,7 +4,7 @@ Stato: audit approvato come guida di refactor; implementazione progressiva in co
 
 Regola: nessuna rimozione e' stata applicata. Le decisioni `remove` o `merge` sono solo candidate e richiedono conferma.
 
-Nota implementativa corrente: Start Page e routing shell sono stati introdotti. Nel primo passaggio Sprite Studio i filtri di cleanup sono stati riallineati alla matrice: preset come ricette, Quantize come filtro autonomo, Denoise come gruppo separato da Quantize. Nel secondo passaggio e' stata introdotta `SpriteStudioView` come pannello operativo dedicato, collegato agli handler esistenti senza rimozioni.
+Nota implementativa corrente: Start Page e routing shell sono stati introdotti. Nel primo passaggio Sprite Studio i filtri di cleanup sono stati riallineati alla matrice: preset come ricette, Quantize come filtro autonomo, Denoise come gruppo separato da Quantize. Nel secondo passaggio e' stata introdotta `SpriteStudioView` come pannello operativo dedicato, collegato agli handler esistenti senza rimozioni. Nel terzo passaggio il blocco ROI e' stato reso operativo nella view Sprite con stato selezione, select all, clear, export ROI, crop e remove. Nel quarto passaggio il blocco Slicing e' stato portato nella view Sprite con crop manuale, rilevamento, griglia, lista celle, export frame e controlli atlas pulito. Nel quinto passaggio il blocco Cleanup/Filtri e' stato portato nella view Sprite con preset, Alpha Clean, Edge Refinement, Denoise, Quantize e apply pipeline. Nel sesto passaggio trasformazioni/export base Sprite includono resize nearest, mirror H/V, export PNG e JSON nella view Studio. La roadmap include ora `Video Frame Extractor` come futura funzione di import di Animation Studio.
 
 | Funzione | UI attuale | Handler / modulo | Dipendenze principali | Studio destinazione | Decisione proposta | Motivazione |
 |---|---|---|---|---|---|---|
@@ -43,6 +43,7 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 | Pivot sliders export | Animation/Export tab | `SliderPivotX/Y`, `UpdatePivotLabels` | export metadata/layout | Animation | keep | Pivot animazione e metadata. |
 | Preview animazione | Laboratorio/menu | `OpenAnimationPreview` | `_cells`, current atlas | Animation | keep + move | Deve diventare azione primaria Animation Studio. |
 | Sandbox fisica | Laboratorio/menu | `OpenSandbox` | current animation/game preview | Animation | keep | Laboratorio visibile dentro Animation Studio. |
+| Estrai frame da video | Non presente, roadmap | nuovo `VideoFrameExtractor` / import Animation futuro | MP4 H.264 input, FFmpeg rilevabile/configurabile, output PNG, timeline frame workbench | Animation | keep/new | MVP pianificato: apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, estrai PNG e importa nella timeline. Sprite puo' ricevere frame singoli/sequenze brevi solo come destinazione futura secondaria. |
 | Palette/stilizza | Stilizza tab | `RunPaletteReduce`, palette controls | K-Means/presets/dither | Sprite | keep + merge into Quantize | La parte palette/quantizzazione confluisce nel filtro autonomo `Quantize`; eventuale applicazione a tutti i frame va riproposta in Animation Studio. |
 | Mirror H/V | Stilizza tab | `RunMirror` | document transform | Sprite | keep | Trasformazione sprite. |
 | Tileable seamless | Stilizza tab | `RunMakeTileable` | `SeamlessEdge`, blend | Tileset | keep + move | Appartiene al Tileset Studio. |
@@ -76,6 +77,22 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 | Selezione toolbar + Selezione tab | merge UI in Sprite Studio, keep toolbar shortcut | Stesso stato ROI, oggi disperso in due punti. |
 | Start page card routing + mini Studio navigator attuale | keep Start page, ridurre navigator a breadcrumb dopo migrazione | Lo Studio sara' scelto all'avvio, il mini navigator diventera' secondario. |
 | Sprite Studio view + tab legacy Sprite/Slice/Stilizza/Export/Selezione | migrate incrementally | `SpriteStudioView` e' il nuovo ingresso operativo; i tab legacy restano backplane finche' ogni gruppo non viene migrato e verificato. |
+| ROI Sprite Studio + tab Selezione legacy | partially migrated | Il pannello Sprite mostra e controlla la ROI completa; il tab legacy resta temporaneamente come backplane fino alla rimozione approvata. |
+| Slicing Sprite Studio + tab Slice legacy | partially migrated | Il pannello Sprite mostra e controlla crop manuale, rileva sprite, griglia, frame list, export frame e atlas pulito; il tab Slice resta backplane finche' la migrazione non e' verificata end-to-end. |
+| Cleanup Sprite Studio + pipeline legacy | partially migrated | Il pannello Sprite mostra e controlla preset, Alpha Clean, Edge Refinement, Denoise e Quantize; i valori vengono sincronizzati sui controlli legacy prima di richiamare la pipeline esistente. |
+| Trasformazioni/export Sprite + tab legacy Stilizza/Export | partially migrated | Il pannello Sprite espone resize nearest, mirror H/V, export PNG e JSON; i tab legacy restano backplane finche' la migrazione non e' verificata end-to-end. |
+| Video Frame Extractor | roadmap Animation Studio | Nuova funzione, non duplicato di import frame: estrae PNG da video e poi li consegna al flusso frame esistente. |
+
+## Roadmap Video Frame Extractor
+
+| Ambito | Decisione |
+|---|---|
+| Studio proprietario | `Animation Studio`. |
+| Scope MVP | Apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, output PNG, import nel frame workbench/timeline. |
+| Backend consigliato | FFmpeg rilevabile/configurabile. |
+| Formati futuri | MOV, WebM e AVI solo dopo l'MVP MP4 H.264. |
+| Fuori MVP | Deduplica, scene detection, crop ROI, cleanup batch, export atlas diretto. |
+| Integrazione Sprite | Solo destinazione futura per frame singolo o sequenza breve da pulire/slicare. |
 
 ## Default filtri Sprite Studio
 

@@ -341,16 +341,52 @@ public partial class MainWindow : Window
             case SpriteStudioAction.ApplyDefaultPreset:
                 ApplyDefaultPresetToControls();
                 break;
+            case SpriteStudioAction.ApplySafePreset:
+                ApplySafePresetToControls();
+                break;
+            case SpriteStudioAction.ApplyAggressivePreset:
+                ApplyAggressivePresetToControls();
+                break;
             case SpriteStudioAction.RunCleanup:
+                ApplySpriteCleanupStateToControls();
                 RunQuickProcess();
                 break;
             case SpriteStudioAction.RunOneClickCleanup:
+                ApplySpriteCleanupStateToControls();
                 RunAiCleanupWizard();
+                break;
+            case SpriteStudioAction.ApplyPipeline:
+                ApplySpriteCleanupStateToControls();
+                RunPixelPipeline();
+                break;
+            case SpriteStudioAction.ApplyDefringe:
+                ApplySpriteCleanupStateToControls();
+                RunDefringe();
+                break;
+            case SpriteStudioAction.ApplyMedian:
+                RunMedianFilter();
+                break;
+            case SpriteStudioAction.ApplyEdgeBackground:
+                ApplySpriteCleanupStateToControls();
+                RunEdgeBackground();
+                break;
+            case SpriteStudioAction.ApplyDenoise:
+                ApplySpriteCleanupStateToControls();
+                RunDenoise();
                 break;
             case SpriteStudioAction.SelectArea:
                 if (!_toolbarSelectionModeEnabled)
                     ToggleToolbarSelectionMode();
                 MainTabs.SelectedIndex = SelectionCanvasTabIndex;
+                break;
+            case SpriteStudioAction.SelectAll:
+                SelectAll();
+                break;
+            case SpriteStudioAction.ClearSelection:
+                ClearSelection();
+                break;
+            case SpriteStudioAction.ExportSelection:
+                await ExportSelectionAsync();
                 break;
             case SpriteStudioAction.CropSelection:
                 CropToSelection();
@@ -358,23 +394,41 @@ public partial class MainWindow : Window
             case SpriteStudioAction.RemoveSelection:
                 RemoveSelectedArea();
                 break;
+            case SpriteStudioAction.ToggleManualCrop:
+                ChkSpriteCrop.IsChecked = SpriteStudioPanel.IsManualCropEnabled;
+                MainTabs.SelectedIndex = 1;
+                break;
             case SpriteStudioAction.DetectSprites:
                 RunCcl();
                 break;
             case SpriteStudioAction.GridSlice:
+                TxtRows.Text = SpriteStudioPanel.GridRowsText;
+                TxtCols.Text = SpriteStudioPanel.GridColsText;
                 MainTabs.SelectedIndex = 1;
                 RunGridSlice();
+                break;
+            case SpriteStudioAction.SaveSelectedFrame:
+                CellList.SelectedIndex = SpriteStudioPanel.SelectedCellIndex;
+                await SaveSelectedFrameAsync();
                 break;
             case SpriteStudioAction.OpenFloatingPaste:
                 MainTabs.SelectedIndex = 1;
                 EnterPasteMode();
                 break;
-            case SpriteStudioAction.OpenQuantize:
-                MainTabs.SelectedIndex = 0;
-                SetStatus("Quantize disponibile in Sprite Studio: abilita il filtro e applica la pipeline.");
+            case SpriteStudioAction.PasteDestination:
+                SwitchPasteView(toSource: false);
+                break;
+            case SpriteStudioAction.PasteSource:
+                SwitchPasteView(toSource: true);
+                break;
+            case SpriteStudioAction.CopyPasteSelection:
+                CopySourceSelectionToBuffer();
+                break;
+            case SpriteStudioAction.ExitFloatingPaste:
+                ExitPasteMode();
                 break;
             case SpriteStudioAction.ApplyQuantize:
-                MainTabs.SelectedIndex = 0;
+                ApplySpriteCleanupStateToControls();
                 ChkPipeQuant.IsChecked = true;
                 RunPixelPipeline();
                 break;
@@ -384,6 +438,11 @@ public partial class MainWindow : Window
             case SpriteStudioAction.MirrorVertical:
                 RunMirror(horizontal: false);
                 break;
+            case SpriteStudioAction.ResizeNearest:
+                TxtNnW.Text = SpriteStudioPanel.ResizeWidthText;
+                TxtNnH.Text = SpriteStudioPanel.ResizeHeightText;
+                RunNearestResize();
+                break;
             case SpriteStudioAction.ExportPng:
                 await ExportPngAsync();
                 break;
@@ -391,6 +450,46 @@ public partial class MainWindow : Window
                 await ExportJsonAsync();
                 break;
         }
+    }
+
+    private void ApplySpriteCleanupStateToControls()
+    {
+        var state = SpriteStudioPanel.GetCleanupState();
+        ChkPipeChroma.IsChecked = state.EnableChroma;
+        TxtPipeChromaHex.Text = state.ChromaHex;
+        TxtPipeChromaTol.Text = state.ChromaTolerance;
+        TxtEdgeKeyHex.Text = state.EdgeHex;
+        TxtEdgeTol.Text = state.EdgeTolerance;
+        ChkAlphaThreshold.IsChecked = state.EnableAlphaThreshold;
+        TxtAlphaThreshold.Text = state.AlphaThreshold;
+        TxtDefringeOpaque.Text = state.DefringeOpaque;
+        ChkPipeOutline.IsChecked = state.EnableOutline;
+        TxtPipeOutlineHex.Text = state.OutlineHex;
+        TxtMinIsland.Text = state.MinIsland;
+        ChkPipeMajorityDenoise.IsChecked = state.EnableMajorityDenoise;
+        ChkPipeQuant.IsChecked = state.EnableQuantize;
+        TxtPipeQuantLevels.Text = state.QuantizeColors;
+        CmbPipeQuantMethod.SelectedIndex = state.QuantizeMethodIndex;
+    }
+
+    private void SyncSpriteCleanupStateFromControls()
+    {
+        SpriteStudioPanel.SetCleanupState(new SpriteCleanupState(
+            EnableChroma: ChkPipeChroma.IsChecked == true,
+            ChromaHex: TxtPipeChromaHex.Text ?? string.Empty,
+            ChromaTolerance: TxtPipeChromaTol.Text ?? string.Empty,
+            EdgeHex: TxtEdgeKeyHex.Text ?? string.Empty,
+            EdgeTolerance: TxtEdgeTol.Text ?? string.Empty,
+            EnableAlphaThreshold: ChkAlphaThreshold.IsChecked == true,
+            AlphaThreshold: TxtAlphaThreshold.Text ?? string.Empty,
+            DefringeOpaque: TxtDefringeOpaque.Text ?? string.Empty,
+            EnableOutline: ChkPipeOutline.IsChecked == true,
+            OutlineHex: TxtPipeOutlineHex.Text ?? string.Empty,
+            MinIsland: TxtMinIsland.Text ?? string.Empty,
+            EnableMajorityDenoise: ChkPipeMajorityDenoise.IsChecked == true,
+            EnableQuantize: ChkPipeQuant.IsChecked == true,
+            QuantizeColors: TxtPipeQuantLevels.Text ?? string.Empty,
+            QuantizeMethodIndex: CmbPipeQuantMethod.SelectedIndex));
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
@@ -748,6 +847,7 @@ public partial class MainWindow : Window
     private void UpdateSpriteSelectionMode()
     {
         var on = ChkSpriteCrop.IsChecked == true;
+        SpriteStudioPanel.IsManualCropEnabled = on;
         if (on)
             ChkPipette.IsChecked = false;
         // In modalità ROI non distruttiva la selezione resta attiva
@@ -1376,8 +1476,10 @@ public partial class MainWindow : Window
 
     private void RefreshCellList()
     {
-        CellList.ItemsSource = _cells.Select(c =>
+        var rows = _cells.Select(c =>
             $"{c.Id}  [{c.BoundsInAtlas.MinX},{c.BoundsInAtlas.MinY} → {c.BoundsInAtlas.Width}×{c.BoundsInAtlas.Height}]").ToList();
+        CellList.ItemsSource = rows;
+        SpriteStudioPanel.SetCells(rows);
     }
 
     private async Task SaveSelectedFrameAsync()
@@ -1476,6 +1578,7 @@ public partial class MainWindow : Window
         SetText(TxtPipeOutlineHex, formState.OutlineHex);
         SetChecked(ChkAlphaThreshold, formState.EnableAlphaThreshold);
         SetText(TxtAlphaThreshold, formState.AlphaThreshold);
+        SyncSpriteCleanupStateFromControls();
     }
 
     private void HookPipelinePresetResetOnManualChanges()
@@ -2514,9 +2617,11 @@ public partial class MainWindow : Window
 
     private void UpdatePasteBufferStatus()
     {
-        TxtPasteBufferStatus.Text = _pasteBuffer is null
+        var status = _pasteBuffer is null
             ? "Buffer: vuoto"
             : $"Buffer: {_pasteBuffer.Width}×{_pasteBuffer.Height} px";
+        TxtPasteBufferStatus.Text = status;
+        SpriteStudioPanel.SetPasteState(_pasteModeActive, _viewingPasteSource, status);
     }
 
     // ─── Workbench allineamento frame ────────────────────────────────────────
@@ -3110,19 +3215,23 @@ public partial class MainWindow : Window
 
         if (_activeSelectionBox is null)
         {
-            TxtSelectionInfo.Text        = "Nessuna selezione.\nTrascina sull'immagine per iniziare.";
+            const string noSelectionText = "Nessuna selezione.\nTrascina sull'immagine per iniziare.";
+            TxtSelectionInfo.Text        = noSelectionText;
             BtnExportSelection.IsEnabled = false;
             BtnCropToSelection.IsEnabled = false;
+            SpriteStudioPanel.SetSelectionInfo(noSelectionText, hasSelection: false);
             return;
         }
         var b = _activeSelectionBox.Value;
         // MaxX/MaxY sono esclusivi (half-open); ultimo pixel incluso è Max−1.
-        TxtSelectionInfo.Text =
+        var selectionText =
             $"Origine (↖): ({b.MinX}, {b.MinY}) px\n" +
             $"Dimensione: {b.Width} × {b.Height} px\n" +
             $"Ultimo pixel incluso (↘): ({b.MaxX - 1}, {b.MaxY - 1})";
+        TxtSelectionInfo.Text = selectionText;
         BtnExportSelection.IsEnabled = true;
         BtnCropToSelection.IsEnabled = true;
+        SpriteStudioPanel.SetSelectionInfo(selectionText, hasSelection: true);
     }
 
     private bool _importInProgress;

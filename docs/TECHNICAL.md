@@ -54,12 +54,12 @@ L’elaborazione pixel avviene **nel processo .NET** (nessun WebView). ImageShar
 La shell desktop sta migrando in modo progressivo verso tre aree operative:
 
 - **Sprite Studio:** sprite statici, cleanup, ROI, slicing, palette/quantize, export sprite.
-- **Animation Studio:** frame multipli, preview animazione, timeline, pivot, baseline e anti-jitter.
+- **Animation Studio:** frame multipli, preview animazione, timeline, pivot, baseline, anti-jitter e roadmap `Video Frame Extractor`.
 - **Tileset Studio:** griglie, crop-to-grid, template, seamless/tile preview ed export Tiled.
 
 `MainWindow` resta per ora la shell di compatibilita': gestisce toolbar, workspace condiviso, stato documento e routing tra Start Page e Studio attivo. La logica applicativa viene estratta gradualmente in controller dedicati sotto `AiPixelScaler.Desktop/Controllers`.
 
-`SpriteStudioView` e' la prima view Studio introdotta: espone import, cleanup, ROI, slicing, floating paste, quantize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni.
+`SpriteStudioView` e' la prima view Studio introdotta: espone import, cleanup, ROI, slicing, floating paste, quantize, resize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni. Il blocco ROI nella view Sprite sincronizza lo stato della selezione corrente e richiama select all, clear, export ROI, crop e remove tramite il `SelectionController` gia' estratto. Il blocco Slicing sincronizza crop manuale, righe/colonne griglia, celle rilevate, export frame e stato atlas pulito con il backplane legacy e il `SlicingController`. Il blocco Cleanup/Filtri espone preset, Alpha Clean, Edge Refinement, Denoise e Quantize nella view Sprite; prima dell'esecuzione copia i valori sui controlli legacy e riusa la pipeline esistente. Il blocco trasformazioni/export espone resize nearest, mirror H/V, export PNG e JSON.
 
 ### 4.2 Filtri Sprite Studio
 
@@ -71,6 +71,21 @@ Il pannello di pulizia Sprite distingue i filtri reali dai preset:
 - **Edge Refinement:** raggruppa defringe e outline.
 - **Denoise:** raggruppa median, isole minime e denoise a maggioranza 3x3.
 - **Quantize:** filtro autonomo con colori massimi e metodo (`K-Means OKLab`, `Wu`, `Octree`); non viene attivato automaticamente dai preset.
+
+### 4.3 Roadmap Animation Studio: Video Frame Extractor
+
+`Video Frame Extractor` e' una funzione pianificata per `Animation Studio`, non per il flusso di cleanup Sprite. Il primo MVP deve aprire un video MP4 H.264, leggere i metadati principali, permettere la scelta di range temporale e densita' di estrazione, salvare frame PNG e importarli nel frame workbench/timeline esistente.
+
+Scope MVP:
+
+- input MP4 H.264 tramite dialog dedicato;
+- metadati base: durata, FPS sorgente e dimensioni;
+- range start/end;
+- estrazione per FPS target o ogni N frame;
+- output PNG;
+- import automatico nella timeline/frame workbench di `Animation Studio`.
+
+La strategia tecnica consigliata e' FFmpeg rilevabile/configurabile, con supporto iniziale limitato a MP4 H.264. Altri formati come MOV, WebM o AVI saranno estensioni future abilitate dal backend, non parte del primo MVP. `Sprite Studio` resta una possibile destinazione futura per estrarre un frame singolo o una sequenza breve da pulire/slicare, ma non e' il proprietario primario della feature. Il primo MVP non include deduplica, scene detection, crop ROI, cleanup batch o export atlas diretto.
 
 ---
 

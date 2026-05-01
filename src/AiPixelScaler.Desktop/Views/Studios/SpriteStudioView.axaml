@@ -49,10 +49,91 @@
           <Button x:Name="BtnSpriteDefault" Grid.Column="0" Classes="secondary" Content="Default"/>
           <Button x:Name="BtnSpriteCleanup" Grid.Column="2" Classes="secondary" Content="Cleanup"/>
         </Grid>
+        <Grid ColumnDefinitions="*,6,*">
+          <Button x:Name="BtnSpriteSafe" Grid.Column="0" Classes="secondary" Content="Sicuro"/>
+          <Button x:Name="BtnSpriteAggressive" Grid.Column="2" Classes="secondary" Content="Aggressivo"/>
+        </Grid>
         <Button x:Name="BtnSpriteOneClick" Classes="secondary" HorizontalAlignment="Stretch">
           <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
             <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
             <TextBlock Text="One-click cleanup"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Filtri Sprite"/>
+        <TextBlock Classes="studio-hint" Text="Preset, cleanup e filtri dettagliati agiscono sugli stessi parametri della pipeline."/>
+
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <StackPanel Spacing="5">
+            <TextBlock Classes="section-title" Text="Alpha Clean"/>
+            <CheckBox x:Name="ChkSpriteChroma" Content="Chroma key"/>
+            <Grid ColumnDefinitions="*,6,64">
+              <TextBox x:Name="TxtSpriteChromaHex" Grid.Column="0" Text="#00FF00" PlaceholderText="hex"/>
+              <TextBox x:Name="TxtSpriteChromaTol" Grid.Column="2" Text="0"/>
+            </Grid>
+            <Grid ColumnDefinitions="*,6,64">
+              <TextBox x:Name="TxtSpriteEdgeHex" Grid.Column="0" Text="#00FF00" PlaceholderText="sfondo"/>
+              <TextBox x:Name="TxtSpriteEdgeTol" Grid.Column="2" Text="8"/>
+            </Grid>
+            <CheckBox x:Name="ChkSpriteAlphaThreshold" Content="Binarizza alpha"/>
+            <TextBox x:Name="TxtSpriteAlphaThreshold" Text="128"/>
+            <Button x:Name="BtnSpriteEdgeBackground" Classes="secondary" Content="Rimuovi sfondo bordo" HorizontalAlignment="Stretch"/>
+          </StackPanel>
+        </Border>
+
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <StackPanel Spacing="5">
+            <TextBlock Classes="section-title" Text="Edge Refinement"/>
+            <Grid ColumnDefinitions="*,6,64">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Soglia opaco"/>
+              <TextBox x:Name="TxtSpriteDefringeOpaque" Grid.Column="2" Text="250"/>
+            </Grid>
+            <Button x:Name="BtnSpriteDefringe" Classes="secondary" Content="Applica defringe" HorizontalAlignment="Stretch"/>
+            <CheckBox x:Name="ChkSpriteOutline" Content="Contorno 1px"/>
+            <TextBox x:Name="TxtSpriteOutlineHex" Text="#000000"/>
+          </StackPanel>
+        </Border>
+
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <StackPanel Spacing="5">
+            <TextBlock Classes="section-title" Text="Denoise"/>
+            <Grid ColumnDefinitions="*,6,64">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Isole minime"/>
+              <TextBox x:Name="TxtSpriteMinIsland" Grid.Column="2" Text="2"/>
+            </Grid>
+            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Maggioranza 3x3"/>
+            <Grid ColumnDefinitions="*,6,*">
+              <Button x:Name="BtnSpriteMedian" Grid.Column="0" Classes="secondary" Content="Median"/>
+              <Button x:Name="BtnSpriteDenoise" Grid.Column="2" Classes="secondary" Content="Isole"/>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <StackPanel Spacing="5">
+            <TextBlock Classes="section-title" Text="Quantize"/>
+            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita Quantize"/>
+            <Grid ColumnDefinitions="*,6,74">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Colori max"/>
+              <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"/>
+            </Grid>
+            <ComboBox x:Name="CmbSpriteQuantizeMethod" SelectedIndex="0" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="K-Means OKLab"/>
+              <ComboBoxItem Content="Wu (ImageSharp)"/>
+              <ComboBoxItem Content="Octree"/>
+            </ComboBox>
+            <Button x:Name="BtnSpriteQuantizeApply" Classes="secondary" Content="Applica Quantize" HorizontalAlignment="Stretch"/>
+          </StackPanel>
+        </Border>
+
+        <Button x:Name="BtnSpritePipelineApply" Classes="primary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconCheck}" Classes="action-icon"/>
+            <TextBlock Text="Applica filtri selezionati"/>
           </StackPanel>
         </Button>
       </StackPanel>
@@ -67,22 +148,45 @@
             <TextBlock Text="Seleziona area"/>
           </StackPanel>
         </Button>
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <TextBlock x:Name="TxtSpriteSelectionInfo"
+                     Foreground="#8790b6"
+                     FontSize="10"
+                     FontFamily="Consolas,Monospace"
+                     TextWrapping="Wrap"
+                     Text="Nessuna selezione.&#x0a;Trascina sull'immagine per iniziare."/>
+        </Border>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteCrop" Grid.Column="0" Classes="secondary" Content="Ritaglia"/>
-          <Button x:Name="BtnSpriteRemove" Grid.Column="2" Classes="secondary" Content="Rimuovi"/>
+          <Button x:Name="BtnSpriteSelectAll" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconSelectAll}" Classes="action-icon"/>
+              <TextBlock Text="Tutto"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnSpriteClearSelection" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconX}" Classes="action-icon"/>
+              <TextBlock Text="Clear"/>
+            </StackPanel>
+          </Button>
         </Grid>
-        <Button x:Name="BtnSpriteFloatingPaste" Classes="secondary" HorizontalAlignment="Stretch">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconPaste}" Classes="action-icon"/>
-            <TextBlock Text="Floating paste"/>
-          </StackPanel>
-        </Button>
+        <Grid ColumnDefinitions="*,6,*">
+          <Button x:Name="BtnSpriteExportSelection" Grid.Column="0" Classes="secondary" Content="Export ROI" IsEnabled="False"/>
+          <Button x:Name="BtnSpriteCrop" Grid.Column="2" Classes="secondary" Content="Ritaglia" IsEnabled="False"/>
+        </Grid>
+        <Grid ColumnDefinitions="*,6,*">
+          <Button x:Name="BtnSpriteRemove" Grid.Column="0" Classes="secondary" Content="Rimuovi" IsEnabled="False"/>
+          <TextBlock Grid.Column="2" Classes="studio-hint" Text="Paste nel blocco Slicing"/>
+        </Grid>
       </StackPanel>
     </Border>
 
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Slicing"/>
+        <CheckBox x:Name="ChkSpriteManualCrop"
+                  Content="Crop manuale: trascina sul canvas"
+                  ToolTip.Tip="Ritaglia subito il documento quando rilasci la selezione sul canvas."/>
         <Grid ColumnDefinitions="*,6,*">
           <Button x:Name="BtnSpriteDetect" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
@@ -97,6 +201,65 @@
             </StackPanel>
           </Button>
         </Grid>
+        <Grid ColumnDefinitions="*,6,*">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Righe"/>
+            <TextBox x:Name="TxtSpriteRows" Text="2"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Colonne"/>
+            <TextBox x:Name="TxtSpriteCols" Text="2"/>
+          </StackPanel>
+        </Grid>
+        <TextBlock x:Name="TxtSpriteCellsSummary"
+                   Classes="studio-hint"
+                   Text="Nessun frame rilevato."/>
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="2">
+          <ListBox x:Name="SpriteCellList"
+                   Height="82"
+                   Background="Transparent"
+                   FontSize="10"
+                   Foreground="#8f96b8"/>
+        </Border>
+        <Button x:Name="BtnSpriteSaveSelectedFrame"
+                Classes="secondary"
+                HorizontalAlignment="Stretch"
+                IsEnabled="False">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+            <TextBlock Text="Esporta frame selezionato"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnSpriteFloatingPaste" Classes="secondary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconPaste}" Classes="action-icon"/>
+            <TextBlock Text="Crea atlas pulito"/>
+          </StackPanel>
+        </Button>
+        <StackPanel x:Name="SpritePasteActiveBar" IsVisible="False" Spacing="5">
+          <Grid ColumnDefinitions="*,6,*">
+            <ToggleButton x:Name="BtnSpritePasteDest" Grid.Column="0" Classes="tool-toggle" HorizontalAlignment="Stretch">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
+                <TextBlock Text="Dest"/>
+              </StackPanel>
+            </ToggleButton>
+            <ToggleButton x:Name="BtnSpritePasteSrc" Grid.Column="2" Classes="tool-toggle" HorizontalAlignment="Stretch">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
+                <TextBlock Text="Src"/>
+              </StackPanel>
+            </ToggleButton>
+          </Grid>
+          <Button x:Name="BtnSpritePasteCopy" Classes="secondary" HorizontalAlignment="Stretch">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconCopy}" Classes="action-icon"/>
+              <TextBlock Text="Copia selezione sorgente"/>
+            </StackPanel>
+          </Button>
+          <TextBlock x:Name="TxtSpritePasteBufferStatus" Classes="studio-hint" Text="Buffer: vuoto"/>
+          <Button x:Name="BtnSpritePasteExit" Classes="secondary" Content="Esci atlas pulito" HorizontalAlignment="Stretch"/>
+        </StackPanel>
       </StackPanel>
     </Border>
 
@@ -104,9 +267,21 @@
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Palette e trasformazioni"/>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteQuantizeOpen" Grid.Column="0" Classes="secondary" Content="Quantize"/>
-          <Button x:Name="BtnSpriteQuantizeApply" Grid.Column="2" Classes="secondary" Content="Applica"/>
+          <StackPanel Grid.Column="0" Spacing="3">
+            <TextBlock Classes="studio-hint" Text="Larghezza"/>
+            <TextBox x:Name="TxtSpriteResizeW" Text="64" PlaceholderText="px"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="3">
+            <TextBlock Classes="studio-hint" Text="Altezza"/>
+            <TextBox x:Name="TxtSpriteResizeH" Text="64" PlaceholderText="px"/>
+          </StackPanel>
         </Grid>
+        <Button x:Name="BtnSpriteResizeNearest" Classes="secondary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
+            <TextBlock Text="Ridimensiona nearest"/>
+          </StackPanel>
+        </Button>
         <Grid ColumnDefinitions="*,6,*">
           <Button x:Name="BtnSpriteMirrorH" Grid.Column="0" Classes="secondary" Content="Mirror H"/>
           <Button x:Name="BtnSpriteMirrorV" Grid.Column="2" Classes="secondary" Content="Mirror V"/>
