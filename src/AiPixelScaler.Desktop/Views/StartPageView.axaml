@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiPixelScaler.Desktop.Views.StartPageView"
+             Background="#1a1b21">
+  <UserControl.Styles>
+    <Style Selector="Button.start-card">
+      <Setter Property="Background" Value="#10111a"/>
+      <Setter Property="BorderBrush" Value="#65758e"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Padding" Value="18"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+    </Style>
+    <Style Selector="Button.start-card:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#151723"/>
+      <Setter Property="BorderBrush" Value="#9ab2d1"/>
+    </Style>
+    <Style Selector="TextBlock.start-title">
+      <Setter Property="Foreground" Value="#c5d7e8"/>
+      <Setter Property="FontSize" Value="30"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBlock.start-copy">
+      <Setter Property="Foreground" Value="#b9c7d7"/>
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style Selector="Border.start-action">
+      <Setter Property="Background" Value="#080a10"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="12,10"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="44,*" ClipToBounds="True">
+    <Border Grid.Row="0" Background="#5d6f88" CornerRadius="0,0,10,10" Padding="14,0">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <Border Width="28" Height="28" CornerRadius="6" Background="#2b2947" BorderBrush="#7886a6" BorderThickness="1">
+          <Grid RowDefinitions="*,*,*" ColumnDefinitions="*,*,*" Margin="5">
+            <Border Grid.Row="0" Grid.Column="0" Background="#5ed4b0" CornerRadius="1"/>
+            <Border Grid.Row="0" Grid.Column="2" Background="#8ba7ff" CornerRadius="1"/>
+            <Border Grid.Row="1" Grid.Column="1" Background="#df79cf" CornerRadius="1"/>
+            <Border Grid.Row="2" Grid.Column="0" Background="#a8e77f" CornerRadius="1"/>
+            <Border Grid.Row="2" Grid.Column="2" Background="#67d4ff" CornerRadius="1"/>
+          </Grid>
+        </Border>
+        <TextBlock Text="AI PIXEL SCALER V2" Foreground="#d8e1ec" FontSize="20" FontWeight="SemiBold"/>
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1" Background="#202127">
+      <Border Background="#101116" Opacity="0.76"/>
+      <StackPanel Margin="64,36,64,44" Spacing="28">
+        <StackPanel Spacing="8">
+          <TextBlock Text="BENVENUTO NELLA PIXEL SCALER V2 SUITE"
+                     Foreground="#c7d8e9"
+                     FontSize="42"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="Seleziona lo Studio dedicato per iniziare il tuo flusso di lavoro"
+                     Foreground="#bfccda"
+                     FontSize="24"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,28,*,28,*" HorizontalAlignment="Stretch">
+          <Button x:Name="BtnStartSprite" Grid.Column="0" Classes="start-card">
+            <Grid RowDefinitions="Auto,210,Auto,*,Auto" MinHeight="486">
+              <TextBlock Classes="start-title" Text="SPRITE STUDIO"/>
+              <Grid Grid.Row="1" HorizontalAlignment="Center" Width="210" Height="190" Margin="0,14,0,0">
+                <Border Width="150" Height="150" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        BorderBrush="#45566d" BorderThickness="4">
+                  <Grid RowDefinitions="*,*,*,*,*,*,*,*" ColumnDefinitions="*,*,*,*,*,*,*,*">
+                    <Border Background="#444" Grid.RowSpan="8" Grid.ColumnSpan="8"/>
+                    <Border Background="#2c2c32" Grid.Row="0" Grid.Column="1"/>
+                    <Border Background="#2c2c32" Grid.Row="0" Grid.Column="3"/>
+                    <Border Background="#2c2c32" Grid.Row="0" Grid.Column="5"/>
+                    <Border Background="#2c2c32" Grid.Row="0" Grid.Column="7"/>
+                    <Border Background="#2c2c32" Grid.Row="1" Grid.Column="0"/>
+                    <Border Background="#2c2c32" Grid.Row="1" Grid.Column="2"/>
+                    <Border Background="#2c2c32" Grid.Row="1" Grid.Column="4"/>
+                    <Border Background="#2c2c32" Grid.Row="1" Grid.Column="6"/>
+                  </Grid>
+                </Border>
+                <Canvas Width="104" Height="128" HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <Rectangle Canvas.Left="34" Canvas.Top="10" Width="42" Height="18" Fill="#b74255"/>
+                  <Rectangle Canvas.Left="26" Canvas.Top="26" Width="58" Height="32" Fill="#8495a6"/>
+                  <Rectangle Canvas.Left="35" Canvas.Top="38" Width="15" Height="15" Fill="#dce6e8"/>
+                  <Rectangle Canvas.Left="58" Canvas.Top="38" Width="15" Height="15" Fill="#dce6e8"/>
+                  <Rectangle Canvas.Left="31" Canvas.Top="60" Width="48" Height="22" Fill="#f0ae87"/>
+                  <Rectangle Canvas.Left="22" Canvas.Top="82" Width="68" Height="32" Fill="#718394"/>
+                  <Rectangle Canvas.Left="20" Canvas.Top="114" Width="24" Height="14" Fill="#1d263b"/>
+                  <Rectangle Canvas.Left="62" Canvas.Top="114" Width="24" Height="14" Fill="#1d263b"/>
+                </Canvas>
+                <Border Width="66" Height="66" CornerRadius="33" Background="#263c46" BorderBrush="#668d8a"
+                        BorderThickness="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,4,8">
+                  <TextBlock Text="+" FontSize="44" FontWeight="Bold" Foreground="#8dd1b4" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+              </Grid>
+              <TextBlock Grid.Row="2" Text="SPRITE STUDIO" Classes="start-title" FontSize="28"/>
+              <StackPanel Grid.Row="3" Spacing="8" Margin="16,8,16,12">
+                <TextBlock Classes="start-copy" Text="Modifica e Processing di Frame Statici" HorizontalAlignment="Center"/>
+                <TextBlock Classes="start-copy" Text="- Palette Swapping &amp; Forcing&#x0a;- Slicing e Isolamento Contorni&#x0a;- Composizione Floating Paste"/>
+              </StackPanel>
+              <Border Grid.Row="4" Classes="start-action">
+                <TextBlock Text="AVVIA STUDIO" Foreground="#c3cfdf" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+              </Border>
+            </Grid>
+          </Button>
+
+          <Button x:Name="BtnStartAnimation" Grid.Column="2" Classes="start-card">
+            <Grid RowDefinitions="Auto,210,Auto,*,Auto" MinHeight="486">
+              <TextBlock Classes="start-title" Text="ANIMATION STUDIO"/>
+              <Grid Grid.Row="1" HorizontalAlignment="Center" Width="280" Height="190" Margin="0,14,0,0">
+                <Canvas Width="270" Height="150" VerticalAlignment="Center">
+                  <Rectangle Canvas.Left="28" Canvas.Top="52" Width="42" Height="58" Fill="#323d4c"/>
+                  <Rectangle Canvas.Left="74" Canvas.Top="40" Width="54" Height="72" Fill="#dd8b80" Opacity="0.75"/>
+                  <Rectangle Canvas.Left="130" Canvas.Top="34" Width="58" Height="82" Fill="#9cacb7"/>
+                  <Rectangle Canvas.Left="190" Canvas.Top="40" Width="54" Height="74" Fill="#597ca3" Opacity="0.72"/>
+                  <Rectangle Canvas.Left="138" Canvas.Top="70" Width="42" Height="26" Fill="#f0ae87"/>
+                  <Rectangle Canvas.Left="132" Canvas.Top="100" Width="62" Height="38" Fill="#7c8d98"/>
+                </Canvas>
+                <Border Width="210" Height="24" CornerRadius="5" BorderBrush="#55d59d" BorderThickness="2"
+                        HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10">
+                  <Grid ColumnDefinitions="64,6,18,*,2,*">
+                    <Border Grid.Column="0" Background="#57dda0" Margin="2"/>
+                    <Border Grid.Column="2" Background="#57dda0" Margin="0,2"/>
+                    <Border Grid.Column="4" Background="#57dda0" Margin="0,2"/>
+                  </Grid>
+                </Border>
+              </Grid>
+              <TextBlock Grid.Row="2" Text="ANIMATION STUDIO" Classes="start-title" FontSize="28"/>
+              <StackPanel Grid.Row="3" Spacing="8" Margin="16,8,16,12">
+                <TextBlock Classes="start-copy" Text="Riallineamento e Gestione Jittering post-AI" HorizontalAlignment="Center"/>
+                <TextBlock Classes="start-copy" Text="- Onion Skinning e Allineamento Pivot&#x0a;- Visual Atlas Builder&#x0a;- Timeline e FPS Controls"/>
+              </StackPanel>
+              <Border Grid.Row="4" Classes="start-action">
+                <TextBlock Text="AVVIA STUDIO" Foreground="#c3cfdf" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+              </Border>
+            </Grid>
+          </Button>
+
+          <Button x:Name="BtnStartTileset" Grid.Column="4" Classes="start-card">
+            <Grid RowDefinitions="Auto,210,Auto,*,Auto" MinHeight="486">
+              <TextBlock Classes="start-title" Text="TILESET STUDIO"/>
+              <Grid Grid.Row="1" HorizontalAlignment="Center" Width="300" Height="190" Margin="0,14,0,0">
+                <Grid Width="170" Height="170" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RowDefinitions="*,*,*,*,*" ColumnDefinitions="*,*,*,*,*">
+                  <Border BorderBrush="#d9bf4a" BorderThickness="2" Grid.RowSpan="5" Grid.ColumnSpan="5"/>
+                  <Border Grid.Row="0" Grid.Column="0" Background="#85856f" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="0" Grid.Column="1" Background="#60635d" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="0" Grid.Column="2" Background="#8d8c77" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="0" Grid.Column="3" Background="#686b62" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="0" Grid.Column="4" Background="#91917b" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="1" Grid.Column="0" Background="#6f7168" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="1" Grid.Column="1" Background="#888775" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="1" Grid.Column="2" Background="#666a61" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="1" Grid.Column="3" Background="#90907a" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="1" Grid.Column="4" Background="#73766c" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="2" Grid.ColumnSpan="5" Background="#7e806f" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="3" Grid.ColumnSpan="5" Background="#686c64" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                  <Border Grid.Row="4" Grid.ColumnSpan="5" Background="#8b8a76" BorderBrush="#d9bf4a" BorderThickness="1"/>
+                </Grid>
+                <Border Width="82" Height="76" BorderBrush="#66758c" BorderThickness="2" CornerRadius="4"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="5">
+                  <Grid RowDefinitions="*,*,*" ColumnDefinitions="*,*,*">
+                    <Border Background="#77796d" BorderBrush="#66758c" BorderThickness="1" Grid.Row="0" Grid.Column="0"/>
+                    <Border Background="#62665f" BorderBrush="#66758c" BorderThickness="1" Grid.Row="0" Grid.Column="1"/>
+                    <Border Background="#77796d" BorderBrush="#66758c" BorderThickness="1" Grid.Row="0" Grid.Column="2"/>
+                    <Border Background="#62665f" BorderBrush="#66758c" BorderThickness="1" Grid.Row="1" Grid.Column="0"/>
+                    <Border Background="#77796d" BorderBrush="#66758c" BorderThickness="1" Grid.Row="1" Grid.Column="1"/>
+                    <Border Background="#62665f" BorderBrush="#66758c" BorderThickness="1" Grid.Row="1" Grid.Column="2"/>
+                  </Grid>
+                </Border>
+              </Grid>
+              <TextBlock Grid.Row="2" Text="TILESET STUDIO" Classes="start-title" FontSize="28"/>
+              <StackPanel Grid.Row="3" Spacing="8" Margin="16,8,16,12">
+                <TextBlock Classes="start-copy" Text="Configurazione Griglie &amp; Pattern Seamless" HorizontalAlignment="Center"/>
+                <TextBlock Classes="start-copy" Text="- Configurazione Griglia &amp; Crop-to-Grid&#x0a;- Filtri Seamless (Shift &amp; Dither Blend)&#x0a;- Generatore Procedurale Organico"/>
+              </StackPanel>
+              <Border Grid.Row="4" Classes="start-action">
+                <TextBlock Text="AVVIA STUDIO" Foreground="#c3cfdf" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+              </Border>
+            </Grid>
+          </Button>
+        </Grid>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

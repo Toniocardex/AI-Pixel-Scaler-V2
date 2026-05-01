@@ -14,10 +14,12 @@ using AiPixelScaler.Core.Pipeline.Slicing;
 using AiPixelScaler.Core.Pipeline.Templates;
 using AiPixelScaler.Core.Pipeline.Tiling;
 using AiPixelScaler.Desktop.Controls;
+using AiPixelScaler.Desktop.Controllers;
 using AiPixelScaler.Desktop.Imaging;
 using AiPixelScaler.Desktop.Services;
 using AiPixelScaler.Desktop.Utilities;
 using AiPixelScaler.Desktop.ViewModels;
+using AiPixelScaler.Desktop.ViewModels.Studios;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -53,15 +55,16 @@ public partial class MainWindow : Window
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
     private readonly DelegateCommand _runQuickProcessCommand;
+    private readonly DelegateCommand _applyDefaultPresetCommand;
     private readonly DelegateCommand _applySafePresetCommand;
     private readonly DelegateCommand _applyAggressivePresetCommand;
     private readonly DelegateCommand _applyPipelineCommand;
     private readonly WorkspaceTabsController _workspaceTabs = new();
-    private readonly UiPreferencesService _uiPreferences = new();
     private bool _workspaceTabSwitching;
     private bool _workspaceScrollBarSync;
     private bool _workspaceZoomSliderSync;
     private int _workspaceScrollBarLayoutDepth;
+    private StudioKind _currentStudio = StudioKind.Start;
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _toolbarSelectionModeEnabled;
@@ -71,6 +74,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _runQuickProcessCommand = new DelegateCommand(RunQuickProcess, () => _document is not null);
+        _applyDefaultPresetCommand = new DelegateCommand(ApplyDefaultPresetToControls, () => _document is not null);
         _applySafePresetCommand = new DelegateCommand(ApplySafePresetToControls, () => _document is not null);
         _applyAggressivePresetCommand = new DelegateCommand(ApplyAggressivePresetToControls, () => _document is not null);
         _applyPipelineCommand = new DelegateCommand(RunPixelPipeline, () => _document is not null);
@@ -81,6 +85,8 @@ public partial class MainWindow : Window
         });
         _floatingPaste = new FloatingPasteCoordinator(Editor);
         LoadWelcomeDocument();
+        StudioShell.IsVisible = false;
+        StartPage.StudioSelected += (_, studio) => ActivateStudio(studio);
 
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
@@ -167,6 +173,7 @@ public partial class MainWindow : Window
 
         // Passo 1 — Pulisci
         BtnQuickProcess.Click += (_, _) => _runQuickProcessCommand.Execute(null);
+        BtnPresetDefault.Click += (_, _) => _applyDefaultPresetCommand.Execute(null);
         BtnPresetSafe.Click += (_, _) => _applySafePresetCommand.Execute(null);
         BtnPresetAggressiveRecover.Click += (_, _) => _applyAggressivePresetCommand.Execute(null);
         BtnPipeApply.Click += (_, _) => _applyPipelineCommand.Execute(null);
@@ -220,25 +227,9 @@ public partial class MainWindow : Window
 
         // Tab Selezione libera
         MainTabs.SelectionChanged += OnMainTabChanged;
-        ChkShowAdvancedTabs.IsCheckedChanged += (_, _) =>
-        {
-            var show = ChkShowAdvancedTabs.IsChecked == true;
-            if (_workspaceTabs.ActiveTab is { } activeTab)
-                activeTab.IsAdvancedMode = show;
-            _uiPreferences.SaveShowAdvancedTabs(show);
-            if (!show && (ReferenceEquals(MainTabs.SelectedItem, TabStylize) ||
-                          ReferenceEquals(MainTabs.SelectedItem, TabTemplate) ||
-                          ReferenceEquals(MainTabs.SelectedItem, TabSelection)))
-            {
-                MainTabs.SelectedIndex = 0;
-            }
-            TabStylize.IsVisible = show;
-            TabTemplate.IsVisible = show;
-            TabSelection.IsVisible = show;
-            SetStatus(show
-                ? "Tab avanzate visibili."
-                : "Tab avanzate nascoste (layout semplificato).");
-        };
+        TabStylize.IsVisible = true;
+        TabTemplate.IsVisible = true;
+        TabSelection.IsVisible = true;
         BtnWorkspaceOpen.Click += async (_, _) => await OpenImageAsync();
         BtnWorkspaceCopyToClipboard.Click += async (_, _) => await TryCopyImageToClipboardAsync();
         BtnWorkspacePasteFromClipboard.Click += async (_, _) => await TryPasteFromClipboardAsync();
@@ -252,17 +243,10 @@ public partial class MainWindow : Window
         BtnStepPulisci.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Pulisci);
         BtnStepSliceAllinea.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
+        BtnGoSprite.Click += (_, _) => MainTabs.SelectedIndex = 0;
         BtnGoAllinea.Click += (_, _) => MainTabs.SelectedIndex = 2;
-        BtnGoStilizza.Click += (_, _) =>
-        {
-            ChkShowAdvancedTabs.IsChecked = true;
-            MainTabs.SelectedIndex = 3;
-        };
-        BtnGoTemplate.Click += (_, _) =>
-        {
-            ChkShowAdvancedTabs.IsChecked = true;
-            MainTabs.SelectedIndex = 5;
-        };
+        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 3;
+        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 5;
         BtnSelectAll.Click       += (_, _) => SelectAll();
         BtnClearSelection.Click  += (_, _) => ClearSelection();
         BtnExportSelection.Click += async (_, _) => await ExportSelectionAsync();
@@ -281,9 +265,6 @@ public partial class MainWindow : Window
             if (ChkSnapSyncGrid.IsChecked == true && ChkSnapGrid.IsChecked == true)
                 TxtSnapSize.Value = TxtWorldGridSize.Value;
         };
-
-        if (_uiPreferences.TryLoadShowAdvancedTabs(out var showAdvancedSaved))
-            ChkShowAdvancedTabs.IsChecked = showAdvancedSaved;
 
         // Crop & POT (asset singolo)
         BtnApplyCropPot.Click    += (_, _) => RunCropPipeline();
@@ -320,6 +301,31 @@ public partial class MainWindow : Window
         UpdatePivotLabels();
         UpdateUndoUi();
         UpdateWorkspaceGuidance();
+    }
+
+    private void ActivateStudio(StudioKind studio)
+    {
+        _currentStudio = studio;
+        StartPage.IsVisible = studio == StudioKind.Start;
+        StudioShell.IsVisible = studio != StudioKind.Start;
+        if (studio == StudioKind.Start)
+            return;
+
+        MainTabs.SelectedIndex = studio switch
+        {
+            StudioKind.Sprite => 0,
+            StudioKind.Animation => 2,
+            StudioKind.Tileset => 5,
+            _ => MainTabs.SelectedIndex
+        };
+        SetStatus($"{studio switch
+        {
+            StudioKind.Sprite => "Sprite Studio",
+            StudioKind.Animation => "Animation Studio",
+            StudioKind.Tileset => "Tileset Studio",
+            _ => "Studio"
+        }} attivo.");
+        EnterSelectionCanvas(IsRoiSelectionModeRequested());
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
@@ -435,6 +441,18 @@ public partial class MainWindow : Window
         return SanitizeFileSegment(segment);
     }
 
+    private static string SanitizeFileSegment(string id)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var chars = id.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (Array.IndexOf(invalid, chars[i]) >= 0)
+                chars[i] = '_';
+        }
+        return new string(chars);
+    }
+
     private WorkspaceTabViewModel CaptureWorkspaceState(string title, bool isDirty) =>
         WorkspaceRuntimeAdapter.CaptureTabState(
             title,
@@ -445,7 +463,7 @@ public partial class MainWindow : Window
             _undoCoordinator.Snapshots,
             _hasUserFile,
             _cleanApplied,
-            ChkShowAdvancedTabs.IsChecked == true,
+            true,
             Editor.SliceGridRows,
             Editor.SliceGridCols,
             Editor.SpriteCells,
@@ -463,7 +481,6 @@ public partial class MainWindow : Window
         _cells = runtime.Cells;
         _hasUserFile = runtime.HasUserFile;
         _cleanApplied = runtime.CleanApplied;
-        ChkShowAdvancedTabs.IsChecked = state.IsAdvancedMode;
         Editor.SliceGridRows = runtime.GridRows;
         Editor.SliceGridCols = runtime.GridCols;
         Editor.SpriteCells = runtime.SpriteOverlay;
@@ -1237,6 +1254,23 @@ public partial class MainWindow : Window
             SetStatus("Impossibile centrare ora: viewport non pronta.");
     }
 
+    private void ApplyDefaultPresetToControls()
+    {
+        _isApplyingPipelinePreset = true;
+        try
+        {
+            _pipelineVm.ApplyDefaultPreset();
+            ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
+        }
+        finally
+        {
+            _isApplyingPipelinePreset = false;
+        }
+        SetStatus("Preset Default impostato.");
+        ExpPipelineTechnicalDetails.IsExpanded = false;
+        UpdatePipelinePresetBadge();
+    }
+
     private void ApplySafePresetToControls()
     {
         _isApplyingPipelinePreset = true;
@@ -1283,39 +1317,8 @@ public partial class MainWindow : Window
 
     private async Task SaveSelectedFrameAsync()
     {
-        if (_document is null)          { SetStatus("Nessuna immagine aperta."); return; }
-        var idx = CellList.SelectedIndex;
-        if (idx < 0 || idx >= _cells.Count)
-        {
-            SetStatus("Seleziona prima un frame dalla lista.");
-            return;
-        }
-
-        var cell = _cells[idx];
-        try
-        {
-            var suggested = $"{cell.Id}_{cell.BoundsInAtlas.Width}x{cell.BoundsInAtlas.Height}.png";
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title            = $"Salva frame {cell.Id}",
-                DefaultExtension = "png",
-                FileTypeChoices  = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
-                SuggestedFileName = suggested,
-            });
-            if (file is null) return;
-
-            using var crop = AtlasCropper.Crop(_document, cell.BoundsInAtlas);
-            await using var stream = await file.OpenWriteAsync();
-            crop.Save(stream, new PngEncoder());
-
-            SetStatus($"Frame {cell.Id} salvato — {cell.BoundsInAtlas.Width}×{cell.BoundsInAtlas.Height} px.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore salvataggio frame: {ex.Message}");
-        }
+        await SlicingController.SaveSelectedFrameAsync(_document, _cells, CellList.SelectedIndex, StorageProvider, SetStatus);
     }
-
     private bool TryBuildPipelineOptions(bool includeOutline, out PixelArtPipeline.Options options, out string error)
     {
         options = default!;
@@ -1475,6 +1478,7 @@ public partial class MainWindow : Window
     {
         TxtPipelinePresetBadge.Text = _pipelineVm.ActivePreset switch
         {
+            PipelineViewModel.PresetKind.Default => "Preset attivo: Default",
             PipelineViewModel.PresetKind.Safe => "Preset attivo: Sicuro",
             PipelineViewModel.PresetKind.AggressiveRecover => "Preset attivo: Aggressivo + Recupero",
             _ => "Preset attivo: Personalizzato"
@@ -1565,104 +1569,13 @@ public partial class MainWindow : Window
 
     private async Task ExportTiledMapJsonAsync()
     {
-        if (_document is null) return;
-        try
-        {
-            var cells = _cells.Count > 0 ? _cells : new List<SpriteCell> { new("full", new AxisAlignedBox(0, 0, _document.Width, _document.Height)) };
-            var tileW = cells[0].BoundsInAtlas.Width;
-            var tileH = cells[0].BoundsInAtlas.Height;
-            var mapCols = _document.Width / Math.Max(1, tileW);
-            var mapRows = _document.Height / Math.Max(1, tileH);
-            var json = TiledMapJson.BuildFromCells(mapCols, mapRows, tileW, tileH, cells, "atlas.png");
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Salva mappa Tiled",
-                DefaultExtension = "json",
-                FileTypeChoices = [new FilePickerFileType("Tiled / JSON") { Patterns = ["*.json", "*.tmj"] }],
-                SuggestedFileName = "map.json"
-            });
-            if (file is null) return;
-            await using (var s = await file.OpenWriteAsync())
-            {
-                using var w = new StreamWriter(s);
-                await w.WriteAsync(json);
-            }
-            SetStatus($"Mappa Tiled salvata ({cells.Count} tile, {mapCols}×{mapRows}). Posiziona 'atlas.png' nella stessa cartella.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore export Tiled: {ex.Message}");
-        }
+        await ExportController.ExportTiledMapJsonAsync(_document, _cells, StorageProvider, SetStatus);
     }
 
     private async Task ExportFramesZipAsync()
     {
-        if (_document is null) return;
-        var list = new List<(string name, Image<Rgba32> img)>();
-        try
-        {
-            if (_cells.Count == 0)
-            {
-                var copy = _document.Clone();
-                list.Add(("frame0.png", copy));
-            }
-            else
-            {
-                for (var i = 0; i < _cells.Count; i++)
-                {
-                    var c = _cells[i];
-                    var id = string.IsNullOrEmpty(c.Id) ? "cell" : SanitizeFileSegment(c.Id);
-                    var name = $"{i:000}_{id}.png";
-                    var crop = AtlasCropper.Crop(_document, c.BoundsInAtlas);
-                    if (crop.Width == 0) continue;
-                    list.Add((name, crop));
-                }
-            }
-            if (list.Count == 0)
-            {
-                SetStatus("Nessun frame da esportare nello ZIP.");
-                return;
-            }
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Salva archivio frame PNG",
-                DefaultExtension = "zip",
-                FileTypeChoices = [new FilePickerFileType("ZIP") { Patterns = ["*.zip"] }],
-                SuggestedFileName = "frames.zip"
-            });
-            if (file is null)
-            {
-                foreach (var t in list) t.img.Dispose();
-                return;
-            }
-            await using (var s = await file.OpenWriteAsync())
-            {
-                PngFrameZipWriter.Write(list, s);
-            }
-            SetStatus($"ZIP creato: {list.Count} frame.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore export ZIP: {ex.Message}");
-        }
-        finally
-        {
-            foreach (var t in list) t.img.Dispose();
-        }
+        await ExportController.ExportFramesZipAsync(_document, _cells, StorageProvider, SetStatus);
     }
-
-    private static string SanitizeFileSegment(string id)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var chars = id.ToCharArray();
-        for (var i = 0; i < chars.Length; i++)
-        {
-            if (Array.IndexOf(invalid, chars[i]) >= 0)
-                chars[i] = '_';
-        }
-        return new string(chars);
-    }
-
     /// <summary>
     /// Chiude modalità transiente (atlas pulito, workbench frame, ROI crop, strumenti canvas)
     /// dopo aver sostituito il documento e svuotato <see cref="_cells"/>.
@@ -1714,68 +1627,14 @@ public partial class MainWindow : Window
 
     private async Task TryCopyImageToClipboardAsync()
     {
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is null)
-        {
-            SetStatus("Appunti non disponibili.");
-            return;
-        }
-
-        if (_document is null)
-        {
-            SetStatus("Apri prima un'immagine.");
-            return;
-        }
-
-        Image<Rgba32>? cropped = null;
-        Bitmap? bmp = null;
-        try
-        {
-            Image<Rgba32> pixelsSource = _document;
-            string detail;
-
-            if (_activeSelectionBox is not null)
-            {
-                var box = _activeSelectionBox.Value;
-                var minX = Math.Clamp(box.MinX, 0, _document.Width);
-                var maxX = Math.Clamp(box.MaxX, 0, _document.Width);
-                var minY = Math.Clamp(box.MinY, 0, _document.Height);
-                var maxY = Math.Clamp(box.MaxY, 0, _document.Height);
-                if (minX >= maxX || minY >= maxY)
-                {
-                    SetStatus("Selezione non valida per la copia.");
-                    return;
-                }
-
-                var clamped = new AxisAlignedBox(minX, minY, maxX, maxY);
-                cropped = AtlasCropper.Crop(_document, in clamped);
-                pixelsSource = cropped;
-                detail = $"{cropped.Width}×{cropped.Height} px (selezione ROI)";
-            }
-            else
-                detail = $"{_document.Width}×{_document.Height} px";
-
-            bmp = Rgba32BitmapBridge.ToBitmap(pixelsSource);
-            if (bmp is null)
-            {
-                SetStatus("Impossibile preparare l'immagine per gli appunti.");
-                return;
-            }
-
-            await ClipboardBitmapInterop.SetBitmapAndFlushAsync(clipboard, bmp).ConfigureAwait(true);
-            SetStatus($"Copiato negli appunti: {detail}.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Copia negli appunti: {ex.Message}");
-        }
-        finally
-        {
-            cropped?.Dispose();
-            bmp?.Dispose();
-        }
+        await SelectionController.CopyImageToClipboardAsync(
+            _document,
+            _activeSelectionBox,
+            TopLevel.GetTopLevel(this)?.Clipboard,
+            Rgba32BitmapBridge.ToBitmap,
+            ClipboardBitmapInterop.SetBitmapAndFlushAsync,
+            SetStatus);
     }
-
     private void CommitFloatingPaste() =>
         _floatingPaste.TryCommit(_document, PushUndo, msg => SetStatus(msg), RefreshView);
 
@@ -1865,26 +1724,25 @@ public partial class MainWindow : Window
 
     private void RunGridSlice()
     {
-        if (_document is null) return;
-        try
+        var cells = SlicingController.RunGridSlice(
+            _document,
+            TxtRows.Text,
+            TxtCols.Text,
+            () => PushUndo(),
+            (rows, cols) =>
+            {
+                Editor.SliceGridRows = rows;
+                Editor.SliceGridCols = cols;
+            },
+            cells => Editor.SpriteCells = cells.ToList(),
+            SetStatus);
+        if (cells is not null)
         {
-            var rows = Math.Max(1, InputParsing.ParseInt(TxtRows.Text, 2));
-            var cols = Math.Max(1, InputParsing.ParseInt(TxtCols.Text, 2));
-            PushUndo();
-            _cells = GridSlicer.Slice(_document.Width, _document.Height, rows, cols).ToList();
-            Editor.SliceGridRows = rows;
-            Editor.SliceGridCols = cols;
-            Editor.SpriteCells = [];
+            _cells = cells;
             RefreshCellList();
             UpdateWorkspaceGuidance();
-            SetStatus($"Diviso in griglia {rows}×{cols}: trovati {_cells.Count} sprite.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore grid slice: {ex.Message}");
         }
     }
-
     private async Task RunWorkspaceGuideActionAsync()
     {
         switch (_workflowShell.ActiveStep)
@@ -2010,23 +1868,19 @@ public partial class MainWindow : Window
 
     private void RunCcl()
     {
-        if (_document is null) return;
-        try
+        var cells = SlicingController.RunCcl(
+            _document,
+            () => PushUndo(),
+            ClearSliceGrid,
+            cells => Editor.SpriteCells = cells.ToList(),
+            SetStatus);
+        if (cells is not null)
         {
-            PushUndo();
-            _cells = CclAutoSlicer.Slice(_document).ToList();
-            ClearSliceGrid();
+            _cells = cells;
             RefreshCellList();
-            Editor.SpriteCells = _cells;
             UpdateWorkspaceGuidance();
-            SetStatus($"Rilevamento automatico completato: trovati {_cells.Count} sprite.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore CCL: {ex.Message}");
         }
     }
-
     private void RunGlobalScan()
     {
         if (_document is null || _cells.Count == 0)
@@ -2348,120 +2202,35 @@ public partial class MainWindow : Window
 
     private async Task ExportPngAsync()
     {
-        if (_document is null) return;
-        try
-        {
-            var useCustomCell = ChkExportCustomCellSize.IsChecked == true;
-            var keepUniformCell = ChkExportKeepCellSize.IsChecked == true || useCustomCell;
-            int? customW = null;
-            int? customH = null;
-            if (useCustomCell)
-            {
-                customW = Math.Max(1, InputParsing.ParseInt(TxtExportCellW.Text, 208));
-                customH = Math.Max(1, InputParsing.ParseInt(TxtExportCellH.Text, 256));
-            }
-            using var layout = ExportLayoutBuilder.Build(
-                _document,
-                _cells,
-                SliderPivotX.Value,
-                SliderPivotY.Value,
-                keepUniformCell,
-                customW,
-                customH);
-            if (layout is null)
-            {
-                SetStatus("Niente da esportare.");
-                return;
-            }
-
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Salva atlas PNG",
-                DefaultExtension = "png",
-                FileTypeChoices = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
-                SuggestedFileName = "atlas.png"
-            });
-            if (file is null) return;
-            await using (var s = await file.OpenWriteAsync())
-            {
-                if (ChkExportAtlasIndexedPng.IsChecked == true)
-                    IndexedPngExporter.SaveWithWuQuantize(layout.Pack.Atlas, s);
-                else
-                    layout.Pack.Atlas.Save(s, new PngEncoder());
-            }
-            var mode = ChkExportAtlasIndexedPng.IsChecked == true ? " (palette 8-bit)" : "";
-            var layoutMode = useCustomCell
-                ? $" · uniforme custom {customW}×{customH}"
-                : keepUniformCell ? " · celle uniformi (auto)" : " · compatto";
-            SetStatus($"Atlas PNG salvato{mode}{layoutMode} ({layout.Pack.Placements.Count} sprite).");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore export PNG: {ex.Message}");
-        }
+        await ExportController.ExportPngAsync(
+            _document,
+            _cells,
+            SliderPivotX.Value,
+            SliderPivotY.Value,
+            ChkExportCustomCellSize.IsChecked == true,
+            ChkExportKeepCellSize.IsChecked == true,
+            ChkExportAtlasIndexedPng.IsChecked == true,
+            TxtExportCellW.Text,
+            TxtExportCellH.Text,
+            StorageProvider,
+            SetStatus);
     }
 
     private async Task ExportJsonAsync()
     {
-        if (_document is null) return;
-        var items = new List<(string id, Image<Rgba32> img)>();
-        try
-        {
-            var useCustomCell = ChkExportCustomCellSize.IsChecked == true;
-            var keepUniformCell = ChkExportKeepCellSize.IsChecked == true || useCustomCell;
-            int? customW = null;
-            int? customH = null;
-            if (useCustomCell)
-            {
-                customW = Math.Max(1, InputParsing.ParseInt(TxtExportCellW.Text, 208));
-                customH = Math.Max(1, InputParsing.ParseInt(TxtExportCellH.Text, 256));
-            }
-            using var layout = ExportLayoutBuilder.Build(
-                _document,
-                _cells,
-                SliderPivotX.Value,
-                SliderPivotY.Value,
-                keepUniformCell,
-                customW,
-                customH);
-            if (layout is null)
-            {
-                SetStatus("Niente da esportare.");
-                return;
-            }
-
-            var meta = new SpriteSheetMetadata
-            {
-                PaletteId = string.IsNullOrWhiteSpace(TxtPipePaletteId.Text) ? null : TxtPipePaletteId.Text.Trim(),
-                Cells = layout.Entries.ToList()
-            };
-            var json = JsonExport.Serialize(meta);
-
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Salva metadati JSON",
-                DefaultExtension = "json",
-                FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }],
-                SuggestedFileName = "spritesheet.json"
-            });
-            if (file is null) return;
-            await using (var s = await file.OpenWriteAsync())
-            {
-                using var w = new StreamWriter(s);
-                await w.WriteAsync(json);
-            }
-            SetStatus($"JSON salvato ({layout.Entries.Count} celle).");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore export JSON: {ex.Message}");
-        }
-        finally
-        {
-            foreach (var t in items) t.img.Dispose();
-        }
+        await ExportController.ExportJsonAsync(
+            _document,
+            _cells,
+            SliderPivotX.Value,
+            SliderPivotY.Value,
+            ChkExportCustomCellSize.IsChecked == true,
+            ChkExportKeepCellSize.IsChecked == true,
+            TxtExportCellW.Text,
+            TxtExportCellH.Text,
+            TxtPipePaletteId.Text,
+            StorageProvider,
+            SetStatus);
     }
-
     // ─── Gomma ───────────────────────────────────────────────────────────────
 
     private bool _eraserUndoPushed;
@@ -3223,11 +2992,12 @@ public partial class MainWindow : Window
 
     private void SelectAll()
     {
-        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
-        _activeSelectionBox = new AxisAlignedBox(0, 0, _document.Width, _document.Height);
-        Editor.SetCommittedSelection(_activeSelectionBox);
-        UpdateSelectionInfo();
-        SetStatus($"Selezione intera immagine: {_document.Width}×{_document.Height} px.");
+        _activeSelectionBox = SelectionController.SelectAll(_document, SetStatus);
+        if (_activeSelectionBox is not null)
+        {
+            Editor.SetCommittedSelection(_activeSelectionBox);
+            UpdateSelectionInfo();
+        }
     }
 
     private void ClearSelection()
@@ -3240,95 +3010,34 @@ public partial class MainWindow : Window
 
     private async Task ExportSelectionAsync()
     {
-        if (_document is null)         { SetStatus("Nessuna immagine aperta."); return; }
-        if (_activeSelectionBox is null){ SetStatus("Nessuna selezione attiva. Trascina sull'immagine."); return; }
-        try
-        {
-            var box       = _activeSelectionBox.Value;
-            var suggested = $"selezione_{box.Width}x{box.Height}.png";
-            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title            = "Salva area selezionata come PNG",
-                DefaultExtension = "png",
-                FileTypeChoices  = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
-                SuggestedFileName = suggested,
-            });
-            if (file is null) return;
-
-            using var crop = AtlasCropper.Crop(_document, box);
-            await using var stream = await file.OpenWriteAsync();
-            crop.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
-            SetStatus($"Area esportata: {box.Width}×{box.Height} px — ({box.MinX},{box.MinY}).");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore esportazione selezione: {ex.Message}");
-        }
+        await SelectionController.ExportSelectionAsync(_document, _activeSelectionBox, StorageProvider, SetStatus);
     }
 
     private void CropToSelection()
     {
-        if (_document is null)          { SetStatus("Nessuna immagine aperta."); return; }
-        if (_activeSelectionBox is null) { SetStatus("Nessuna selezione attiva."); return; }
-        try
-        {
-            PushUndo();
-            var box     = _activeSelectionBox.Value;
-            var cropped = AtlasCropper.Crop(_document, box);
-            _document.Dispose();
-            _document = cropped;
-            _cells.Clear();
-            ClearSliceGrid();
-            CellList.ItemsSource = null;
-            _activeSelectionBox  = null;
-            Editor.SetCommittedSelection(null);
-            UpdateSelectionInfo();
-            RefreshView();
-            SetStatus($"Immagine ritagliata alla selezione: {_document.Width}×{_document.Height} px. (Ctrl+Z per annullare)");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore ritaglio selezione: {ex.Message}");
-        }
+        SelectionController.CropToSelection(
+            ref _document,
+            _activeSelectionBox,
+            () => PushUndo(),
+            ClearCellsAfterDocumentReplace,
+            RefreshView,
+            SetStatus);
+        _activeSelectionBox = null;
+        Editor.SetCommittedSelection(null);
+        UpdateSelectionInfo();
     }
 
     private void RemoveSelectedArea()
     {
-        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
-        if (_activeSelectionBox is null) { SetStatus("Nessuna selezione attiva da rimuovere."); return; }
-        try
-        {
-            var box = _activeSelectionBox.Value;
-            var minX = Math.Clamp(box.MinX, 0, _document.Width);
-            var maxX = Math.Clamp(box.MaxX, 0, _document.Width);
-            var minY = Math.Clamp(box.MinY, 0, _document.Height);
-            var maxY = Math.Clamp(box.MaxY, 0, _document.Height);
-            if (minX >= maxX || minY >= maxY)
-            {
-                SetStatus("Area selezionata non valida.");
-                return;
-            }
-
-            PushUndo();
-            _document.ProcessPixelRows(accessor =>
-            {
-                for (var y = minY; y < maxY; y++)
-                {
-                    var row = accessor.GetRowSpan(y);
-                    for (var x = minX; x < maxX; x++)
-                        row[x] = new Rgba32(0, 0, 0, 0);
-                }
-            });
-
-            RefreshView();
-            SetStatus($"Area selezionata rimossa: {maxX - minX}×{maxY - minY} px.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore rimozione area selezionata: {ex.Message}");
-        }
+        SelectionController.RemoveSelectedArea(_document, _activeSelectionBox, () => PushUndo(), RefreshView, SetStatus);
     }
 
+    private void ClearCellsAfterDocumentReplace()
+    {
+        _cells.Clear();
+        ClearSliceGrid();
+        CellList.ItemsSource = null;
+    }
     private void UpdateSelectionInfo()
     {
         // I controlli potrebbero non essere ancora inizializzati durante il caricamento

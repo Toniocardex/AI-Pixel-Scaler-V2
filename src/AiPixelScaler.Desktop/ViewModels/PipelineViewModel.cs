@@ -8,7 +8,7 @@ namespace AiPixelScaler.Desktop.ViewModels;
 
 public sealed class PipelineViewModel
 {
-    public enum PresetKind { None, Safe, AggressiveRecover }
+    public enum PresetKind { None, Default, Safe, AggressiveRecover }
     public sealed record PipelineFormState(
         bool EnableChroma,
         bool EnableChromaSnapRgb,
@@ -91,6 +91,34 @@ public sealed class PipelineViewModel
     public int RecoverIterations { get; set; } = 2;
     public PresetKind ActivePreset { get; set; } = PresetKind.None;
 
+    public void ApplyDefaultPreset()
+    {
+        EnableChroma = false;
+        ChromaSnapRgb = false;
+        ChromaTolerance = 0;
+        EnableAdvancedCleaner = false;
+        BilateralSigmaSpatial = 1.25;
+        BilateralSigmaRange = 0.085;
+        BilateralPasses = 1;
+        EnablePixelGridEnforce = false;
+        NativeWidth = 64;
+        NativeHeight = 64;
+        EnablePaletteSnap = false;
+        PaletteId = string.Empty;
+        PaletteMetadataPath = string.Empty;
+        EnableQuantize = false;
+        MaxColors = 16;
+        Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab;
+        EnableMajorityDenoise = false;
+        IslandMinArea = 2;
+        EnableOutline = false;
+        OutlineHex = "#000000";
+        AlphaThreshold = 128;
+        EnableRecoverFill = false;
+        RecoverIterations = 2;
+        ActivePreset = PresetKind.Default;
+    }
+
     public void ApplySafePreset()
     {
         EnableChroma = true;
@@ -101,8 +129,8 @@ public sealed class PipelineViewModel
         EnablePaletteSnap = false;
         PaletteId = string.Empty;
         PaletteMetadataPath = string.Empty;
-        EnableQuantize = true;
-        MaxColors = 32;
+        EnableQuantize = false;
+        MaxColors = 16;
         Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab;
         EnableMajorityDenoise = true;
         IslandMinArea = 2;
@@ -126,9 +154,9 @@ public sealed class PipelineViewModel
         EnablePaletteSnap = false;
         PaletteId = string.Empty;
         PaletteMetadataPath = string.Empty;
-        EnableQuantize = true;
-        MaxColors = 20;
-        Quantizer = PixelArtProcessor.QuantizerKind.Wu;
+        EnableQuantize = false;
+        MaxColors = 16;
+        Quantizer = PixelArtProcessor.QuantizerKind.KMeansOklab;
         EnableMajorityDenoise = true;
         IslandMinArea = 3;
         AlphaThreshold = 144;

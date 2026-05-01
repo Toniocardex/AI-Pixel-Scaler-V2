@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ctrl="using:AiPixelScaler.Desktop.Controls"
         xmlns:vm="using:AiPixelScaler.Desktop.ViewModels"
+        xmlns:views="using:AiPixelScaler.Desktop.Views"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="820"
         x:Class="AiPixelScaler.Desktop.Views.MainWindow"
         Title="AI Pixel Studio"
@@ -85,7 +86,8 @@
 
   </Window.Styles>
 
-  <DockPanel>
+  <Grid>
+  <DockPanel x:Name="StudioShell">
 
     <!-- ═══ MENU (File / Moduli) ═══════════════════════════════════════ -->
     <Menu DockPanel.Dock="Top" Background="#0d0d14" Foreground="#aaa">
@@ -447,30 +449,24 @@
               </StackPanel>
             </Border>
 
-            <TextBlock Text="Flusso" Classes="fieldLabel" Margin="0,2,0,0"/>
+            <TextBlock Text="Studio" Classes="fieldLabel" Margin="0,2,0,0"/>
             <TextBlock Foreground="#5a5a6e" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,2"
-                       Text="Usa le schede come nella vecchia app: Immagine → Sprite → export."/>
-            <CheckBox x:Name="ChkShowAdvancedTabs"
-                      Content="Mostra tab avanzate"
-                      Margin="0,0,0,4"/>
-            <Expander x:Name="AdvancedToolsDrawer"
-                      Header="Altre schede"
-                      IsExpanded="False"
-                      Margin="0,0,0,6">
-              <StackPanel Spacing="4" Margin="0,4,0,0">
-                <TextBlock Classes="hint" Text="Salta alle schede avanzate (Stilizza, Griglia, …) e ad Allinea."/>
-                <Grid ColumnDefinitions="*,6,*" Margin="0,2,0,0">
-                  <Button x:Name="BtnGoAllinea" Grid.Column="0" Content="Apri Allinea" Classes="secondary"/>
-                  <Button x:Name="BtnGoStilizza" Grid.Column="2" Content="Apri Stilizza" Classes="secondary"/>
+                       Text="Tutte le funzioni sono visibili: Sprite, Animation e Tileset raccolgono i comandi esistenti senza tab nascoste."/>
+            <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+              <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,6,*">
+                  <Button Grid.Column="0" x:Name="BtnGoSprite" Content="Sprite Studio" Classes="primary"/>
+                  <Button Grid.Column="2" x:Name="BtnGoAllinea" Content="Animation Studio" Classes="secondary"/>
                 </Grid>
-                <Button x:Name="BtnGoTemplate" Content="Apri Griglia" Classes="secondary"
-                        HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+                <Grid ColumnDefinitions="*,6,*">
+                  <Button Grid.Column="0" x:Name="BtnGoTemplate" Content="Tileset Studio" Classes="secondary"/>
+                  <Button Grid.Column="2" x:Name="BtnGoStilizza" Content="Stilizza" Classes="secondary"/>
+                </Grid>
               </StackPanel>
-            </Expander>
-
+            </Border>
             <TabControl x:Name="MainTabs" Classes="sidebarTabs" SelectedIndex="0">
 
-            <TabItem Header=" Workspace ">
+            <TabItem Header=" Sprite ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
                 <TextBlock Classes="fieldLabel" Text="Flusso rapido (consigliato)"/>
@@ -595,16 +591,16 @@
                   </StackPanel>
                 </Expander>
 
-                <Expander Header="Pipeline avanzato"
+                <Expander Header="Filtri Sprite Studio"
                           IsExpanded="False"
                           Margin="0,4,0,0">
                   <StackPanel Spacing="0" Margin="0,8,0,0">
 
-                <TextBlock Classes="fieldLabel" Text="Workflow base (preview + count + palette + process)"/>
+                <TextBlock Classes="fieldLabel" Text="One-click cleanup e diagnostica"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
                            Text="Preview: canvas a sinistra. Qui vedi conteggio colori e palette corrente, poi esegui il processo base."/>
                 <TextBlock Classes="hint" Margin="0,4,0,0"
-                           Text="Preset, wizard IA e parametri della pipeline sono raggruppati qui sotto."/>
+                           Text="I preset impostano i filtri visibili: ogni modifica manuale passa a Personalizzato."/>
                 <Grid ColumnDefinitions="*,8,*" Margin="0,4,0,0">
                   <Border Grid.Column="0" Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8">
                     <StackPanel Spacing="2">
@@ -635,10 +631,11 @@
 
                 <Separator Classes="h"/>
 
-                <TextBlock Classes="fieldLabel" Text="Preset pulizia (guidato)"/>
+                <TextBlock Classes="fieldLabel" Text="Preset (ricette)"/>
                 <TextBlock Classes="hint" TextWrapping="Wrap"
-                           Text="Imposta automaticamente parametri consigliati: Sicuro (conservativo) o Aggressivo+Recupero (più forte)."/>
-                <Grid ColumnDefinitions="*,8,*" Margin="0,4,0,0">
+                           Text="Default carica i valori ideali. Sicuro e Aggressivo impostano ricette modificabili sui filtri sotto."/>
+                <Button x:Name="BtnPresetDefault" Content="Ripristina default ideali" Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+                <Grid ColumnDefinitions="*,8,*" Margin="0,6,0,0">
                   <Border Grid.Column="0" Background="#0a0a14" BorderBrush="#2e3a5a" BorderThickness="1" CornerRadius="6" Padding="8">
                     <StackPanel Spacing="4">
                       <TextBlock Text="Preset Sicuro" FontWeight="SemiBold" Foreground="#cfd9ff"/>
@@ -671,10 +668,10 @@
                 <Button x:Name="BtnAiCleanupAll" Classes="primary" HorizontalAlignment="Stretch" Margin="0,6,0,0">
                   <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                     <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
-                    <TextBlock Text="Avvia pulizia AI completa" VerticalAlignment="Center"/>
+                    <TextBlock Text="Esegui one-click cleanup" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
-                <CheckBox x:Name="ChkWizardPaletteReduce" Content="Includi riduzione palette (K-Means OKLab)"
+                <CheckBox x:Name="ChkWizardPaletteReduce" Content="Includi Quantize nel one-click cleanup"
                           Margin="0,4,0,0"/>
 
                 <Separator Classes="h"/>
@@ -702,8 +699,29 @@
 
                 <Separator Classes="h"/>
 
+                <TextBlock Classes="fieldLabel" Text="Quantize - filtro palette autonomo"/>
+                <TextBlock Classes="hint" TextWrapping="Wrap"
+                           Text="Riduce la palette solo quando lo abiliti. I preset non lo attivano automaticamente."/>
+                <CheckBox x:Name="ChkPipeQuant" Content="Abilita Quantize"
+                          ToolTip.Tip="Estrae N colori e rimappa l'immagine. Metodo selezionabile sotto (K-Means OKLab, Wu o Octree)."/>
+                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Numero colori (4-256):" Foreground="#666"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBox x:Name="TxtPipeQuantLevels" Grid.Column="2" Text="16"/>
+                </Grid>
+                <Grid ColumnDefinitions="Auto,8,*" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0" Text="Metodo:" Foreground="#666" FontSize="10" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="CmbPipeQuantMethod" Grid.Column="2" SelectedIndex="0" MinWidth="160">
+                    <ComboBoxItem Content="K-Means OKLab"/>
+                    <ComboBoxItem Content="Wu (ImageSharp)"/>
+                    <ComboBoxItem Content="Octree"/>
+                  </ComboBox>
+                </Grid>
+
+                <Separator Classes="h"/>
+
                 <Expander x:Name="ExpPipelineTechnicalDetails"
-                          Header="Mostra dettagli tecnici"
+                          Header="Filtri dettagliati: Alpha Clean, Edge Refinement, Denoise"
                           IsExpanded="False"
                           Margin="0,6,0,0">
                   <StackPanel Spacing="0" Margin="0,8,0,0">
@@ -747,14 +765,16 @@
                 <Separator Classes="h"/>
 
                 <!-- Denoising -->
-                <TextBlock Classes="fieldLabel" Text="Rimuovi pixel isolati (rumore)"/>
+                <TextBlock Classes="fieldLabel" Text="Denoise - pixel isolati e maggioranza"/>
                 <Grid ColumnDefinitions="*,6,80">
-                  <TextBlock Grid.Column="0" Text="Dimensione minima sprite (px):" Foreground="#666"
+                  <TextBlock Grid.Column="0" Text="Soglia isole minime (px):" Foreground="#666"
                              FontSize="10" VerticalAlignment="Center"/>
                   <TextBox x:Name="TxtMinIsland" Grid.Column="2" Text="2"/>
                 </Grid>
                 <Button x:Name="BtnDenoise" Content="Rimuovi pixel isolati"
                         Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+                <CheckBox x:Name="ChkPipeMajorityDenoise" Content="Denoise maggioranza vicini 3x3"
+                          ToolTip.Tip="Pixel con pochi vicini dello stesso colore vengono sostituiti con il colore piu' frequente tra i vicini."/>
 
                 <Separator Classes="h"/>
 
@@ -768,27 +788,6 @@
                     <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
                   </Button>
                 </Grid>
-
-                <Separator Classes="h"/>
-
-                <!-- Riduci colori -->
-                <CheckBox x:Name="ChkPipeQuant" Content="Riduci palette"
-                          ToolTip.Tip="Estrae N colori e rimappa l'immagine. Metodo selezionabile sotto (K-Means OKLab, Wu o Octree)."/>
-                <Grid ColumnDefinitions="*,6,80" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Numero colori (4–256):" Foreground="#666"
-                             FontSize="10" VerticalAlignment="Center"/>
-                  <TextBox x:Name="TxtPipeQuantLevels" Grid.Column="2" Text="16"/>
-                </Grid>
-                <Grid ColumnDefinitions="Auto,8,*" Margin="0,4,0,0">
-                  <TextBlock Grid.Column="0" Text="Metodo:" Foreground="#666" FontSize="10" VerticalAlignment="Center"/>
-                  <ComboBox x:Name="CmbPipeQuantMethod" Grid.Column="2" SelectedIndex="0" MinWidth="160">
-                    <ComboBoxItem Content="K-Means OKLab"/>
-                    <ComboBoxItem Content="Wu (ImageSharp)"/>
-                    <ComboBoxItem Content="Octree"/>
-                  </ComboBox>
-                </Grid>
-                <CheckBox x:Name="ChkPipeMajorityDenoise" Content="Denoise maggioranza vicini 3×3 (dopo riduzione palette)"
-                          ToolTip.Tip="Pixel con pochi vicini dello stesso colore vengono sostituiti con il colore più frequente tra i vicini."/>
 
                 <Separator Classes="h"/>
 
@@ -869,7 +868,7 @@
               </ScrollViewer>
             </TabItem>
 
-            <TabItem Header=" Dividi ">
+            <TabItem Header=" Slice ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
 
@@ -977,7 +976,7 @@
             <!-- ══════════════════════════════════════════════════════════ -->
             <!-- TAB: Allinea frame (workbench non-distruttivo)            -->
             <!-- ══════════════════════════════════════════════════════════ -->
-            <TabItem Header=" Allinea ">
+            <TabItem Header=" Animation ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
 
@@ -1226,7 +1225,7 @@
             <!-- gli sprite IA: defringe premultiplied, K-Means OKLab,    -->
             <!-- Floyd-Steinberg, simmetria forzata.                       -->
             <!-- ══════════════════════════════════════════════════════════ -->
-            <TabItem x:Name="TabStylize" Header=" Stilizza " IsVisible="False">
+            <TabItem x:Name="TabStylize" Header=" Stilizza ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
 
@@ -1328,7 +1327,7 @@
               </ScrollViewer>
             </TabItem>
 
-            <TabItem Header=" Esporta ">
+            <TabItem Header=" Export ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="6" Margin="2,4,2,6">
 
@@ -1387,7 +1386,7 @@
             <!-- ══════════════════════════════════════════════════════════ -->
             <!-- TAB: Griglia                                              -->
             <!-- ══════════════════════════════════════════════════════════ -->
-            <TabItem x:Name="TabTemplate" Header=" Griglia " IsVisible="False">
+            <TabItem x:Name="TabTemplate" Header=" Tileset ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="8" Margin="2,4,2,6">
 
@@ -1552,7 +1551,7 @@
             <!-- TAB: Selezione libera                                    -->
             <!-- Area di lavoro semplice: seleziona → esporta o ritaglia -->
             <!-- ══════════════════════════════════════════════════════════ -->
-            <TabItem x:Name="TabSelection" Header=" Selezione " IsVisible="False">
+            <TabItem x:Name="TabSelection" Header=" Selezione ">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="0" Margin="2,4,2,6">
 
@@ -1680,4 +1679,7 @@
 
     </Grid>
   </DockPanel>
+  <views:StartPageView x:Name="StartPage" ZIndex="100"/>
+  </Grid>
 </Window>
+
