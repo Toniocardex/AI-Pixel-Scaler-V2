@@ -1,0 +1,332 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiPixelScaler.Desktop.Views.Studios.TilesetStudioView">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.studio-title">
+      <Setter Property="Foreground" Value="#d8e6ff"/>
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.studio-hint">
+      <Setter Property="Foreground" Value="#7e86a8"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="Foreground" Value="#f1f4ff"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Border.studio-section">
+      <Setter Property="Background" Value="#0a0c14"/>
+      <Setter Property="BorderBrush" Value="#23283a"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="9"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="0">
+
+    <!-- Header -->
+    <Border Background="#111827" BorderBrush="#2d3652" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="studio-title" Text="Tileset Studio"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Griglie, palette, seamless, template e export Tiled."/>
+      </StackPanel>
+    </Border>
+
+    <!-- 1. Flusso -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Flusso di lavoro"/>
+        <Button x:Name="BtnTilesetOpen" Classes="primary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
+            <TextBlock Text="Apri immagine"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- 2. Palette -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Palette"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Riduce la palette con Wu oppure applica una palette retro fissa."/>
+        <Grid ColumnDefinitions="*,6,*">
+          <TextBlock Grid.Column="0" Classes="studio-hint" Text="Palette:" VerticalAlignment="Center"/>
+          <ComboBox x:Name="CmbTilesetPalettePreset" Grid.Column="2" SelectedIndex="0" HorizontalAlignment="Stretch">
+            <ComboBoxItem Content="Auto AI (Wu)"/>
+            <ComboBoxItem Content="Game Boy DMG"/>
+            <ComboBoxItem Content="PICO-8 (16)"/>
+            <ComboBoxItem Content="NES (16)"/>
+            <ComboBoxItem Content="Sweetie 16"/>
+            <ComboBoxItem Content="CGA (4)"/>
+          </ComboBox>
+        </Grid>
+        <Grid ColumnDefinitions="*,6,64">
+          <TextBlock Grid.Column="0" Classes="studio-hint" Text="Colori (Auto AI):" VerticalAlignment="Center"/>
+          <TextBox x:Name="TxtTilesetPaletteColors" Grid.Column="2" Text="16"/>
+        </Grid>
+        <CheckBox x:Name="ChkTilesetDither" Content="Floyd-Steinberg dither"
+                  ToolTip.Tip="Distribuisce l'errore di quantizzazione sui pixel vicini"/>
+        <Button x:Name="BtnTilesetApplyPalette" Classes="secondary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
+            <TextBlock Text="Applica palette"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- 3. Seamless e Tile -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Seamless e Tile"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Sposta (W/2, H/2) e dithera il seam con Bayer 4x4 deterministico. Pixel art preservata."/>
+        <Grid ColumnDefinitions="*,6,64">
+          <TextBlock Grid.Column="0" Classes="studio-hint" Text="Larghezza dither (px):" VerticalAlignment="Center"/>
+          <TextBox x:Name="TxtTilesetBlend" Grid.Column="2" Text="4"
+                   ToolTip.Tip="Banda di transizione attorno al seam (1-16 px)"/>
+        </Grid>
+        <Button x:Name="BtnTilesetMakeTileable" Classes="secondary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconScissors}" Classes="action-icon"/>
+            <TextBlock Text="Rendi tile ripetibile"/>
+          </StackPanel>
+        </Button>
+        <CheckBox x:Name="ChkTilesetTilePreview" Content="Anteprima tile 3x3 sul canvas"
+                  ToolTip.Tip="Mostra il tile ripetuto 9 volte per evidenziare le cuciture"/>
+      </StackPanel>
+    </Border>
+
+    <!-- 4. Allineamento dimensioni -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Allineamento dimensioni"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Aggiunge bordo trasparente per portare le dimensioni a un multiplo di N px."/>
+        <Grid ColumnDefinitions="*,6,64">
+          <TextBlock Grid.Column="0" Classes="studio-hint" Text="Multiplo (px):" VerticalAlignment="Center"/>
+          <TextBox x:Name="TxtTilesetPadMultiple" Grid.Column="2" Text="16"/>
+        </Grid>
+        <Button x:Name="BtnTilesetPadToMultiple" Classes="secondary" HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
+            <TextBlock Text="Allinea dimensioni"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- 5. Griglia template -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Griglia template"/>
+
+        <!-- Tile W x H -->
+        <Grid ColumnDefinitions="*,12,Auto,12,*">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Tile W (px)"/>
+            <NumericUpDown x:Name="TplTileCellW" Value="64" Minimum="4" Maximum="2048"
+                           Increment="8" FormatString="0"
+                           ToolTip.Tip="Larghezza di ogni cella in pixel"/>
+          </StackPanel>
+          <TextBlock Grid.Column="2" Text="×" VerticalAlignment="Bottom"
+                     Margin="0,0,0,6" Foreground="#5c5a70" FontSize="14"/>
+          <StackPanel Grid.Column="4" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Tile H (px)"/>
+            <NumericUpDown x:Name="TplTileCellH" Value="64" Minimum="4" Maximum="2048"
+                           Increment="8" FormatString="0"
+                           ToolTip.Tip="Altezza di ogni cella in pixel"/>
+          </StackPanel>
+        </Grid>
+
+        <!-- Preset size buttons -->
+        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
+          <Button x:Name="BtnTplPreset16"  Classes="secondary" Content="16×16"   Margin="0,0,4,4" Padding="6,2"/>
+          <Button x:Name="BtnTplPreset24"  Classes="secondary" Content="24×24"   Margin="0,0,4,4" Padding="6,2"/>
+          <Button x:Name="BtnTplPreset32"  Classes="secondary" Content="32×32"   Margin="0,0,4,4" Padding="6,2"/>
+          <Button x:Name="BtnTplPreset48"  Classes="secondary" Content="48×48"   Margin="0,0,4,4" Padding="6,2"/>
+          <Button x:Name="BtnTplPreset64"  Classes="primary"   Content="64×64"   Margin="0,0,4,4" Padding="6,2"/>
+          <Button x:Name="BtnTplPreset128" Classes="secondary" Content="128×128" Margin="0,0,4,4" Padding="6,2"/>
+          <Button x:Name="BtnTplPreset256" Classes="secondary" Content="256×256" Margin="0,0,4,4" Padding="6,2"/>
+        </WrapPanel>
+
+        <!-- Colonne x Righe -->
+        <Grid ColumnDefinitions="*,12,Auto,12,*">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Colonne"/>
+            <NumericUpDown x:Name="TplTileCols" Value="4" Minimum="1" Maximum="128"
+                           Increment="1" FormatString="0"/>
+          </StackPanel>
+          <TextBlock Grid.Column="2" Text="×" VerticalAlignment="Bottom"
+                     Margin="0,0,0,6" Foreground="#5c5a70" FontSize="14"/>
+          <StackPanel Grid.Column="4" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Righe"/>
+            <NumericUpDown x:Name="TplTileRows" Value="4" Minimum="1" Maximum="128"
+                           Increment="1" FormatString="0"/>
+          </StackPanel>
+        </Grid>
+
+        <TextBlock x:Name="TplTileInfoLabel" Classes="studio-hint"
+                   Text="16 frame · 256×256 px" Foreground="#7a78a0"/>
+
+        <!-- Pivot 3x3 -->
+        <TextBlock Classes="section-title" Text="Pivot Point" Margin="0,4,0,0"/>
+        <Grid ColumnDefinitions="Auto,12,*">
+          <Grid Grid.Column="0" RowDefinitions="28,28,28" ColumnDefinitions="28,28,28"
+                ToolTip.Tip="Seleziona la posizione del pivot in ogni cella">
+            <RadioButton x:Name="TplTilePivotTL" GroupName="TplTilePivot" Grid.Row="0" Grid.Column="0"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotTC" GroupName="TplTilePivot" Grid.Row="0" Grid.Column="1"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotTR" GroupName="TplTilePivot" Grid.Row="0" Grid.Column="2"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotML" GroupName="TplTilePivot" Grid.Row="1" Grid.Column="0"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotCC" GroupName="TplTilePivot" Grid.Row="1" Grid.Column="1"
+                         IsChecked="True"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotMR" GroupName="TplTilePivot" Grid.Row="1" Grid.Column="2"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotBL" GroupName="TplTilePivot" Grid.Row="2" Grid.Column="0"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotBC" GroupName="TplTilePivot" Grid.Row="2" Grid.Column="1"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <RadioButton x:Name="TplTilePivotBR" GroupName="TplTilePivot" Grid.Row="2" Grid.Column="2"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Grid>
+          <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center">
+            <TextBlock x:Name="TplTilePivotLabel" Text="Center" FontWeight="SemiBold" Foreground="#c8c0e0"/>
+            <TextBlock x:Name="TplTilePivotCoords" Text="x=0.50 · y=0.50" Classes="studio-hint" FontFamily="Consolas,Monospace"/>
+            <StackPanel Orientation="Horizontal" Spacing="6" x:Name="TplTileCustomXYPanel" IsVisible="False">
+              <NumericUpDown x:Name="TplTilePivotX" Value="0.5" Minimum="0" Maximum="1"
+                             Increment="0.05" FormatString="0.00" Width="72"
+                             ToolTip.Tip="Pivot X (0=sinistra, 1=destra)"/>
+              <NumericUpDown x:Name="TplTilePivotY" Value="0.5" Minimum="0" Maximum="1"
+                             Increment="0.05" FormatString="0.00" Width="72"
+                             ToolTip.Tip="Pivot Y (0=top, 1=bottom)"/>
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+
+        <!-- Riferimenti -->
+        <TextBlock Classes="section-title" Text="Riferimenti (AI guide)" Margin="0,4,0,0"/>
+        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
+          <CheckBox x:Name="TplTileShowBorder"   IsChecked="True"  Content="Bordi celle"     Margin="0,0,12,4"/>
+          <CheckBox x:Name="TplTileShowPivot"    IsChecked="True"  Content="Pivot (croce)"   Margin="0,0,12,4"/>
+          <CheckBox x:Name="TplTileShowBaseline" IsChecked="True"  Content="Baseline"        Margin="0,0,12,4"/>
+          <CheckBox x:Name="TplTileShowIndex"    IsChecked="True"  Content="Indici"          Margin="0,0,12,4"/>
+          <CheckBox x:Name="TplTileShowTint"     IsChecked="False" Content="Tinta alternata" Margin="0,0,12,4"/>
+        </WrapPanel>
+
+        <!-- Azioni griglia -->
+        <Grid ColumnDefinitions="*,8,*">
+          <Button x:Name="BtnTilesetGenerateTemplate" Grid.Column="0" Classes="primary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Visualizza la griglia nel canvas e la promuove a documento di lavoro">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
+              <TextBlock Text="Genera griglia"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnTilesetExportTemplate" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Salva la guida griglia come PNG separato su disco">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+              <TextBlock Text="Esporta guida PNG"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- 6. Composizione -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Composizione"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Seleziona più PNG (un file = un frame). Ordinati alfabeticamente, centrati nelle celle della griglia sopra."/>
+        <Button x:Name="BtnTilesetImportFrames" Classes="primary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Apre selettore multi-file PNG e compone la spritesheet centrata nella griglia corrente.">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
+            <TextBlock Text="Importa frame"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- 7. Export e strumenti avanzati -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Export"/>
+        <Button x:Name="BtnTilesetExportTiled" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Esporta una mappa compatibile con Tiled Map Editor">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconMap}" Classes="action-icon"/>
+            <TextBlock Text="Esporta Tiled JSON"/>
+          </StackPanel>
+        </Button>
+
+        <Expander Header="Strumenti avanzati" IsExpanded="False" Margin="0,4,0,0">
+          <StackPanel Spacing="6" Margin="0,4,0,0">
+            <TextBlock Classes="section-title" Text="Crop &amp; POT (asset singolo)"/>
+            <TextBlock Classes="studio-hint"
+                       Text="Pipeline: trim AABB → padding → POT. Annullabile con Ctrl+Z."/>
+
+            <TextBlock Classes="studio-hint" Text="Modalità crop:" Margin="0,4,0,0"/>
+            <ComboBox x:Name="CmbTilesetCropMode" SelectedIndex="0" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="Trim al contenuto (AABB α)"/>
+              <ComboBoxItem Content="Trim + padding"/>
+              <ComboBoxItem Content="ROI utente (ultima selezione)"/>
+            </ComboBox>
+
+            <Grid ColumnDefinitions="*,6,64" Margin="0,4,0,0">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Soglia α (1-255):" VerticalAlignment="Center"/>
+              <TextBox x:Name="TxtTilesetCropAlpha" Grid.Column="2" Text="1"/>
+            </Grid>
+            <Grid ColumnDefinitions="*,6,64">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Padding (px):" VerticalAlignment="Center"/>
+              <TextBox x:Name="TxtTilesetCropPadding" Grid.Column="2" Text="4"/>
+            </Grid>
+
+            <TextBlock Classes="studio-hint" Text="Politica POT:" Margin="0,4,0,0"/>
+            <ComboBox x:Name="CmbTilesetCropPot" SelectedIndex="0" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="Nessuna"/>
+              <ComboBoxItem Content="Per asse — W=N²(W), H=N²(H)"/>
+              <ComboBoxItem Content="Quadrata — side=N²(max(W,H))"/>
+            </ComboBox>
+
+            <Button x:Name="BtnTilesetApplyCropPot" Classes="primary" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                    ToolTip.Tip="Applica ritaglio + POT. Annullabile (Ctrl+Z).">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconScissors}" Classes="action-icon"/>
+                <TextBlock Text="Applica ritaglio + POT"/>
+              </StackPanel>
+            </Button>
+
+            <Separator Margin="0,4"/>
+
+            <TextBlock Classes="section-title" Text="Aggancia celle alla griglia"/>
+            <TextBlock Classes="studio-hint"
+                       Text="Sposta ogni sprite così che l'angolo top-left della cella sia su multipli del passo griglia (toolbar). Richiede sprite rilevati."/>
+            <Button x:Name="BtnTilesetSnapCells" Classes="secondary" HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Aggancia celle alla griglia di riferimento (passo dalla toolbar)">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
+                <TextBlock Text="Aggancia alla griglia"/>
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Expander>
+      </StackPanel>
+    </Border>
+
+  </StackPanel>
+</UserControl>

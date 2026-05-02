@@ -4,7 +4,7 @@ Stato: audit approvato come guida di refactor; implementazione progressiva in co
 
 Regola: nessuna rimozione e' stata applicata. Le decisioni `remove` o `merge` sono solo candidate e richiedono conferma.
 
-Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. I tab legacy `Sprite`, `Slice` e `Selezione` sono stati rimossi; lo stato pipeline Sprite non dipende piu' da controlli XAML legacy. Tre gap post-audit sono stati risolti: `DefringeOpaque` ora round-trippa da UI a runtime; `BtnGoStilizza`/`BtnGoTemplate` ora chiamano `ActivateStudio(StudioKind.Tileset)`; `ApplyQuantize` usa `RunSpriteQuantize()` standalone invece della pipeline completa. **Prossimo studio: Tileset Studio.**
+Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. I tab legacy `Sprite`, `Slice` e `Selezione` sono stati rimossi; lo stato pipeline Sprite non dipende piu' da controlli XAML legacy. Tre gap post-audit sono stati risolti: `DefringeOpaque` ora round-trippa da UI a runtime; `BtnGoStilizza`/`BtnGoTemplate` ora chiamano `ActivateStudio(StudioKind.Tileset)`; `ApplyQuantize` usa `RunSpriteQuantize()` standalone invece della pipeline completa. **Tileset Studio e' ora migrato come pannello operativo dedicato**: palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled sono esposti in `TilesetStudioView`; il tab legacy `Tileset` e i relativi controlli XAML sono stati rimossi.
 
 | Funzione | UI attuale | Handler / modulo | Dipendenze principali | Studio destinazione | Decisione proposta | Motivazione |
 |---|---|---|---|---|---|---|
@@ -43,22 +43,22 @@ Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Sta
 | Preview animazione | Laboratorio/menu | `OpenAnimationPreview` | `_cells`, current atlas | Animation | keep + move | Deve diventare azione primaria Animation Studio. |
 | Sandbox fisica | Laboratorio/menu | `OpenSandbox` | current animation/game preview | Animation | keep | Laboratorio visibile dentro Animation Studio. |
 | Estrai frame da video | Non presente, roadmap | nuovo `VideoFrameExtractor` / import Animation futuro | MP4 H.264 input, FFmpeg rilevabile/configurabile, output PNG, timeline frame workbench | Animation | keep/new | MVP pianificato: apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, estrai PNG e importa nella timeline. Sprite puo' ricevere frame singoli/sequenze brevi solo come destinazione futura secondaria. |
-| Palette/stilizza | Tileset tab | `RunPaletteReduce`, palette controls | Wu/presets/dither | Tileset | moved | `Stilizza` e' confluito in Tileset Studio; Sprite mantiene solo `Quantize` autonomo nel pannello filtri. |
+| Palette/stilizza | TilesetStudioView | `RunPaletteReduce`, `_tilesetState` | Wu/presets/dither | Tileset | moved | `Stilizza` e' confluito in Tileset Studio; Sprite mantiene solo `Quantize` autonomo nel pannello filtri. |
 | Mirror H/V | SpriteStudioView | `RunMirror` | document transform | Sprite | moved | Trasformazione sprite; duplicato rimosso dal blocco Tileset/Stilizza. |
-| Tileable seamless | Tileset tab | `RunMakeTileable` | `SeamlessEdge`, blend | Tileset | moved | Appartiene al Tileset Studio. |
-| Tile preview 3x3 | Tileset tab | `ChkTilePreview` | editor tile preview mode | Tileset | moved | Preview pattern. |
-| Pad to multiple | Tileset tab | `RunPadToMultiple` | `AutoPad` | Tileset | moved | Allineamento dimensioni tileset. |
+| Tileable seamless | TilesetStudioView | `RunMakeTileable`, `_tilesetState` | `SeamlessEdge`, blend | Tileset | moved | Appartiene al Tileset Studio. |
+| Tile preview 3x3 | TilesetStudioView | `TilesetStudioAction.ToggleTilePreview` | editor tile preview mode | Tileset | moved | Preview pattern. |
+| Pad to multiple | TilesetStudioView | `RunPadToMultiple`, `_tilesetState` | `AutoPad` | Tileset | moved | Allineamento dimensioni tileset. |
 | Export PNG | Sprite/Export tab | `ExportController.ExportPngAsync` | layout builder, cells | Sprite | keep + merge UI | Duplicato reale tra quick export e Export tab. |
 | Export JSON | Sprite/Export tab | `ExportController.ExportJsonAsync` | metadata/cells/palette id | Sprite | keep + merge UI | Duplicato reale tra quick export e Export tab. |
 | Export ZIP frames | Export tab | `ExportController.ExportFramesZipAsync` | cells, cropped frames | Animation | keep | Output frame animation. |
-| Export Tiled JSON | Export tab | `ExportController.ExportTiledMapJsonAsync` | cells, tile dimensions | Tileset | keep | Export tileset. |
-| Grid/crop-to-grid preview | Sprite tab expander | `InitAlignGridPanel`, `RunCropToAlignGrid` | grid preview, `GridAlignmentCropper` | Tileset | keep + move | Corrisponde al mockup Tileset. |
+| Export Tiled JSON | TilesetStudioView + Export tab | `ExportController.ExportTiledMapJsonAsync` | cells, tile dimensions | Tileset | keep + shortcut | Export tileset; il comando primario e' nel Tileset Studio, il tab Export resta scorciatoia legacy condivisa. |
+| Grid/crop-to-grid preview | TilesetStudioView + align grid shell | `BuildTemplateOptions`, `RunCropToAlignGrid` | grid preview, `GridAlignmentCropper` | Tileset | keep + move | Il template e' migrato in Tileset Studio; il pannello align grid shell resta finche' non sara' completata la migrazione crop-to-grid dedicata. |
 | Center in cells | Animation advanced | `RunCenterInCells` | `_cells`, `CellCentering` | Animation | keep | Allineamento frame/celle. |
 | Snap cells to grid | Animation advanced | `RunSnapCellsToGrid` | `_cells`, reference grid | Tileset | keep | Allineamento griglia/celle. |
-| Crop & POT | Animation advanced | `RunCropPipeline` | crop mode, ROI, POT policy | Tileset | keep | Normalizzazione asset/tile. |
-| Genera griglia template | Tileset tab | `RunGenerateTemplate` | `GridTemplateGenerator`, cells | Tileset | keep | Template grid. |
-| Esporta guida PNG | Tileset tab | `ExportTemplateAsync` | `_templateDocument` | Tileset | keep | Export guida. |
-| Importa frame | Tileset tab | `RunImportFramesAsync` | multi-file PNG, cell sizing | Animation | keep + move | Visual atlas builder del mockup Animation. |
+| Crop & POT | TilesetStudioView | `RunCropPipeline`, `_tilesetState` | crop mode, ROI, POT policy | Tileset | keep | Normalizzazione asset/tile. |
+| Genera griglia template | TilesetStudioView | `RunGenerateTemplate`, `BuildTemplateOptions` | `GridTemplateGenerator`, cells | Tileset | keep | Template grid. |
+| Esporta guida PNG | TilesetStudioView | `ExportTemplateAsync` | `_templateDocument` | Tileset | keep | Export guida. |
+| Importa frame | TilesetStudioView | `RunImportFramesAsync`, `_tilesetState` | multi-file PNG, cell sizing | Animation | keep + move | Visual atlas builder del mockup Animation; resta temporaneamente raggiungibile da Tileset per composizione griglia. |
 | Selezione libera tab | Selezione tab | `SelectAll`, `ClearSelection`, export/crop | `_activeSelectionBox` | Sprite | keep + merge UI | Deve fondersi col pannello Sprite ROI. |
 | Nuovo workspace/tab | Top workspace strip | workspace tab methods | `WorkspaceTabsController` | Shell | keep | Gestione documenti cross-studio. |
 | Nuovo tab da appunti | Top workspace strip | `AddWorkspaceFromClipboardAsync` | clipboard image | Shell | keep | Cross-studio. |

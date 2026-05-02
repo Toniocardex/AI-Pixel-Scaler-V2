@@ -85,6 +85,28 @@ public partial class MainWindow : Window
     private bool _workspaceZoomSliderSync;
     private int _workspaceScrollBarLayoutDepth;
     private StudioKind _currentStudio = StudioKind.Start;
+    private TilesetState _tilesetState = new(
+        PalettePresetIndex: 0,
+        PaletteColors: "16",
+        DitherEnabled: false,
+        SeamlessBlend: "4",
+        PadMultiple: "16",
+        CellW: "64",
+        CellH: "64",
+        Cols: "4",
+        Rows: "4",
+        PivotIndex: 4,
+        PivotCustomX: 0.5,
+        PivotCustomY: 0.5,
+        ShowBorder: true,
+        ShowPivot: true,
+        ShowBaseline: true,
+        ShowIndex: true,
+        ShowTint: false,
+        CropModeIndex: 0,
+        CropAlpha: "1",
+        CropPadding: "4",
+        CropPotIndex: 0);
 
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _toolbarSelectionModeEnabled;
@@ -110,6 +132,7 @@ public partial class MainWindow : Window
         StudioShell.IsVisible = false;
         StartPage.StudioSelected += (_, studio) => ActivateStudio(studio);
         SpriteStudioPanel.ActionRequested += OnSpriteStudioActionRequested;
+        TilesetStudioPanel.ActionRequested += OnTilesetStudioActionRequested;
 
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
@@ -202,13 +225,6 @@ public partial class MainWindow : Window
         BtnGlobal.Click         += (_, _) => RunGlobalScan();
         BtnBaselineAlign.Click  += (_, _) => RunBaselineAlignment();
 
-        // Stilizza / Tileset legacy
-        BtnPaletteReduce.Click += (_, _) => RunPaletteReduce();
-        BtnPadToMultiple.Click += (_, _) => RunPadToMultiple();
-        BtnMakeTileable.Click += (_, _) => RunMakeTileable();
-        ChkTilePreview.IsCheckedChanged += (_, _) =>
-            Editor.IsTilePreviewMode = ChkTilePreview.IsChecked == true;
-
         Editor.CellClicked   += (_, idx) => OnCellPasteClicked(idx);
 
         // Pannello destro — comprimi/espandi
@@ -216,7 +232,6 @@ public partial class MainWindow : Window
         BtnExpandPanel.Click   += (_, _) => SetPanelCollapsed(false);
 
         MainTabs.SelectionChanged += OnMainTabChanged;
-        TabTemplate.IsVisible = true;
         InitAlignGridPanel();
         BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
         BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
@@ -237,8 +252,6 @@ public partial class MainWindow : Window
         };
         TxtExportCellW.TextChanged += (_, _) => UpdateExportCellMinRequiredHint();
         TxtExportCellH.TextChanged += (_, _) => UpdateExportCellMinRequiredHint();
-        // Crop & POT (asset singolo)
-        BtnApplyCropPot.Click    += (_, _) => RunCropPipeline();
         BtnCenterInCells.Click   += (_, _) => RunCenterInCells();
         BtnSnapCellsToGrid.Click += (_, _) => RunSnapCellsToGrid();
 
@@ -257,11 +270,6 @@ public partial class MainWindow : Window
         Editor.FrameDragged       += OnFrameDragged;
 
         // Scheda Griglia (guida / slicing)
-        BtnGenerateTemplate.Click += (_, _) => RunGenerateTemplate();
-        BtnExportTemplate.Click   += async (_, _) => await ExportTemplateAsync();
-        BtnImportFrames.Click     += async (_, _) => await RunImportFramesAsync();
-        InitTemplateTab();
-
         // Passo 5 — Esporta
         BtnExportTiled.Click     += async (_, _) => await ExportTiledMapJsonAsync();
         BtnExportFramesZip.Click += async (_, _) => await ExportFramesZipAsync();
@@ -284,10 +292,11 @@ public partial class MainWindow : Window
         {
             StudioKind.Sprite => 0,
             StudioKind.Animation => 0,
-            StudioKind.Tileset => 2,
+            StudioKind.Tileset => 0,
             _ => MainTabs.SelectedIndex
         };
         SpriteStudioPanel.IsVisible = studio == StudioKind.Sprite;
+        TilesetStudioPanel.IsVisible = studio == StudioKind.Tileset;
         SetStatus($"{studio switch
         {
             StudioKind.Sprite => "Sprite Studio",
@@ -411,6 +420,56 @@ public partial class MainWindow : Window
                 break;
         }
     }
+
+    private async void OnTilesetStudioActionRequested(object? sender, TilesetStudioAction action)
+    {
+        switch (action)
+        {
+            case TilesetStudioAction.OpenImage:
+                await OpenImageAsync();
+                break;
+            case TilesetStudioAction.ApplyPalette:
+                ApplyTilesetStateToControls();
+                RunPaletteReduce();
+                break;
+            case TilesetStudioAction.MakeTileable:
+                ApplyTilesetStateToControls();
+                RunMakeTileable();
+                break;
+            case TilesetStudioAction.ToggleTilePreview:
+                ApplyTilesetStateToControls();
+                Editor.IsTilePreviewMode = TilesetStudioPanel.IsTilePreviewEnabled;
+                break;
+            case TilesetStudioAction.PadToMultiple:
+                ApplyTilesetStateToControls();
+                RunPadToMultiple();
+                break;
+            case TilesetStudioAction.GenerateTemplate:
+                ApplyTilesetStateToControls();
+                RunGenerateTemplate();
+                break;
+            case TilesetStudioAction.ExportTemplatePng:
+                await ExportTemplateAsync();
+                break;
+            case TilesetStudioAction.ImportFrames:
+                ApplyTilesetStateToControls();
+                await RunImportFramesAsync();
+                break;
+            case TilesetStudioAction.ExportTiledJson:
+                await ExportTiledMapJsonAsync();
+                break;
+            case TilesetStudioAction.ApplyCropPot:
+                ApplyTilesetStateToControls();
+                RunCropPipeline();
+                break;
+            case TilesetStudioAction.SnapCellsToGrid:
+                RunSnapCellsToGrid();
+                break;
+        }
+    }
+
+    private void ApplyTilesetStateToControls() =>
+        _tilesetState = TilesetStudioPanel.GetTilesetState();
 
     private void ApplySpriteCleanupStateToControls()
     {
@@ -1958,20 +2017,20 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            var mode = CmbCropMode.SelectedIndex switch
+            var mode = _tilesetState.CropModeIndex switch
             {
                 1 => CropPipeline.CropMode.TrimToContentPadded,
                 2 => CropPipeline.CropMode.UserRoi,
                 _ => CropPipeline.CropMode.TrimToContent,
             };
-            var pot = CmbCropPot.SelectedIndex switch
+            var pot = _tilesetState.CropPotIndex switch
             {
                 1 => CropPipeline.PotPolicy.PerAxis,
                 2 => CropPipeline.PotPolicy.Square,
                 _ => CropPipeline.PotPolicy.None,
             };
-            var alpha    = (byte)Math.Clamp((int)(TxtCropAlpha.Value   ?? 1m), 1, 255);
-            var padding  = Math.Clamp((int)(TxtCropPadding.Value ?? 4m), 0, 64);
+            var alpha    = (byte)Math.Clamp(InputParsing.ParseInt(_tilesetState.CropAlpha, 1), 1, 255);
+            var padding  = Math.Clamp(InputParsing.ParseInt(_tilesetState.CropPadding, 4), 0, 64);
 
             if (mode == CropPipeline.CropMode.UserRoi && _lastUserRoi is null)
             {
@@ -2080,13 +2139,13 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            var presetIdx = CmbPalettePreset.SelectedIndex;
+            var presetIdx = _tilesetState.PalettePresetIndex;
             IReadOnlyList<Rgba32> palette;
             string label;
 
             if (presetIdx <= 0)
             {
-                var n = Math.Clamp(InputParsing.ParseInt(TxtPaletteColors.Text, 16), 2, 64);
+                var n = Math.Clamp(InputParsing.ParseInt(_tilesetState.PaletteColors, 16), 2, 64);
                 palette = PaletteExtractorAlgorithms.ExtractWu(_document, n);
                 if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
                 label = $"Auto AI Wu {palette.Count}";
@@ -2108,7 +2167,7 @@ public partial class MainWindow : Window
             }
 
             PushUndo();
-            var dither = ChkPaletteDither.IsChecked == true
+            var dither = _tilesetState.DitherEnabled
                 ? PaletteMapper.DitherMode.FloydSteinberg
                 : PaletteMapper.DitherMode.None;
             PaletteMapper.ApplyInPlace(_document, palette, dither);
@@ -2148,7 +2207,7 @@ public partial class MainWindow : Window
 
     private void RunMakeTileable()
     {
-        var blend = Math.Clamp(InputParsing.ParseInt(TxtSeamlessBlend.Text, 4), 1, 16);
+        var blend = Math.Clamp(InputParsing.ParseInt(_tilesetState.SeamlessBlend, 4), 1, 16);
         RunReplaceTransform(
             src => SeamlessEdge.MakeTileable(src, blend),
             $"Tile ripetibile generato (banda dither {blend} px). Attiva 'Anteprima tile 3×3' per verificare.",
@@ -2168,7 +2227,7 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            var m = Math.Max(2, InputParsing.ParseInt(TxtPadMultiple.Text, 16));
+            var m = Math.Max(2, InputParsing.ParseInt(_tilesetState.PadMultiple, 16));
             PushUndo();
             var padded = AutoPad.PadToMultiple(_document, m);
             _document.Dispose();
@@ -2752,106 +2811,30 @@ public partial class MainWindow : Window
 
     // ─── Griglia (guida template + slicing) ─────────────────────────────────
 
-    private Image<Rgba32>? _templateDocument;
-
-    private void InitTemplateTab()
+    private Image<Rgba32>? _templateDocument;    private GridTemplateGenerator.Options BuildTemplateOptions()
     {
-        // Preset dimensioni cella
-        TplPreset16 .Click += (_, _) => SetTilePreset(16,  16);
-        TplPreset24 .Click += (_, _) => SetTilePreset(24,  24);
-        TplPreset32 .Click += (_, _) => SetTilePreset(32,  32);
-        TplPreset48 .Click += (_, _) => SetTilePreset(48,  48);
-        TplPreset64 .Click += (_, _) => SetTilePreset(64,  64);
-        TplPreset128.Click += (_, _) => SetTilePreset(128, 128);
-        TplPreset256.Click += (_, _) => SetTilePreset(256, 256);
-
-        // Aggiorna info-label al cambiare di cols/rows/w/h
-        void refresh(object? s, EventArgs e) => UpdateTplInfoLabel();
-        TplCols.ValueChanged  += refresh;
-        TplRows.ValueChanged  += refresh;
-        TplCellW.ValueChanged += refresh;
-        TplCellH.ValueChanged += refresh;
-
-        // Selettore pivot 3×3 → aggiorna etichetta + mostra custom XY se necessario
-        void pivotChanged(object? s, EventArgs e) => UpdateTplPivotLabel();
-        TplPivotTL.IsCheckedChanged += pivotChanged;
-        TplPivotTC.IsCheckedChanged += pivotChanged;
-        TplPivotTR.IsCheckedChanged += pivotChanged;
-        TplPivotML.IsCheckedChanged += pivotChanged;
-        TplPivotCC.IsCheckedChanged += pivotChanged;
-        TplPivotMR.IsCheckedChanged += pivotChanged;
-        TplPivotBL.IsCheckedChanged += pivotChanged;
-        TplPivotBC.IsCheckedChanged += pivotChanged;
-        TplPivotBR.IsCheckedChanged += pivotChanged;
-
-        UpdateTplInfoLabel();
-        UpdateTplPivotLabel();
-    }
-
-    private void SetTilePreset(int w, int h)
-    {
-        TplCellW.Value = w;
-        TplCellH.Value = h;
-    }
-
-    private void UpdateTplInfoLabel()
-    {
-        var cols = (int)(TplCols.Value ?? 4);
-        var rows = (int)(TplRows.Value ?? 4);
-        var cw   = (int)(TplCellW.Value ?? 64);
-        var ch   = (int)(TplCellH.Value ?? 64);
-        TplInfoLabel.Text = $"{cols * rows} frame · {cols * cw}×{rows * ch} px";
-    }
-
-    private GridTemplateGenerator.PivotPreset ReadTplPivotPreset()
-    {
-        if (TplPivotTL.IsChecked == true) return GridTemplateGenerator.PivotPreset.TopLeft;
-        if (TplPivotTC.IsChecked == true) return GridTemplateGenerator.PivotPreset.TopCenter;
-        if (TplPivotTR.IsChecked == true) return GridTemplateGenerator.PivotPreset.TopRight;
-        if (TplPivotML.IsChecked == true) return GridTemplateGenerator.PivotPreset.MidLeft;
-        if (TplPivotCC.IsChecked == true) return GridTemplateGenerator.PivotPreset.Center;
-        if (TplPivotMR.IsChecked == true) return GridTemplateGenerator.PivotPreset.MidRight;
-        if (TplPivotBL.IsChecked == true) return GridTemplateGenerator.PivotPreset.BottomLeft;
-        if (TplPivotBC.IsChecked == true) return GridTemplateGenerator.PivotPreset.BottomCenter;
-        if (TplPivotBR.IsChecked == true) return GridTemplateGenerator.PivotPreset.BottomRight;
-        return GridTemplateGenerator.PivotPreset.Custom;
-    }
-
-    private void UpdateTplPivotLabel()
-    {
-        var preset = ReadTplPivotPreset();
-        var (nx, ny) = GridTemplateGenerator.PivotNdc(preset);
-
-        TplPivotLabel.Text  = preset.ToString().Replace("Mid", "Mid ").Replace("Bottom", "Bottom ");
-        TplPivotCoords.Text = $"x={nx:F2} · y={ny:F2}";
-        TplCustomXYPanel.IsVisible = preset == GridTemplateGenerator.PivotPreset.Custom;
-    }
-
-    private GridTemplateGenerator.Options BuildTemplateOptions()
-    {
-        var preset = ReadTplPivotPreset();
+        var preset = TilesetStudioPanel.GetPivotPreset();
         var (ndcX, ndcY) = preset == GridTemplateGenerator.PivotPreset.Custom
-            ? ((double)(TplPivotX.Value ?? 0.5m), (double)(TplPivotY.Value ?? 0.5m))
+            ? (_tilesetState.PivotCustomX, _tilesetState.PivotCustomY)
             : GridTemplateGenerator.PivotNdc(preset);
 
         return new GridTemplateGenerator.Options
         {
-            Rows             = (int)(TplRows.Value  ?? 4),
-            Cols             = (int)(TplCols.Value  ?? 4),
-            CellWidth        = (int)(TplCellW.Value ?? 64),
-            CellHeight       = (int)(TplCellH.Value ?? 64),
-            ShowBorder       = TplShowBorder.IsChecked   == true,
+            Rows             = Math.Max(1, InputParsing.ParseInt(_tilesetState.Rows, 4)),
+            Cols             = Math.Max(1, InputParsing.ParseInt(_tilesetState.Cols, 4)),
+            CellWidth        = Math.Max(4, InputParsing.ParseInt(_tilesetState.CellW, 64)),
+            CellHeight       = Math.Max(4, InputParsing.ParseInt(_tilesetState.CellH, 64)),
+            ShowBorder       = _tilesetState.ShowBorder,
             BorderThickness  = 1,
-            ShowPivotMarker  = TplShowPivot.IsChecked    == true,
-            ShowBaselineLine = TplShowBaseline.IsChecked == true,
-            ShowCellIndex    = TplShowIndex.IsChecked    == true,
-            ShowCellTint     = TplShowTint.IsChecked     == true,
+            ShowPivotMarker  = _tilesetState.ShowPivot,
+            ShowBaselineLine = _tilesetState.ShowBaseline,
+            ShowCellIndex    = _tilesetState.ShowIndex,
+            ShowCellTint     = _tilesetState.ShowTint,
             Pivot            = preset,
             PivotNdcX        = ndcX,
             PivotNdcY        = ndcY,
         };
     }
-
     private void RunGenerateTemplate()
     {
         try
@@ -3049,13 +3032,13 @@ public partial class MainWindow : Window
     {
         if (_importInProgress) { SetStatus("Importazione già in corso…"); return; }
         _importInProgress = true;
-        BtnImportFrames.IsEnabled = false;
+        TilesetStudioPanel.SetImportEnabled(false);
         try
         {
-            var cols  = (int)(TplCols.Value  ?? 4);
-            var rows  = (int)(TplRows.Value  ?? 1);
-            var cellW = (int)(TplCellW.Value ?? 64);
-            var cellH = (int)(TplCellH.Value ?? 64);
+            var cols  = Math.Max(1, InputParsing.ParseInt(_tilesetState.Cols, 4));
+            var rows  = Math.Max(1, InputParsing.ParseInt(_tilesetState.Rows, 1));
+            var cellW = Math.Max(4, InputParsing.ParseInt(_tilesetState.CellW, 64));
+            var cellH = Math.Max(4, InputParsing.ParseInt(_tilesetState.CellH, 64));
             var total = cols * rows;
 
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -3132,7 +3115,7 @@ public partial class MainWindow : Window
         finally
         {
             _importInProgress = false;
-            BtnImportFrames.IsEnabled = true;
+            TilesetStudioPanel.SetImportEnabled(true);
         }
     }
 

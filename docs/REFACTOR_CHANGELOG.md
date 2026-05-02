@@ -125,3 +125,21 @@ Audit post-implementazione ha rilevato e chiuso tre gap prima di procedere a Til
 - Il case `ApplyQuantize` ora chiama solo `RunSpriteQuantize()`
 
 **Build post-fix:** 0 errori, 0 warning.
+
+---
+
+## Tileset Studio — pannello operativo iniziale (2026-05-02)
+
+Implementata la prima migrazione UI di Tileset Studio.
+
+**Soluzione:**
+- Aggiunto `TilesetStudioAction` con azioni dedicate per palette, seamless, tile preview, pad-to-multiple, template, import frame, crop/POT, snap celle ed export Tiled.
+- Aggiunta `TilesetStudioView` con sezioni visibili: flusso, palette, seamless/tile, allineamento dimensioni, griglia template, composizione, export e strumenti avanzati.
+- Rimosso il tab legacy `Tileset` da `MainWindow.axaml`; la shell ora mostra `TilesetStudioPanel` quando `ActivateStudio(StudioKind.Tileset)` e' attivo.
+- Aggiunto `_tilesetState` in `MainWindow.axaml.cs` per evitare letture dirette da controlli XAML legacy.
+- Refactor dei metodi Tileset principali per leggere da `_tilesetState`: `RunPaletteReduce`, `RunMakeTileable`, `RunPadToMultiple`, `BuildTemplateOptions`, `RunCropPipeline`, `RunImportFramesAsync`.
+- Pivot template e preset dimensione griglia sono gestiti nel code-behind della view Tileset, non piu' in `MainWindow`.
+
+**Stato residuo:**
+- `MainWindow.axaml.cs` resta orchestratore compatibile e contiene ancora handler Tileset; la prossima estrazione consigliata e' un `TilesetStudioController`.
+- Il tab `Export` resta come scorciatoia condivisa per export PNG/JSON/ZIP/Tiled finche' non saranno migrati Animation Studio ed export shell.
