@@ -71,10 +71,15 @@ public static class BackgroundIsolation
             return dr * dr + dg * dg + db * db <= rgbTol * rgbTol;
         }
 
+        // Un pixel è "attraversabile" se è già trasparente (run precedenti) OPPURE
+        // corrisponde al colore sfondo corrente (non è un bordo forte).
+        // Questo consente il flood anche dopo passaggi multipli di rimozione:
+        // i pixel già azzerati fungono da corridoio per raggiungere nuovi pixel sfondo.
         bool CanFlood(int x, int y)
         {
             var i = I(x, y);
-            return pixels[i].A != 0 && !edge[i] && MatchesBackground(x, y);
+            if (pixels[i].A == 0) return true; // già trasparente: passabile
+            return !edge[i] && MatchesBackground(x, y);
         }
 
         void Seed(int x, int y)
@@ -114,6 +119,7 @@ public static class BackgroundIsolation
             TryAdd(x, y + 1);
         }
 
+        // Conta e azzera solo pixel che erano OPACHI (non già trasparenti da run precedenti).
         var removedCount = 0;
         image.ProcessPixelRows(accessor =>
         {
@@ -122,9 +128,9 @@ public static class BackgroundIsolation
                 var row = accessor.GetRowSpan(y);
                 for (var x = 0; x < row.Length; x++)
                 {
-                    if (!removed[I(x, y)]) continue;
-                    var p = row[x];
-                    row[x] = new Rgba32(p.R, p.G, p.B, 0);
+                    var idx = I(x, y);
+                    if (!removed[idx] || pixels[idx].A == 0) continue; // già trasparente: salta
+                    row[x] = new Rgba32(row[x].R, row[x].G, row[x].B, 0);
                     removedCount++;
                 }
             }
@@ -171,6 +177,11 @@ public static class BackgroundIsolation
         {
             for (var x = 1; x < w - 1; x++)
             {
+                // I pixel già trasparenti non sono bordi sprite: escluderli evita che la
+                // mappa Sobel blocchi il flood nelle esecuzioni successive (quando parte del
+                // bordo immagine è già stata azzerata da un run precedente).
+                if (pixels[I(x, y)].A == 0) continue; // edge[i] resta false
+
                 var gx =
                     -luma[I(x - 1, y - 1)] + luma[I(x + 1, y - 1)] +
                     -2 * luma[I(x - 1, y)] + 2 * luma[I(x + 1, y)] +

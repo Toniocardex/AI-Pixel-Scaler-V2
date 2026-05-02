@@ -242,3 +242,33 @@ Tre root cause identificate e risolte: la pipetta non raggiungeva mai `RunBackgr
 - `src/AiPixelScaler.Desktop/Views/MainWindow.axaml.cs`
 
 **Build post-fix:** 0 errori, 0 warning.
+
+---
+
+## Rimozione sfondo — fix flood multi-run (2026-05-02)
+
+### Problema: secondo run sempre 0 pixel rimossi
+
+Dopo il primo "Rimuovi sfondo", i pixel di bordo immagine diventano trasparenti (A=0).
+Alla seconda esecuzione `ToFlatArray` legge l'immagine aggiornata: tutti i pixel di bordo hanno A=0.
+`CanFlood` richiedeva `A != 0` → nessun seed → coda vuota → 0 pixel rimossi.
+
+Doppio blocco Sobel: `BuildSobelEdgeMap` calcolava luma=0 per i pixel trasparenti.
+La discontinuità trasparente↔opaco produceva gradienti Sobel elevati → `edge[i]=true` per i pixel
+adiacenti all'area già azzerata → flood bloccato anche correggendo solo `CanFlood`.
+
+### Soluzione (3 modifiche in `BackgroundIsolation.cs`)
+
+**1. `CanFlood` — pixel trasparenti passabili:**
+Il flood può attraversare pixel già azzerati per raggiungere nuove aree sfondo.
+
+**2. `BuildSobelEdgeMap` — pixel trasparenti esclusi dalla mappa bordi:**
+Impedisce che la frontiera trasparente↔sprite generi false edges che bloccano il flood.
+
+**3. Loop di rimozione — conta solo pixel originalmente opachi:**
+Evita conteggi gonfiati includendo pixel già trasparenti da run precedenti.
+
+**File modificati:** `src/AiPixelScaler.Core/Pipeline/Imaging/BackgroundIsolation.cs`
+
+**Build post-fix:** 0 errori, 0 warning.
+**Publish:** `publish/win-x64`, `dist/win-x64` — OK.
