@@ -32,6 +32,11 @@ Thumbs.db
 # Node (scripts/render-icon)
 scripts/node_modules/
 
+# Local design mockups / covers at repo root (reference only, not source)
+/*_Studio_Cover.png
+/*_studio_GUI_mockup.png
+/Mockup_*.png
+
 # Test results
 TestResults/
 coverage/
