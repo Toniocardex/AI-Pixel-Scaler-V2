@@ -272,3 +272,32 @@ Evita conteggi gonfiati includendo pixel già trasparenti da run precedenti.
 
 **Build post-fix:** 0 errori, 0 warning.
 **Publish:** `publish/win-x64`, `dist/win-x64` — OK.
+
+---
+
+## Rimozione sfondo — auto-snap colore dopo Quantize (2026-05-02)
+
+### Problema: Quantize rimappa i colori → pipetta obsoleta → 0 pixel rimossi
+
+Scenario: utente campiona con pipetta `#C1A790` → applica Quantize 32 colori → i pixel di bordo vengono rimappati a `#BE9F87` (palette entry più vicina) → "Rimuovi sfondo" cerca `#C1A790` con tolleranza 15 → distanza > soglia → 0 pixel rimossi.
+
+Il conflitto era intermittente perché dipende da quanto il quantizzatore sposta il colore sfondo rispetto alla tolleranza impostata.
+
+### Soluzione
+
+**`BackgroundIsolation.SnapKeyToBorderColor`** (nuovo metodo pubblico in Core):
+- Campiona tutti i pixel opachi sul perimetro dell'immagine.
+- Trova il pixel con distanza RGB² minima dal colore chiave.
+- Se la distanza è entro `maxRgbDistancePerChannel=40` per canale, restituisce quel pixel come colore corretto; altrimenti restituisce il colore originale invariato.
+
+**`RunBackgroundIsolation`** in `MainWindow.axaml.cs`:
+- Chiama `SnapKeyToBorderColor` prima del flood.
+- Se snap attivo: aggiorna `_backgroundIsolationHex` + `SyncSpriteCleanupStateFromControls()` → il TextBox nel pannello mostra il colore effettivamente usato.
+- Il messaggio di stato include `[colore corretto da #ORIG dopo quantize]` quando lo snap ha operato.
+
+**File modificati:**
+- `src/AiPixelScaler.Core/Pipeline/Imaging/BackgroundIsolation.cs`
+- `src/AiPixelScaler.Desktop/Views/MainWindow.axaml.cs`
+
+**Build post-fix:** 0 errori, 0 warning.
+**Publish:** `publish/win-x64`, `dist/win-x64` — OK.

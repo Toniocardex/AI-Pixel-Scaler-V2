@@ -138,6 +138,44 @@ public static class BackgroundIsolation
         return removedCount;
     }
 
+    /// <summary>
+    /// Corregge il colore chiave sfondo cercando il pixel opaco di bordo più vicino (distanza RGB²).
+    /// Utile dopo operazioni di quantizzazione palette: il colore campionato con la pipetta prima
+    /// del quantize potrebbe non esistere più nell'immagine rimappata.
+    /// Se nessun pixel di bordo è entro <paramref name="maxRgbDistancePerChannel"/> unità per canale,
+    /// restituisce <paramref name="key"/> invariato.
+    /// </summary>
+    public static Rgba32 SnapKeyToBorderColor(
+        Image<Rgba32> image,
+        Rgba32 key,
+        double maxRgbDistancePerChannel = 40)
+    {
+        var w = image.Width;
+        var h = image.Height;
+        if (w < 1 || h < 1) return key;
+
+        var pixels = ImageUtils.ToFlatArray(image);
+        var maxDistSq = maxRgbDistancePerChannel * maxRgbDistancePerChannel * 3; // 3 canali
+        var bestDistSq = double.MaxValue;
+        var best = key;
+
+        void Check(int x, int y)
+        {
+            var p = pixels[y * w + x];
+            if (p.A == 0) return; // già trasparente: salta
+            var dr = (double)(p.R - key.R);
+            var dg = (double)(p.G - key.G);
+            var db = (double)(p.B - key.B);
+            var d = dr * dr + dg * dg + db * db;
+            if (d < bestDistSq) { bestDistSq = d; best = p; }
+        }
+
+        for (var x = 0; x < w; x++) { Check(x, 0); if (h > 1) Check(x, h - 1); }
+        for (var y = 1; y < h - 1; y++) { Check(0, y); if (w > 1) Check(w - 1, y); }
+
+        return bestDistSq <= maxDistSq ? new Rgba32(best.R, best.G, best.B, 255) : key;
+    }
+
     public static void SnapBackgroundRgbInPlace(Image<Rgba32> image, Rgba32 key, double tolerance)
     {
         var tol = Math.Max(0, tolerance);

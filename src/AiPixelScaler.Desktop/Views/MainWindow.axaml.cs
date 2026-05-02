@@ -1669,20 +1669,32 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
+            // Auto-snap: corregge il colore chiave al pixel di bordo più vicino.
+            // Gestisce il caso in cui Quantize abbia rimappato i colori dopo la pipetta:
+            // il colore campionato prima del quantize potrebbe non esistere più nell'immagine.
+            var snappedKey = BackgroundIsolation.SnapKeyToBorderColor(_document, key);
+            var snapped = snappedKey != key;
+            if (snapped)
+            {
+                _backgroundIsolationHex = RgbaToHex(snappedKey);
+                SyncSpriteCleanupStateFromControls(); // aggiorna il TextBox nel pannello
+            }
+
             PushUndo();
             var removed = BackgroundIsolation.ApplyInPlace(
                 _document,
                 new BackgroundIsolation.Options(
-                    BackgroundColor: key,
+                    BackgroundColor: snappedKey,
                     ColorTolerance: tol,
                     EdgeThreshold: edge,
                     UseOklab: true,
                     ProtectStrongEdges: true));
             ClearSliceGrid(); _cells.Clear(); ClearSpriteCellList();
             RefreshView();
+            var snapNote = snapped ? $" [colore corretto da {RgbaToHex(key)} dopo quantize]" : string.Empty;
             SetStatus(removed > 0
-                ? $"Sfondo rimosso: {removed:N0} pixel (colore {RgbaToHex(key)}, tolleranza {tol}, bordi {edge})."
-                : $"Nessun pixel rimosso — controlla colore sfondo e tolleranza (colore {RgbaToHex(key)}, tolleranza {tol}, bordi {edge}).");
+                ? $"Sfondo rimosso: {removed:N0} pixel (colore {RgbaToHex(snappedKey)}, tolleranza {tol}, bordi {edge}){snapNote}."
+                : $"Nessun pixel rimosso — controlla colore sfondo e tolleranza (colore {RgbaToHex(snappedKey)}, tolleranza {tol}, bordi {edge}){snapNote}.");
             // Disattiva pipetta dopo operazione riuscita
             ChkPipette.IsChecked = false;
         }
