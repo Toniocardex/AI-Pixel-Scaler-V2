@@ -350,6 +350,9 @@ public partial class MainWindow : Window
                 ApplySpriteCleanupStateToControls();
                 RunBackgroundIsolation();
                 break;
+            case SpriteStudioAction.ActivatePipetteForBackground:
+                ActivatePipette(0);
+                break;
             case SpriteStudioAction.ApplyDenoise:
                 ApplySpriteCleanupStateToControls();
                 RunDenoise();
@@ -1663,18 +1666,27 @@ public partial class MainWindow : Window
         }
         var tol = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationTolerance, 10));
         var edge = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationEdgeThreshold, 48));
-        RunTransform(
-            img => BackgroundIsolation.ApplyInPlace(
-                img,
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        try
+        {
+            PushUndo();
+            var removed = BackgroundIsolation.ApplyInPlace(
+                _document,
                 new BackgroundIsolation.Options(
                     BackgroundColor: key,
                     ColorTolerance: tol,
                     EdgeThreshold: edge,
                     UseOklab: true,
-                    ProtectStrongEdges: true)),
-            $"Sfondo rimosso (colore {RgbaToHex(key)}, tolleranza {tol}, bordi {edge}).",
-            clearCells: true,
-            "Errore rimozione sfondo");
+                    ProtectStrongEdges: true));
+            ClearSliceGrid(); _cells.Clear(); ClearSpriteCellList();
+            RefreshView();
+            SetStatus(removed > 0
+                ? $"Sfondo rimosso: {removed:N0} pixel (colore {RgbaToHex(key)}, tolleranza {tol}, bordi {edge})."
+                : $"Nessun pixel rimosso — controlla colore sfondo e tolleranza (colore {RgbaToHex(key)}, tolleranza {tol}, bordi {edge}).");
+            // Disattiva pipetta dopo operazione riuscita
+            ChkPipette.IsChecked = false;
+        }
+        catch (Exception ex) { SetStatus($"Errore rimozione sfondo: {ex.Message}"); }
     }
 
     private async Task ExportTiledMapJsonAsync()

@@ -34,5 +34,6 @@ public enum SpriteStudioAction
     MirrorVertical,
     ResizeNearest,
     ExportPng,
-    ExportJson
+    ExportJson,
+    ActivatePipetteForBackground,
 }

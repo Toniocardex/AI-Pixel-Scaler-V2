@@ -199,3 +199,46 @@ Implementata la migrazione UI di Animation Studio.
 
 **Build post-refactor:** 0 errori, 0 warning.
 **Publish:** `publish/win-x64`, `dist/win-x64` — OK.
+
+---
+
+## Rimozione sfondo — fix contagocce + feedback + tolleranza Oklab (2026-05-02)
+
+Tre root cause identificate e risolte: la pipetta non raggiungeva mai `RunBackgroundIsolation`, il feedback era ambiguo, e la formula di tolleranza Oklab era sistematicamente troppo stretta.
+
+### Fix 1 — Pipetta non collegata alla rimozione sfondo
+
+**Problema:** `ActivatePipette(int targetIndex)` era dead code — chiamata mai emessa da nessuna parte. Il pulsante "Rimuovi Sfondo" leggeva il colore da `_backgroundIsolationHex`, ma non c'era modo UI di popolare quel campo con il colore catturato dal contagocce.
+
+**Soluzione:**
+- Aggiunto `ActivatePipetteForBackground` a `SpriteStudioAction.cs`.
+- Aggiunto pulsante `BtnSpriteBgPipette` (◉, 22×22) inline nella riga colore sfondo di `SpriteStudioView.axaml` — visualmente adiacente al campo hex che popola.
+- `SpriteStudioView.axaml.cs` emette `ActivatePipetteForBackground` al click.
+- `MainWindow.axaml.cs` aggiunge case nel dispatcher `OnSpriteStudioActionRequested`: `ActivatePipette(0)`.
+
+### Fix 2 — Feedback ambiguo
+
+**Problema:** `RunBackgroundIsolation` chiamava `ApplyInPlace` (che restituiva `void`) e mostrava sempre "Sfondo rimosso" — anche se 0 pixel erano stati effettivamente rimossi.
+
+**Soluzione:**
+- `BackgroundIsolation.ApplyInPlace` ora restituisce `int` (conteggio pixel rimossi).
+- `RunBackgroundIsolation` distingue: `removed > 0` → messaggio di successo con conteggio e parametri; `removed == 0` → messaggio diagnostico che invita a ricontrollare colore e tolleranza.
+- Pipetta disattivata automaticamente dopo l'operazione (`ChkPipette.IsChecked = false`).
+
+### Fix 3 — Tolleranza Oklab calibrata adattativamente
+
+**Problema:** La formula precedente `oklabTolSq = (rgbTol / 255.0)²` era derivata dall'intervallo lineare sRGB, non dalla geometria Oklab effettiva. Per colori scuri o chiari, la distanza Oklab reale per ±T shift in RGB è molto diversa da `T/255`, rendendo la tolleranza sistematicamente troppo stretta.
+
+**Soluzione:** `BackgroundIsolation.ApplyInPlace` ora calibra `oklabTolSq` calcolando la distanza Oklab reale:
+- Costruisce due colori campione: `key ± tolInt` su tutti i canali (clampato `[0,255]`).
+- `oklabTolSq = max(DistanceSquared(key, plus), DistanceSquared(key, minus))`.
+- Fallback al metodo lineare solo se `oklabTolSq ≤ 0` (tolleranza 0 o colori identici).
+
+**File modificati:**
+- `src/AiPixelScaler.Core/Pipeline/Imaging/BackgroundIsolation.cs`
+- `src/AiPixelScaler.Desktop/Views/Studios/SpriteStudioAction.cs`
+- `src/AiPixelScaler.Desktop/Views/Studios/SpriteStudioView.axaml`
+- `src/AiPixelScaler.Desktop/Views/Studios/SpriteStudioView.axaml.cs`
+- `src/AiPixelScaler.Desktop/Views/MainWindow.axaml.cs`
+
+**Build post-fix:** 0 errori, 0 warning.

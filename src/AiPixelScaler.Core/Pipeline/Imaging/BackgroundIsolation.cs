@@ -18,11 +18,11 @@ public static class BackgroundIsolation
         bool UseOklab = true,
         bool ProtectStrongEdges = true);
 
-    public static void ApplyInPlace(Image<Rgba32> image, Options options)
+    public static int ApplyInPlace(Image<Rgba32> image, Options options)
     {
         var w = image.Width;
         var h = image.Height;
-        if (w < 1 || h < 1) return;
+        if (w < 1 || h < 1) return 0;
 
         var pixels = ImageUtils.ToFlatArray(image);
         var edge = options.ProtectStrongEdges
@@ -32,10 +32,29 @@ public static class BackgroundIsolation
         var q = new Queue<(int x, int y)>();
 
         var rgbTol = Math.Max(0, options.ColorTolerance);
-        var rgbTolSq = rgbTol * rgbTol;
         var oklabKey = Oklab.FromSrgb(options.BackgroundColor);
-        var oklabTol = rgbTol / 255.0;
-        var oklabTolSq = (float)(oklabTol * oklabTol);
+
+        // Calibra oklabTolSq in base al colore chiave effettivo.
+        // rgbTol è in unità [0,255]; calcoliamo la distanza Oklab reale per uno
+        // spostamento uniforme di +rgbTol e -rgbTol su tutti i canali (caso peggiore per i grigi).
+        var calR = (int)options.BackgroundColor.R;
+        var calG = (int)options.BackgroundColor.G;
+        var calB = (int)options.BackgroundColor.B;
+        var tolInt = (int)Math.Round(rgbTol);
+        var oklabPlus  = Oklab.FromSrgb(new Rgba32(
+            (byte)Math.Clamp(calR + tolInt, 0, 255),
+            (byte)Math.Clamp(calG + tolInt, 0, 255),
+            (byte)Math.Clamp(calB + tolInt, 0, 255), 255));
+        var oklabMinus = Oklab.FromSrgb(new Rgba32(
+            (byte)Math.Clamp(calR - tolInt, 0, 255),
+            (byte)Math.Clamp(calG - tolInt, 0, 255),
+            (byte)Math.Clamp(calB - tolInt, 0, 255), 255));
+        var oklabTolSq = Math.Max(
+            Oklab.DistanceSquared(oklabKey, oklabPlus),
+            Oklab.DistanceSquared(oklabKey, oklabMinus));
+        // Fallback minimo per rgbTol molto piccoli
+        if (oklabTolSq <= 0f)
+            oklabTolSq = (float)((rgbTol / 255.0) * (rgbTol / 255.0));
 
         int I(int x, int y) => y * w + x;
 
@@ -49,7 +68,7 @@ public static class BackgroundIsolation
             var dr = p.R - options.BackgroundColor.R;
             var dg = p.G - options.BackgroundColor.G;
             var db = p.B - options.BackgroundColor.B;
-            return dr * dr + dg * dg + db * db <= rgbTolSq;
+            return dr * dr + dg * dg + db * db <= rgbTol * rgbTol;
         }
 
         bool CanFlood(int x, int y)
@@ -95,6 +114,7 @@ public static class BackgroundIsolation
             TryAdd(x, y + 1);
         }
 
+        var removedCount = 0;
         image.ProcessPixelRows(accessor =>
         {
             for (var y = 0; y < accessor.Height; y++)
@@ -105,9 +125,11 @@ public static class BackgroundIsolation
                     if (!removed[I(x, y)]) continue;
                     var p = row[x];
                     row[x] = new Rgba32(p.R, p.G, p.B, 0);
+                    removedCount++;
                 }
             }
         });
+        return removedCount;
     }
 
     public static void SnapBackgroundRgbInPlace(Image<Rgba32> image, Rgba32 key, double tolerance)

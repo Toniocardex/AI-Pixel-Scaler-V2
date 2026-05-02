@@ -50,6 +50,7 @@ public partial class SpriteStudioView : UserControl
         BtnSpriteMirrorV.Click += (_, _) => Request(SpriteStudioAction.MirrorVertical);
         BtnSpriteExportPng.Click += (_, _) => Request(SpriteStudioAction.ExportPng);
         BtnSpriteExportJson.Click += (_, _) => Request(SpriteStudioAction.ExportJson);
+        BtnSpriteBgPipette.Click += (_, _) => Request(SpriteStudioAction.ActivatePipetteForBackground);
     }
 
     public void SetSelectionInfo(string text, bool hasSelection)
