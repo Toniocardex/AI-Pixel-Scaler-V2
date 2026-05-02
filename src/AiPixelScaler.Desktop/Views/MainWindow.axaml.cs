@@ -108,6 +108,13 @@ public partial class MainWindow : Window
         CropPadding: "4",
         CropPotIndex: 0);
 
+    private AnimationState _animationState = new(
+        SnapToGrid:           true,
+        ExtractPadding:       "0",
+        NormalizePolicyIndex: 0,
+        PivotX:               0.5,
+        PivotY:               0.5);
+
     // ── Selezione canvas ─────────────────────────────────────────────────────
     private bool             _toolbarSelectionModeEnabled;
     private bool             _manualSpriteCropMode;
@@ -131,8 +138,9 @@ public partial class MainWindow : Window
         LoadWelcomeDocument();
         StudioShell.IsVisible = false;
         StartPage.StudioSelected += (_, studio) => ActivateStudio(studio);
-        SpriteStudioPanel.ActionRequested += OnSpriteStudioActionRequested;
-        TilesetStudioPanel.ActionRequested += OnTilesetStudioActionRequested;
+        SpriteStudioPanel.ActionRequested   += OnSpriteStudioActionRequested;
+        TilesetStudioPanel.ActionRequested  += OnTilesetStudioActionRequested;
+        AnimationStudioPanel.ActionRequested += OnAnimationStudioActionRequested;
 
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
@@ -149,8 +157,7 @@ public partial class MainWindow : Window
         BtnOpen.Click    += async (_, _) => await OpenImageAsync();
         BtnRevert.Click  += (_, _) => RevertToBackup();
         BtnUndo.Click    += (_, _) => TryUndo();
-        BtnPanelSandbox.Click += (_, _) => OpenSandbox();
-        BtnPanelAnimPreview.Click += (_, _) => OpenAnimationPreview();
+        // Preview / Sandbox ora in AnimationStudioPanel
         BtnToolbarRilevaSprite.Click += (_, _) => RunCcl();
         MiToolbarSelectionMode.Click += (_, _) => ToggleToolbarSelectionMode();
         MiToolbarCropToSelection.Click += (_, _) => CropToSelection();
@@ -205,9 +212,7 @@ public partial class MainWindow : Window
 
         InitWorkspaceScrollBars();
 
-        // Pivot
-        SliderPivotX.ValueChanged += (_, _) => UpdatePivotLabels();
-        SliderPivotY.ValueChanged += (_, _) => UpdatePivotLabels();
+        // Pivot: gestito in AnimationStudioPanel
 
         _isApplyingPipelinePreset = true;
         try
@@ -221,9 +226,7 @@ public partial class MainWindow : Window
 
         UpdatePipelinePresetBadge();
 
-        // Passo 3 — Allinea
-        BtnGlobal.Click         += (_, _) => RunGlobalScan();
-        BtnBaselineAlign.Click  += (_, _) => RunBaselineAlignment();
+        // Passo 3 — Allinea: ora in AnimationStudioPanel
 
         Editor.CellClicked   += (_, idx) => OnCellPasteClicked(idx);
 
@@ -252,30 +255,15 @@ public partial class MainWindow : Window
         };
         TxtExportCellW.TextChanged += (_, _) => UpdateExportCellMinRequiredHint();
         TxtExportCellH.TextChanged += (_, _) => UpdateExportCellMinRequiredHint();
-        BtnCenterInCells.Click   += (_, _) => RunCenterInCells();
-        BtnSnapCellsToGrid.Click += (_, _) => RunSnapCellsToGrid();
+        // CenterInCells / SnapCells: ora in AnimationStudioPanel / TilesetStudioPanel
+        Editor.FrameSelected += OnFrameSelected;
+        Editor.FrameDragged  += OnFrameDragged;
 
-        // Workbench allineamento frame
-        BtnAlignEnter.Click       += (_, _) => EnterFrameAlignMode();
-        BtnAlignApply.Click       += (_, _) => CommitFrameAlignMode();
-        BtnAlignCancel.Click      += (_, _) => CancelFrameAlignMode();
-        BtnAlignAllCenter.Click   += (_, _) => AlignAllFramesCenter();
-        BtnAlignAllBaseline.Click += (_, _) => AlignAllFramesBaseline();
-        BtnAlignAllReset.Click    += (_, _) => ResetAllFrames();
-        BtnAlignSelCenter.Click   += (_, _) => AlignSelectedFrame(center: true);
-        BtnAlignSelBaseline.Click += (_, _) => AlignSelectedFrame(center: false);
-        BtnAlignSelLayoutCenter.Click += (_, _) => AlignSelectedFrameToLayoutCenter();
-        BtnAlignSelReset.Click    += (_, _) => ResetSelectedFrame();
-        Editor.FrameSelected      += OnFrameSelected;
-        Editor.FrameDragged       += OnFrameDragged;
-
-        // Scheda Griglia (guida / slicing)
-        // Passo 5 — Esporta
-        BtnExportTiled.Click     += async (_, _) => await ExportTiledMapJsonAsync();
-        BtnExportFramesZip.Click += async (_, _) => await ExportFramesZipAsync();
+        // Export
+        BtnExportTiled.Click += async (_, _) => await ExportTiledMapJsonAsync();
+        // ExportFramesZip: ora in AnimationStudioPanel
 
         InitializeWorkspaceTabs();
-        UpdatePivotLabels();
         UpdateUndoUi();
         UpdateWorkspaceGuidance();
     }
@@ -295,8 +283,9 @@ public partial class MainWindow : Window
             StudioKind.Tileset => 0,
             _ => MainTabs.SelectedIndex
         };
-        SpriteStudioPanel.IsVisible = studio == StudioKind.Sprite;
-        TilesetStudioPanel.IsVisible = studio == StudioKind.Tileset;
+        SpriteStudioPanel.IsVisible   = studio == StudioKind.Sprite;
+        TilesetStudioPanel.IsVisible  = studio == StudioKind.Tileset;
+        AnimationStudioPanel.IsVisible = studio == StudioKind.Animation;
         SetStatus($"{studio switch
         {
             StudioKind.Sprite => "Sprite Studio",
@@ -470,6 +459,71 @@ public partial class MainWindow : Window
 
     private void ApplyTilesetStateToControls() =>
         _tilesetState = TilesetStudioPanel.GetTilesetState();
+
+    // ── Animation Studio ─────────────────────────────────────────────────────
+
+    private void ApplyAnimationStateToControls() =>
+        _animationState = AnimationStudioPanel.GetAnimationState();
+
+    private async void OnAnimationStudioActionRequested(object? sender, AnimationStudioAction action)
+    {
+        switch (action)
+        {
+            case AnimationStudioAction.OpenAnimationPreview:
+                OpenAnimationPreview();
+                break;
+            case AnimationStudioAction.OpenSandbox:
+                OpenSandbox();
+                break;
+            case AnimationStudioAction.EnterFrameWorkbench:
+                ApplyAnimationStateToControls();
+                EnterFrameAlignMode();
+                break;
+            case AnimationStudioAction.CommitFrameWorkbench:
+                CommitFrameAlignMode();
+                break;
+            case AnimationStudioAction.CancelFrameWorkbench:
+                CancelFrameAlignMode();
+                break;
+            case AnimationStudioAction.AlignAllCenter:
+                ApplyAnimationStateToControls();
+                AlignAllFramesCenter();
+                break;
+            case AnimationStudioAction.AlignAllBaseline:
+                AlignAllFramesBaseline();
+                break;
+            case AnimationStudioAction.ResetAll:
+                ResetAllFrames();
+                break;
+            case AnimationStudioAction.AlignSelectedCenter:
+                ApplyAnimationStateToControls();
+                AlignSelectedFrame(center: true);
+                break;
+            case AnimationStudioAction.AlignSelectedBaseline:
+                AlignSelectedFrame(center: false);
+                break;
+            case AnimationStudioAction.AlignSelectedLayoutCenter:
+                AlignSelectedFrameToLayoutCenter();
+                break;
+            case AnimationStudioAction.ResetSelected:
+                ResetSelectedFrame();
+                break;
+            case AnimationStudioAction.RunGlobalScan:
+                RunGlobalScan();
+                break;
+            case AnimationStudioAction.RunBaselineAlignment:
+                ApplyAnimationStateToControls();
+                RunBaselineAlignment();
+                break;
+            case AnimationStudioAction.RunCenterInCells:
+                ApplyAnimationStateToControls();
+                RunCenterInCells();
+                break;
+            case AnimationStudioAction.ExportFramesZip:
+                await ExportFramesZipAsync();
+                break;
+        }
+    }
 
     private void ApplySpriteCleanupStateToControls()
     {
@@ -987,10 +1041,9 @@ public partial class MainWindow : Window
         SetStatus($"Anteprima animazione aperta: {_cells.Count} frame.");
     }
 
-    private void UpdatePivotLabels()
+    private static void UpdatePivotLabels()
     {
-        LblPivotX.Text = $"{SliderPivotX.Value:F2}";
-        LblPivotY.Text = $"{SliderPivotY.Value:F2}";
+        // Pivot labels gestiti in AnimationStudioView; metodo tenuto per compatibilità call-sites residui.
     }
 
     private void SetStatus(string message) =>
@@ -1007,7 +1060,7 @@ public partial class MainWindow : Window
         ClearSliceGrid();
         RefreshView();
         ClearSpriteCellList();
-        TxtGlobal.Text = "—  Esegui prima il passo 2";
+        AnimationStudioPanel.SetGlobalScanResult("— Esegui prima la rilevazione sprite");
         _hasUserFile = false;
         _cleanApplied = false;
         RefreshEmptyState();
@@ -1732,7 +1785,7 @@ public partial class MainWindow : Window
             ResetTransientStateForNewOpenedProject();
             ClearSpriteCellList();
             // TxtAabb rimosso
-            TxtGlobal.Text = "—  Esegui prima il passo 2";
+            AnimationStudioPanel.SetGlobalScanResult("— Esegui prima la rilevazione sprite");
             _hasUserFile = true;
             _cleanApplied = false;
             RefreshEmptyState();
@@ -1909,7 +1962,7 @@ public partial class MainWindow : Window
     {
         if (_document is null || _cells.Count == 0)
         {
-            TxtGlobal.Text = "—  Esegui prima il passo 2 (dividi in sprite)";
+            AnimationStudioPanel.SetGlobalScanResult("— Esegui prima la rilevazione sprite");
             SetStatus("Nessun sprite trovato: usa 'Rileva sprite' nella toolbar o 'Dividi a griglia' nel tab Dividi.");
             return;
         }
@@ -1920,10 +1973,10 @@ public partial class MainWindow : Window
             var stats = FrameStatistics.Compute(cellBoxes);
             var warning = FrameStatistics.FormatOutlierWarning(stats);
 
-            TxtGlobal.Text =
+            AnimationStudioPanel.SetGlobalScanResult(
                 $"Max: {stats.MaxW}×{stats.MaxH} · Mediana: {stats.MedianW}×{stats.MedianH} · " +
                 $"P90: {stats.Percentile90W}×{stats.Percentile90H}" +
-                (warning is null ? "" : $"\n{warning}");
+                (warning is null ? "" : $"\n{warning}"));
             SetStatus($"Statistiche calcolate su {stats.Count} celle.");
         }
         catch (Exception ex)
@@ -1938,7 +1991,7 @@ public partial class MainWindow : Window
         if (_cells.Count == 0)  { SetStatus("Nessun sprite trovato: usa 'Rileva sprite' nella toolbar o 'Dividi a griglia' nel tab Dividi."); return; }
         try
         {
-            var policy = CmbNormalizePolicy.SelectedIndex switch
+            var policy = _animationState.NormalizePolicyIndex switch
             {
                 1 => FrameStatistics.NormalizePolicy.Median,
                 2 => FrameStatistics.NormalizePolicy.Percentile90,
@@ -1952,7 +2005,7 @@ public partial class MainWindow : Window
             Editor.SpriteCells = _cells;
             RefreshCellList();
             RefreshView();
-            TxtGlobal.Text = $"Normalizzato: ogni cella {result.Atlas.Width / _cells.Count}×{result.Atlas.Height} px";
+            AnimationStudioPanel.SetGlobalScanResult($"Normalizzato: ogni cella {result.Atlas.Width / _cells.Count}×{result.Atlas.Height} px");
             SetStatus($"Allineamento completato: {_cells.Count} sprite, tutti con baseline ai piedi.");
         }
         catch (Exception ex)
@@ -1968,7 +2021,7 @@ public partial class MainWindow : Window
         try
         {
             PushUndo();
-            var snap = ChkAlignCenterSnapGrid.IsChecked == true ? 8 : 0;
+            var snap = _animationState.SnapToGrid ? 8 : 0;
             var result = CellCentering.Center(_document, _cells, alphaThreshold: 1, opaqueCornerSnapMultiple: snap);
             _document?.Dispose();
             _document = result.Atlas;
@@ -2249,8 +2302,8 @@ public partial class MainWindow : Window
         await ExportController.ExportPngAsync(
             _document,
             _cells,
-            SliderPivotX.Value,
-            SliderPivotY.Value,
+            _animationState.PivotX,
+            _animationState.PivotY,
             ChkExportCustomCellSize.IsChecked == true,
             ChkExportKeepCellSize.IsChecked == true,
             ChkExportAtlasIndexedPng.IsChecked == true,
@@ -2265,8 +2318,8 @@ public partial class MainWindow : Window
         await ExportController.ExportJsonAsync(
             _document,
             _cells,
-            SliderPivotX.Value,
-            SliderPivotY.Value,
+            _animationState.PivotX,
+            _animationState.PivotY,
             ChkExportCustomCellSize.IsChecked == true,
             ChkExportKeepCellSize.IsChecked == true,
             TxtExportCellW.Text,
@@ -2517,7 +2570,7 @@ public partial class MainWindow : Window
         }
         try
         {
-            var padding = (int)(TxtAlignPadding.Value ?? 0m);
+            var padding = Math.Clamp(InputParsing.ParseInt(_animationState.ExtractPadding, 0), 0, 128);
             _frameSheet?.Dispose();
             _frameSheet = FrameSheet.ExtractFromAtlas(_document, _cells, padding);
 
@@ -2550,10 +2603,9 @@ public partial class MainWindow : Window
             Editor.Bitmap = null;
             Editor.SetWorkbenchFrames(renderFrames, selectedIndex: 0);
             Editor.IsFrameEditMode = true;
-            BtnAlignEnter.IsVisible = false;
-            AlignActiveBar.IsVisible = true;
             Editor.SpriteCells = [];
             ClearSliceGrid();
+            AnimationStudioPanel.SetWorkbenchActive(true, _frameSheet.Frames.Count, padding);
             OnFrameSelected(this, 0);
             SetStatus($"Workbench attivo: {_frameSheet.Frames.Count} frame estratti (padding {padding} px). Clic per selezionare, drag per spostare.");
         }
@@ -2631,16 +2683,15 @@ public partial class MainWindow : Window
         _frameSheet = null;
         Editor.IsFrameEditMode = false;
         Editor.ClearWorkbenchFrames();      // dispone i bitmap dei frame
-        BtnAlignEnter.IsVisible = true;
-        AlignActiveBar.IsVisible = false;
-        TxtAlignSelected.Text = "Nessuno selezionato";
+        AnimationStudioPanel.SetWorkbenchActive(false);
+        AnimationStudioPanel.SetSelectedFrameInfo("Nessun frame selezionato.");
         Editor.SpriteCells = _cells;
     }
 
     private void AlignAllFramesCenter()
     {
         if (!EnsureFrameWorkbenchActive()) return;
-        var snap = ChkAlignCenterSnapGrid.IsChecked == true ? 8 : 0;
+        var snap = _animationState.SnapToGrid ? 8 : 0;
         _frameSheet.AutoCenterAll(opaqueCornerSnapMultiple: snap);
         ApplyWorkbenchToCanvas();
         SetStatus("Tutti i frame centrati.");
@@ -2672,7 +2723,7 @@ public partial class MainWindow : Window
             return;
         }
         var f = _frameSheet.Frames[idx];
-        var snap = ChkAlignCenterSnapGrid.IsChecked == true ? 8 : 0;
+        var snap = _animationState.SnapToGrid ? 8 : 0;
         if (center) f.AutoCenter(alphaThreshold: 1, opaqueCornerSnapMultiple: snap); else f.AlignToBaseline();
         ApplyWorkbenchToCanvas();
         SetStatus($"Frame {idx} {(center ? "centrato" : "allineato ai piedi")}.");
@@ -2739,7 +2790,7 @@ public partial class MainWindow : Window
     {
         if (_frameSheet is null || idx < 0 || idx >= _frameSheet.Frames.Count) return;
         var f = _frameSheet.Frames[idx];
-        TxtAlignSelected.Text = $"Frame {idx}: {f.Cell.Width}×{f.Cell.Height} px · offset ({f.Offset.X}, {f.Offset.Y})";
+        AnimationStudioPanel.SetSelectedFrameInfo($"Frame {idx}: {f.Cell.Width}×{f.Cell.Height} px · offset ({f.Offset.X}, {f.Offset.Y})");
         _frameDragInitialOffset = (f.Offset.X, f.Offset.Y);
     }
 
@@ -2788,7 +2839,7 @@ public partial class MainWindow : Window
         {
             _frameDragInitialOffset = null;
             var f = _frameSheet.Frames[e.FrameIndex];
-            TxtAlignSelected.Text = $"Frame {e.FrameIndex}: {f.Cell.Width}×{f.Cell.Height} px · offset ({f.Offset.X}, {f.Offset.Y})";
+            AnimationStudioPanel.SetSelectedFrameInfo($"Frame {e.FrameIndex}: {f.Cell.Width}×{f.Cell.Height} px · offset ({f.Offset.X}, {f.Offset.Y})");
         }
     }
 

@@ -4,7 +4,7 @@ Stato: audit approvato come guida di refactor; implementazione progressiva in co
 
 Regola: nessuna rimozione e' stata applicata. Le decisioni `remove` o `merge` sono solo candidate e richiedono conferma.
 
-Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. I tab legacy `Sprite`, `Slice` e `Selezione` sono stati rimossi; lo stato pipeline Sprite non dipende piu' da controlli XAML legacy. Tre gap post-audit sono stati risolti: `DefringeOpaque` ora round-trippa da UI a runtime; `BtnGoStilizza`/`BtnGoTemplate` ora chiamano `ActivateStudio(StudioKind.Tileset)`; `ApplyQuantize` usa `RunSpriteQuantize()` standalone invece della pipeline completa. **Tileset Studio e' ora migrato come pannello operativo dedicato**: palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled sono esposti in `TilesetStudioView`; il tab legacy `Tileset` e i relativi controlli XAML sono stati rimossi.
+Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). **Tileset Studio chiuso al 100%** (2026-05-02). **Animation Studio chiuso al 100%** (2026-05-02). Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. `TilesetStudioView` espone palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled. `AnimationStudioView` espone preview animazione, sandbox, frame workbench (entra/applica/annulla), azioni rapide allineamento, frame selezionato, normalizzazione globale, centra nelle celle, pivot engine e export ZIP frame. I tab legacy `Sprite`, `Slice`, `Selezione`, `Tileset` e `Animation` sono stati rimossi; ogni Studio ha un pannello dedicato attivato da `ActivateStudio(StudioKind)`. **Prossimo studio: Animation Studio da validare + eventuale refactor `TilesetStudioController`.**
 
 | Funzione | UI attuale | Handler / modulo | Dipendenze principali | Studio destinazione | Decisione proposta | Motivazione |
 |---|---|---|---|---|---|---|
@@ -34,14 +34,14 @@ Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Sta
 | Dividi a griglia | Slice tab | `SlicingController.RunGridSlice` | rows/cols, `_cells` | Sprite | keep | Slicing manuale sprite sheet. |
 | Atlas pulito / manual paste | Slice tab | paste mode methods | `_pasteSource`, `_pasteBuffer`, cell click | Sprite | keep | Composizione Floating Paste del mockup. |
 | Salva frame selezionato | Slice tab | `SlicingController.SaveSelectedFrameAsync` | selected cell, storage | Sprite | keep | Export rapido di un frame. |
-| Analisi dimensioni celle | Animation tab advanced | `RunGlobalScan` | `_cells`, frame stats | Animation | keep | Diagnostica pre-allineamento. |
-| Baseline alignment batch | Animation tab advanced | `RunBaselineAlignment` | `_cells`, document replace | Animation | keep | Anti-jitter/baseline. |
-| Frame workbench | Animation tab | `EnterFrameAlignMode`, commit/cancel | `FrameSheet`, editor frame mode | Animation | keep | Base per mockup Animation Studio. |
-| Align all center/baseline/reset | Animation tab | align frame methods | `FrameSheet`, editor frame offsets | Animation | keep | Anti-jitter batch. |
-| Align selected frame | Animation tab | selected align/reset methods | selected frame, snap | Animation | keep | Correzione manuale pivot/frame. |
-| Pivot sliders export | Animation/Export tab | `SliderPivotX/Y`, `UpdatePivotLabels` | export metadata/layout | Animation | keep | Pivot animazione e metadata. |
-| Preview animazione | Laboratorio/menu | `OpenAnimationPreview` | `_cells`, current atlas | Animation | keep + move | Deve diventare azione primaria Animation Studio. |
-| Sandbox fisica | Laboratorio/menu | `OpenSandbox` | current animation/game preview | Animation | keep | Laboratorio visibile dentro Animation Studio. |
+| Analisi dimensioni celle | AnimationStudioView | `RunGlobalScan`, `_animationState` | `_cells`, frame stats | Animation | moved | Diagnostica pre-allineamento. |
+| Baseline alignment batch | AnimationStudioView | `RunBaselineAlignment`, `_animationState` | `_cells`, document replace | Animation | moved | Anti-jitter/baseline. |
+| Frame workbench | AnimationStudioView | `EnterFrameAlignMode`, commit/cancel | `FrameSheet`, editor frame mode | Animation | moved | Workbench attivato da AnimationStudioPanel. |
+| Align all center/baseline/reset | AnimationStudioView | align frame methods, `_animationState` | `FrameSheet`, editor frame offsets | Animation | moved | Anti-jitter batch. |
+| Align selected frame | AnimationStudioView | selected align/reset methods, `_animationState` | selected frame, snap | Animation | moved | Correzione manuale pivot/frame. |
+| Pivot sliders export | AnimationStudioView | `SliderAnimPivotX/Y`, `_animationState` | export metadata/layout | Animation | moved | Pivot animazione e metadata. |
+| Preview animazione | AnimationStudioView | `OpenAnimationPreview` | `_cells`, current atlas | Animation | moved | Azione primaria Animation Studio. |
+| Sandbox fisica | AnimationStudioView | `OpenSandbox` | current animation/game preview | Animation | moved | Laboratorio dentro Animation Studio. |
 | Estrai frame da video | Non presente, roadmap | nuovo `VideoFrameExtractor` / import Animation futuro | MP4 H.264 input, FFmpeg rilevabile/configurabile, output PNG, timeline frame workbench | Animation | keep/new | MVP pianificato: apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, estrai PNG e importa nella timeline. Sprite puo' ricevere frame singoli/sequenze brevi solo come destinazione futura secondaria. |
 | Palette/stilizza | TilesetStudioView | `RunPaletteReduce`, `_tilesetState` | Wu/presets/dither | Tileset | moved | `Stilizza` e' confluito in Tileset Studio; Sprite mantiene solo `Quantize` autonomo nel pannello filtri. |
 | Mirror H/V | SpriteStudioView | `RunMirror` | document transform | Sprite | moved | Trasformazione sprite; duplicato rimosso dal blocco Tileset/Stilizza. |
@@ -50,7 +50,7 @@ Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Sta
 | Pad to multiple | TilesetStudioView | `RunPadToMultiple`, `_tilesetState` | `AutoPad` | Tileset | moved | Allineamento dimensioni tileset. |
 | Export PNG | Sprite/Export tab | `ExportController.ExportPngAsync` | layout builder, cells | Sprite | keep + merge UI | Duplicato reale tra quick export e Export tab. |
 | Export JSON | Sprite/Export tab | `ExportController.ExportJsonAsync` | metadata/cells/palette id | Sprite | keep + merge UI | Duplicato reale tra quick export e Export tab. |
-| Export ZIP frames | Export tab | `ExportController.ExportFramesZipAsync` | cells, cropped frames | Animation | keep | Output frame animation. |
+| Export ZIP frames | AnimationStudioView + Export tab | `ExportController.ExportFramesZipAsync` | cells, cropped frames | Animation | moved | Comando primario in Animation Studio; tab Export resta scorciatoia condivisa. |
 | Export Tiled JSON | TilesetStudioView + Export tab | `ExportController.ExportTiledMapJsonAsync` | cells, tile dimensions | Tileset | keep + shortcut | Export tileset; il comando primario e' nel Tileset Studio, il tab Export resta scorciatoia legacy condivisa. |
 | Grid/crop-to-grid preview | TilesetStudioView + align grid shell | `BuildTemplateOptions`, `RunCropToAlignGrid` | grid preview, `GridAlignmentCropper` | Tileset | keep + move | Il template e' migrato in Tileset Studio; il pannello align grid shell resta finche' non sara' completata la migrazione crop-to-grid dedicata. |
 | Center in cells | Animation advanced | `RunCenterInCells` | `_cells`, `CellCentering` | Animation | keep | Allineamento frame/celle. |

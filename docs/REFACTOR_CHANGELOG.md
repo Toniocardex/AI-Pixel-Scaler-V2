@@ -142,4 +142,24 @@ Implementata la prima migrazione UI di Tileset Studio.
 
 **Stato residuo:**
 - `MainWindow.axaml.cs` resta orchestratore compatibile e contiene ancora handler Tileset; la prossima estrazione consigliata e' un `TilesetStudioController`.
-- Il tab `Export` resta come scorciatoia condivisa per export PNG/JSON/ZIP/Tiled finche' non saranno migrati Animation Studio ed export shell.
+- Il tab `Export` resta come scorciatoia condivisa per export PNG/JSON/ZIP/Tiled finche' non sara' migrato l'export shell.
+
+---
+
+## Animation Studio — pannello operativo iniziale (2026-05-02)
+
+Implementata la migrazione UI di Animation Studio.
+
+**Soluzione:**
+- Aggiunto `AnimationStudioAction` con 16 azioni: preview, sandbox, workbench (entra/applica/annulla), align-all (center/baseline/reset), align-selected (center/baseline/layout-center/reset), global scan, baseline alignment, center-in-cells, export ZIP.
+- Aggiunta `AnimationStudioView` con sezioni: preview e laboratorio, frame workbench (barra attiva dinamica), azioni rapide (snap checkbox + centra/piedi/ripristina tutti), frame selezionato, export ZIP, expander strumenti avanzati (padding, normalizzazione globale, centra nelle celle, pivot X/Y).
+- Aggiunto `AnimationState` record (5 campi): `SnapToGrid`, `ExtractPadding`, `NormalizePolicyIndex`, `PivotX`, `PivotY`.
+- Rimosso il tab legacy `Animation` da `MainWindow.axaml`; rimosso il box "Laboratorio" dalla sidebar.
+- Aggiunto `AnimationStudioPanel` con `IsVisible` gestito da `ActivateStudio(StudioKind.Animation)`.
+- Aggiunto `_animationState` in `MainWindow.axaml.cs` per evitare letture dirette dai controlli XAML rimossi.
+- Refactor dei metodi Animation principali per leggere da `_animationState`: `RunBaselineAlignment`, `RunCenterInCells`, `EnterFrameAlignMode`, `AlignAllFramesCenter`, `AlignSelectedFrame`.
+- Pivot export (`ExportPngAsync`, `ExportJsonAsync`) ora legge da `_animationState.PivotX/Y` invece di `SliderPivotX/Y.Value` (controlli rimossi).
+- `SetWorkbenchActive(bool)` e `SetSelectedFrameInfo(string)` e `SetGlobalScanResult(string)` esposti come API pubblica del pannello per aggiornare lo stato UI dal MainWindow.
+- `UpdatePivotLabels()` reso no-op statico: le label sono ora in `AnimationStudioView`.
+
+**Build post-migrazione:** 0 errori, 0 warning.

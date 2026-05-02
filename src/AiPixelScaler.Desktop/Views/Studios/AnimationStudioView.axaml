@@ -1,0 +1,268 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiPixelScaler.Desktop.Views.Studios.AnimationStudioView">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.studio-title">
+      <Setter Property="Foreground" Value="#d8e6ff"/>
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.studio-hint">
+      <Setter Property="Foreground" Value="#7e86a8"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="Foreground" Value="#f1f4ff"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Border.studio-section">
+      <Setter Property="Background" Value="#0a0c14"/>
+      <Setter Property="BorderBrush" Value="#23283a"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="9"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="0">
+
+    <!-- Header -->
+    <Border Background="#111827" BorderBrush="#2d3652" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="studio-title" Text="Animation Studio"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Workbench frame, allineamento anti-jitter, pivot e export ZIP."/>
+      </StackPanel>
+    </Border>
+
+    <!-- 1. Preview e laboratorio -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Preview e laboratorio"/>
+        <Grid ColumnDefinitions="*,8,*">
+          <Button x:Name="BtnAnimPreview" Grid.Column="0" Classes="primary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Apre la finestra di anteprima animazione (richiede sprite rilevati)">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconPlay}" Classes="action-icon"/>
+              <TextBlock Text="Anteprima"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnAnimSandbox" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Sandbox fisica in-game con movimento e gravità">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconFilm}" Classes="action-icon"/>
+              <TextBlock Text="Sandbox"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- 2. Frame Workbench -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Frame Workbench"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Modalità non distruttiva: sposta e allinea i frame, poi applica o annulla."/>
+
+        <Button x:Name="BtnAnimEnter" Classes="primary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Richiede sprite rilevati o griglia divisa">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
+            <TextBlock Text="Avvia allineamento frame"/>
+          </StackPanel>
+        </Button>
+
+        <!-- Barra attiva (visibile solo durante workbench) -->
+        <Grid x:Name="AnimWorkbenchActiveBar" ColumnDefinitions="*,8,*" IsVisible="False">
+          <Button x:Name="BtnAnimCommit" Grid.Column="0" Classes="primary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Sostituisce l'atlas con la versione allineata">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconCheck}" Classes="action-icon"/>
+              <TextBlock Text="Applica"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnAnimCancel" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Esci senza salvare gli spostamenti">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconX}" Classes="action-icon"/>
+              <TextBlock Text="Annulla"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <TextBlock x:Name="TxtAnimWorkbenchStatus" Classes="studio-hint"
+                   Text="Workbench non attivo." IsVisible="False"/>
+      </StackPanel>
+    </Border>
+
+    <!-- 3. Azioni rapide -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Azioni rapide (tutti i frame)"/>
+        <CheckBox x:Name="ChkAnimSnapGrid"
+                  Content="Aggancia angolo opaco a griglia 8 px dopo centro"
+                  IsChecked="True"
+                  ToolTip.Tip="Dopo il centro geometrico dell'AABB opaca nella cella, l'angolo top-left dell'area opaca cade su multipli di 8 px. Disattiva per centratura pura."/>
+        <Grid ColumnDefinitions="*,8,*">
+          <Button x:Name="BtnAnimAlignAllCenter" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Centra l'AABB opaca di ogni frame nel rettangolo della cella">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
+              <TextBlock Text="Centra tutti"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnAnimAlignAllBaseline" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Centra X + attacca il bottom di ogni sprite al bordo inferiore della cella">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconArrowDown}" Classes="action-icon"/>
+              <TextBlock Text="Piedi (tutti)"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+        <Button x:Name="BtnAnimResetAll" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Riporta tutti i frame alla posizione originale">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
+            <TextBlock Text="Ripristina tutti"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- 4. Frame selezionato -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Frame selezionato"/>
+        <TextBlock x:Name="TxtAnimSelectedInfo" Classes="studio-hint"
+                   Text="Nessun frame selezionato."/>
+        <Grid ColumnDefinitions="*,8,*">
+          <Button x:Name="BtnAnimSelCenter" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Come 'Centra tutti', solo sul frame selezionato">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
+              <TextBlock Text="Centra"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnAnimSelBaseline" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Centra X + piedi al bordo inferiore, solo sul frame selezionato">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconArrowDown}" Classes="action-icon"/>
+              <TextBlock Text="Piedi"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+        <Button x:Name="BtnAnimSelLayoutCenter" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Porta il frame al centro del layout globale (atlas), ignorando il vincolo di cella">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
+            <TextBlock Text="Centra nel layout"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnAnimSelReset" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Ripristina la posizione originale del frame selezionato">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconRevert}" Classes="action-icon"/>
+            <TextBlock Text="Ripristina selezionato"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- 5. Strumenti avanzati -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Export"/>
+        <Button x:Name="BtnAnimExportZip" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Esporta ogni cella come PNG separato in un archivio ZIP">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconArchive}" Classes="action-icon"/>
+            <TextBlock Text="Esporta frame ZIP"/>
+          </StackPanel>
+        </Button>
+
+        <Expander Header="Strumenti avanzati" IsExpanded="False" Margin="0,4,0,0">
+          <StackPanel Spacing="6" Margin="0,4,0,0">
+
+            <!-- Padding estrazione -->
+            <TextBlock Classes="section-title" Text="Parametri estrazione workbench"/>
+            <TextBlock Classes="studio-hint"
+                       Text="0 = solo cella stretta. Valori maggiori catturano pixel che traboccano nelle celle adiacenti."/>
+            <Grid ColumnDefinitions="*,6,64">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Padding (px):" VerticalAlignment="Center"/>
+              <NumericUpDown x:Name="NumAnimPadding" Grid.Column="2" Value="0"
+                             Minimum="0" Maximum="128" Increment="2" FormatString="0"/>
+            </Grid>
+
+            <Separator Margin="0,4"/>
+
+            <!-- Normalizzazione globale -->
+            <TextBlock Classes="section-title" Text="Normalizzazione globale (Bottom-Center)"/>
+            <Button x:Name="BtnAnimGlobalScan" Classes="secondary" HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Mostra max / mediana / 90° percentile su W e H di tutte le celle">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
+                <TextBlock Text="Avvia analisi dimensioni celle"/>
+              </StackPanel>
+            </Button>
+            <TextBlock x:Name="TxtAnimGlobalResult" Classes="studio-hint"
+                       Text="— Esegui prima la rilevazione sprite"/>
+
+            <TextBlock Classes="studio-hint" Text="Politica dimensione cella:" Margin="0,4,0,0"/>
+            <ComboBox x:Name="CmbAnimNormalizePolicy" SelectedIndex="0" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Max gonfia se c'è un outlier. Mediana = robusta. P90 = soft cap (perde solo top 10% px)">
+              <ComboBoxItem Content="Max (classico — può gonfiare per outlier)"/>
+              <ComboBoxItem Content="Mediana (robusto — clippa outlier)"/>
+              <ComboBoxItem Content="Percentile 90° (soft cap)"/>
+            </ComboBox>
+            <Button x:Name="BtnAnimBaselineAlign" Classes="secondary" HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Allinea tutti i frame alla baseline inferiore usando la policy selezionata. Richiede sprite rilevati.">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconArrowDown}" Classes="action-icon"/>
+                <TextBlock Text="Allinea baseline"/>
+              </StackPanel>
+            </Button>
+
+            <Separator Margin="0,4"/>
+
+            <!-- Centra nelle celle -->
+            <TextBlock Classes="section-title" Text="Centra nelle celle (senza workbench)"/>
+            <Button x:Name="BtnAnimCenterInCells" Classes="secondary" HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Centra il contenuto opaco in ogni cella dell'atlas corrente (operazione diretta, senza workbench)">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
+                <TextBlock Text="Centra nelle celle"/>
+              </StackPanel>
+            </Button>
+
+            <Separator Margin="0,4"/>
+
+            <!-- Pivot per engine / export JSON -->
+            <TextBlock Classes="section-title" Text="Punto di ancoraggio (engine / export JSON)"/>
+            <TextBlock Classes="studio-hint"
+                       Text="0 = bordo sinistra/alto  ·  0.5 = centro  ·  1 = bordo destra/basso"/>
+            <Grid ColumnDefinitions="80,*,42" Margin="0,6,0,0">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Orizzontale"
+                         VerticalAlignment="Center"/>
+              <Slider x:Name="SliderAnimPivotX" Grid.Column="1" Minimum="0" Maximum="1" Value="0.5"/>
+              <TextBlock x:Name="LblAnimPivotX" Grid.Column="2" Foreground="#888" FontSize="11"
+                         Text="0.50" TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid ColumnDefinitions="80,*,42" Margin="0,4,0,0">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Verticale"
+                         VerticalAlignment="Center"/>
+              <Slider x:Name="SliderAnimPivotY" Grid.Column="1" Minimum="0" Maximum="1" Value="0.5"/>
+              <TextBlock x:Name="LblAnimPivotY" Grid.Column="2" Foreground="#888" FontSize="11"
+                         Text="0.50" TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+          </StackPanel>
+        </Expander>
+      </StackPanel>
+    </Border>
+
+  </StackPanel>
+</UserControl>
