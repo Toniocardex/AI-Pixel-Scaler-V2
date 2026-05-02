@@ -546,11 +546,14 @@ public partial class MainWindow : Window
     private void ApplySpriteCleanupStateToControls()
     {
         var state = SpriteStudioPanel.GetCleanupState();
+        _backgroundIsolationHex = state.BackgroundHex;
+        _backgroundIsolationTolerance = state.BackgroundTolerance;
+        _backgroundIsolationEdgeThreshold = state.BackgroundEdgeThreshold;
         _pipelineFormState = _pipelineFormState with
         {
             EnableBackgroundIsolation = false,
-            BackgroundHex = _backgroundIsolationHex,
-            BackgroundTolerance = _backgroundIsolationTolerance,
+            BackgroundHex = state.BackgroundHex,
+            BackgroundTolerance = state.BackgroundTolerance,
             EnableBackgroundSnapRgb = false,
             EnableAlphaThreshold = state.EnableAlphaThreshold,
             AlphaThreshold = state.AlphaThreshold,
@@ -563,9 +566,6 @@ public partial class MainWindow : Window
             MaxColors = state.QuantizeColors,
             QuantizerIndex = state.QuantizeMethodIndex
         };
-        _backgroundIsolationHex = state.BackgroundHex;
-        _backgroundIsolationTolerance = state.BackgroundTolerance;
-        _backgroundIsolationEdgeThreshold = state.BackgroundEdgeThreshold;
     }
 
     private void SyncSpriteCleanupStateFromControls()

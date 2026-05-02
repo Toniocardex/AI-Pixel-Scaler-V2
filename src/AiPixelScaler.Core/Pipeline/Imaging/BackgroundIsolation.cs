@@ -155,7 +155,8 @@ public static class BackgroundIsolation
         if (w < 1 || h < 1) return key;
 
         var pixels = ImageUtils.ToFlatArray(image);
-        var maxDistSq = maxRgbDistancePerChannel * maxRgbDistancePerChannel * 3; // 3 canali
+        var maxChannelDistance = Math.Max(0, maxRgbDistancePerChannel);
+        var maxDistSq = maxChannelDistance * maxChannelDistance * 3; // 3 canali
         var bestDistSq = double.MaxValue;
         var best = key;
 
@@ -201,8 +202,11 @@ public static class BackgroundIsolation
 
     private static bool[] BuildSobelEdgeMap(Rgba32[] pixels, int w, int h, double threshold)
     {
-        var luma = new double[w * h];
         var edge = new bool[w * h];
+        if (threshold <= 0)
+            return edge;
+
+        var luma = new double[w * h];
 
         for (var i = 0; i < pixels.Length; i++)
         {

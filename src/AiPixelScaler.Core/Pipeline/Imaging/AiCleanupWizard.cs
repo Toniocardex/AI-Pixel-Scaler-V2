@@ -61,7 +61,7 @@ public static class AiCleanupWizard
 
         if (o.RemoveBgColor)
         {
-            BackgroundIsolation.ApplyInPlace(
+            var removed = BackgroundIsolation.ApplyInPlace(
                 image,
                 new BackgroundIsolation.Options(
                     BackgroundColor: o.BgKey,
@@ -69,7 +69,7 @@ public static class AiCleanupWizard
                     EdgeThreshold: o.BgTolerance <= 0 ? 48 : Math.Clamp(o.BgTolerance * 6, 8, 255),
                     UseOklab: true,
                     ProtectStrongEdges: true));
-            report.Steps.Add($"sfondo (tol {o.BgTolerance})");
+            report.Steps.Add($"sfondo (tol {o.BgTolerance}, rimossi {removed})");
         }
 
         if (o.DefringeEdges)

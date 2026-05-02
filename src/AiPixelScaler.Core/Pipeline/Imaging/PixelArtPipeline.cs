@@ -42,7 +42,7 @@ public static class PixelArtPipeline
             }
             else
             {
-                BackgroundIsolation.ApplyInPlace(
+                var removed = BackgroundIsolation.ApplyInPlace(
                     image,
                     new BackgroundIsolation.Options(
                         BackgroundColor: key,
@@ -50,7 +50,7 @@ public static class PixelArtPipeline
                         EdgeThreshold: tol <= 0 ? 48 : Math.Clamp(tol * 6, 8, 255),
                         UseOklab: true,
                         ProtectStrongEdges: true));
-                steps.Add($"background isolation (tol {tol:0.##})");
+                steps.Add($"background isolation (tol {tol:0.##}, removed {removed})");
             }
         }
 
