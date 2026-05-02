@@ -190,8 +190,8 @@ public partial class MainWindow : Window
         ChkEraser.IsCheckedChanged += (_, _) =>
         {
             var on = ChkEraser.IsChecked == true;
-            Editor.IsEraserMode      = on;
-            TxtEraserRadius.IsEnabled = on;
+            Editor.IsEraserMode        = on;
+            EraserSizePanel.IsEnabled  = on;
             // Modalità mutualmente esclusive
             if (on)
             {
@@ -199,8 +199,23 @@ public partial class MainWindow : Window
                 SetManualSpriteCropMode(false);
             }
         };
-        TxtEraserRadius.ValueChanged += (_, _) =>
-            Editor.EraserRadius = (int)(TxtEraserRadius.Value ?? 4);
+
+        // Sincronizza NumericUpDown → EditorSurface
+        TxtEraserSize.ValueChanged += (_, _) =>
+            Editor.EraserSize = (int)(TxtEraserSize.Value ?? 1);
+
+        // Sincronizza EditorSurface → NumericUpDown (es. Ctrl+rotella)
+        Editor.PropertyChanged += (_, args) =>
+        {
+            if (args.Property == AiPixelScaler.Desktop.Controls.EditorSurface.EraserSizeProperty)
+                TxtEraserSize.Value = Editor.EraserSize;
+        };
+
+        // Preset rapidi dimensione gomma
+        BtnEraserSize1.Click += (_, _) => TxtEraserSize.Value = 1;
+        BtnEraserSize2.Click += (_, _) => TxtEraserSize.Value = 2;
+        BtnEraserSize4.Click += (_, _) => TxtEraserSize.Value = 4;
+        BtnEraserSize8.Click += (_, _) => TxtEraserSize.Value = 8;
 
         Editor.EraserStroke += OnEraserStroke;
         Editor.EraserStrokeEnded += OnEraserStrokeEnded;
@@ -2348,13 +2363,14 @@ public partial class MainWindow : Window
             _eraserUndoPushed = true;
         }
 
-        var size = Math.Max(1, e.Size);
+        // SideLength è già ≥ 1 per contratto di EraserStrokeEventArgs
+        var side = e.SideLength;
         var imgW = _document.Width;
         var imgH = _document.Height;
         var xMin = Math.Clamp(e.ImageX, 0, imgW);
         var yMin = Math.Clamp(e.ImageY, 0, imgH);
-        var xMax = Math.Clamp(e.ImageX + size, 0, imgW);
-        var yMax = Math.Clamp(e.ImageY + size, 0, imgH);
+        var xMax = Math.Clamp(e.ImageX + side, 0, imgW);
+        var yMax = Math.Clamp(e.ImageY + side, 0, imgH);
         if (xMin >= xMax || yMin >= yMax) return;
 
         _document.ProcessPixelRows(accessor =>

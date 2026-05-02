@@ -86,8 +86,8 @@ public class EditorSurface : Control
     public static readonly StyledProperty<bool> IsEraserModeProperty =
         AvaloniaProperty.Register<EditorSurface, bool>(nameof(IsEraserMode), false);
 
-    public static readonly StyledProperty<int> EraserRadiusProperty =
-        AvaloniaProperty.Register<EditorSurface, int>(nameof(EraserRadius), 4);
+    public static readonly StyledProperty<int> EraserSizeProperty =
+        AvaloniaProperty.Register<EditorSurface, int>(nameof(EraserSize), 1);
 
     // ─── Frame edit (workbench) mode ─────────────────────────────────────────
     public static readonly StyledProperty<bool> IsTilePreviewModeProperty =
@@ -363,11 +363,14 @@ public class EditorSurface : Control
         }
     }
 
-    /// <summary>Dimensione del quadrato gomma in pixel-immagine.</summary>
-    public int EraserRadius
+    /// <summary>
+    /// Lato del quadrato gomma in pixel-immagine (1 = singolo pixel).
+    /// La gomma è sempre quadrata: un valore di N cancella N×N pixel per ogni colpo.
+    /// </summary>
+    public int EraserSize
     {
-        get => GetValue(EraserRadiusProperty);
-        set => SetValue(EraserRadiusProperty, Math.Max(1, value));
+        get => GetValue(EraserSizeProperty);
+        set => SetValue(EraserSizeProperty, Math.Clamp(value, 1, 64));
     }
 
     /// <summary>Renderizza la bitmap come pattern 3×3 per visualizzare seam tileable in tempo reale.</summary>
@@ -741,7 +744,7 @@ public class EditorSurface : Control
         AlignGridOffsetXProperty, AlignGridOffsetYProperty,
         AlignGridCellWidthProperty, AlignGridCellHeightProperty,
         AlignGridSpacingXProperty, AlignGridSpacingYProperty,
-        IsEraserModeProperty, EraserRadiusProperty,
+        IsEraserModeProperty, EraserSizeProperty,
         IsFrameEditModeProperty, FrameSnapRadiusProperty, FrameSnapEnabledProperty,
         IsTilePreviewModeProperty, IsCellClickModeProperty,
     ];
@@ -982,12 +985,20 @@ public class EditorSurface : Control
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
-        var p = e.GetPosition(this);
         var delta = e.Delta.Y;
         if (delta == 0) return;
+
+        // Ctrl + rotella in modalità gomma → ridimensiona il quadrato gomma
+        if (IsEraserMode && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            EraserSize = Math.Clamp(EraserSize + (delta > 0 ? 1 : -1), 1, 64);
+            e.Handled = true;
+            return;
+        }
+
+        var p = e.GetPosition(this);
         var factor  = delta > 0 ? 1.1 : 1 / 1.1;
-        var newZoom = Zoom * factor;
-        SetZoomTowardScreenPoint(newZoom, p.X, p.Y);
+        SetZoomTowardScreenPoint(Zoom * factor, p.X, p.Y);
         e.Handled = true;
     }
 
@@ -1276,7 +1287,7 @@ public class EditorSurface : Control
             _lastEraserX = ix;
             _lastEraserY = iy;
             if (TryGetEraserBox(screenPos, bmp.PixelSize.Width, bmp.PixelSize.Height, out var xMin, out var yMin, out _, out _))
-                EraserStroke?.Invoke(this, new EraserStrokeEventArgs(xMin, yMin, EraserRadius));
+                EraserStroke?.Invoke(this, new EraserStrokeEventArgs(xMin, yMin, EraserSize));
         }
     }
 
@@ -1290,7 +1301,7 @@ public class EditorSurface : Control
         var cy = (int)Math.Floor(wy);
         if (cx < 0 || cy < 0 || cx >= imageW || cy >= imageH) return false;
 
-        var size = Math.Max(1, EraserRadius);
+        var size = Math.Max(1, EraserSize);
         var halfBefore = (size - 1) / 2;
         var rawXMin = cx - halfBefore;
         var rawYMin = cy - halfBefore;

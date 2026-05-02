@@ -163,3 +163,39 @@ Implementata la migrazione UI di Animation Studio.
 - `UpdatePivotLabels()` reso no-op statico: le label sono ora in `AnimationStudioView`.
 
 **Build post-migrazione:** 0 errori, 0 warning.
+
+---
+
+## Gomma — refactor contratto + accessibilità UI (2026-05-02)
+
+### `EraserStrokeEventArgs.cs`
+
+- `Size` rinominato in `SideLength` — semantica esatta: lato del quadrato, non raggio.
+- Rimosso `Radius => Size` — dead code con semantica errata (restituiva il lato intero spacciandolo per raggio). Nessun consumatore nel codebase.
+- Aggiunto `Math.Max(1, sideLength)` nel costruttore — contratto ≥ 1 garantito alla sorgente.
+- Doc XML completi per `ImageX`, `ImageY`, `SideLength` e classe.
+
+### `EditorSurface.cs`
+
+- `EraserRadiusProperty` / `EraserRadius` → `EraserSizeProperty` / `EraserSize`.
+- Default cambiato da `4` a `1` — per pixel art il default naturale è il singolo pixel.
+- Clamp `[1, 64]` al posto del solo `Math.Max(1, ...)` — range esplicitato nella property.
+- **Ctrl + rotella del mouse** sul canvas in modalità gomma ridimensiona il quadrato gomma; la rotella senza Ctrl continua a fare zoom.
+
+### `MainWindow.axaml`
+
+- Sostituito il singolo `NumericUpDown` con `EraserSizePanel` (`StackPanel`) contenente:
+  - Label "Dim." + `TxtEraserSize` (52 px, valore default 1) + label "px".
+  - Pulsanti preset **[1] [2] [4] [8]** con tooltip `N×N px` per cambio rapido dimensione.
+  - Tooltip `TxtEraserSize` documenta il Ctrl+rotella.
+
+### `MainWindow.axaml.cs`
+
+- `TxtEraserRadius` → `TxtEraserSize`, `Editor.EraserRadius` → `Editor.EraserSize`.
+- `e.Size` → `e.SideLength`; commento chiarisce che il contratto ≥ 1 è garantito dall'EventArgs.
+- `EraserSizePanel.IsEnabled` gestisce l'intero pannello (input + preset) al toggle gomma.
+- `Editor.PropertyChanged` listener sincronizza `TxtEraserSize` quando Ctrl+rotella cambia `EraserSize` sull'EditorSurface (senza loop).
+- 4 handler `BtnEraserSize*.Click` per i preset rapidi.
+
+**Build post-refactor:** 0 errori, 0 warning.
+**Publish:** `publish/win-x64`, `dist/win-x64` — OK.

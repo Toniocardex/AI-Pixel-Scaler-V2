@@ -214,10 +214,25 @@
             <TextBlock Text="Gomma" VerticalAlignment="Center"/>
           </StackPanel>
         </ToggleButton>
-        <NumericUpDown x:Name="TxtEraserRadius" Classes="toolbar"
-                       Value="4" Minimum="1" Maximum="64" Increment="1" FormatString="0"
-                       Width="44" IsEnabled="False"
-                       ToolTip.Tip="Dimensione quadrata della gomma in pixel-immagine"/>
+
+        <!-- Dimensione gomma: input + preset rapidi pixel art -->
+        <StackPanel x:Name="EraserSizePanel" Orientation="Horizontal" Spacing="3"
+                    IsEnabled="False" VerticalAlignment="Center">
+          <TextBlock Text="Dim." VerticalAlignment="Center" FontSize="11" Opacity="0.7" Margin="4,0,0,0"/>
+          <NumericUpDown x:Name="TxtEraserSize" Classes="toolbar"
+                         Value="1" Minimum="1" Maximum="64" Increment="1" FormatString="0"
+                         Width="52"
+                         ToolTip.Tip="Lato del quadrato gomma in pixel&#10;Ctrl + rotella del mouse sul canvas per cambiare rapidamente"/>
+          <TextBlock Text="px" VerticalAlignment="Center" FontSize="11" Opacity="0.7"/>
+          <Button x:Name="BtnEraserSize1" Content="1" Width="22" Height="22" Padding="0"
+                  FontSize="10" ToolTip.Tip="Gomma 1×1 px (singolo pixel)"/>
+          <Button x:Name="BtnEraserSize2" Content="2" Width="22" Height="22" Padding="0"
+                  FontSize="10" ToolTip.Tip="Gomma 2×2 px"/>
+          <Button x:Name="BtnEraserSize4" Content="4" Width="22" Height="22" Padding="0"
+                  FontSize="10" ToolTip.Tip="Gomma 4×4 px"/>
+          <Button x:Name="BtnEraserSize8" Content="8" Width="22" Height="22" Padding="0"
+                  FontSize="10" ToolTip.Tip="Gomma 8×8 px"/>
+        </StackPanel>
 
         <!-- Pipette tool -->
         <ToggleButton x:Name="ChkPipette" Classes="tool-toggle"
