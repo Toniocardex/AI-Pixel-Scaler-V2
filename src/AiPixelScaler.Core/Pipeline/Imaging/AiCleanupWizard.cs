@@ -8,7 +8,7 @@ namespace AiPixelScaler.Core.Pipeline.Imaging;
 /// Orchestratore one-click per la pulizia di sprite generati da IA.
 /// Esegue in ordine deterministico:
 ///
-///   1. <see cref="EdgeBackgroundFill"/>      — flood-fill dai bordi del bg color (BFS, ΔRGB Euclidea)
+///   1. <see cref="BackgroundIsolation"/>      - flood-fill dai bordi con protezione contorni
 ///   2. <see cref="Defringe.FromOpaqueNeighbors"/> — color decontamination dai vicini opachi
 ///   3. <see cref="AlphaThreshold"/>          — binarizza alpha (rimuove anti-aliasing IA)
 ///   4. <see cref="MedianFilter"/>            — denoise 3×3 mediano (preserva i bordi)
@@ -61,7 +61,14 @@ public static class AiCleanupWizard
 
         if (o.RemoveBgColor)
         {
-            EdgeBackgroundFill.ApplyInPlace(image, o.BgKey, o.BgTolerance);
+            BackgroundIsolation.ApplyInPlace(
+                image,
+                new BackgroundIsolation.Options(
+                    BackgroundColor: o.BgKey,
+                    ColorTolerance: o.BgTolerance,
+                    EdgeThreshold: o.BgTolerance <= 0 ? 48 : Math.Clamp(o.BgTolerance * 6, 8, 255),
+                    UseOklab: true,
+                    ProtectStrongEdges: true));
             report.Steps.Add($"sfondo (tol {o.BgTolerance})");
         }
 

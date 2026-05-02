@@ -16,7 +16,7 @@ Questo documento riassume il refactor architetturale completato sulle milestone 
   - Contratti stabili:
     - `PixelArtPipeline.Options`
     - `PixelArtPipeline.Report`
-  - Orchestrazione completa: chroma, quantize, denoise, island denoise, outline, alpha threshold, recover fill, requantize.
+- Orchestrazione corrente: BackgroundIsolation, quantize, denoise, island denoise, outline, alpha threshold.
 
 ### 2) Riduzione duplicazioni UI
 
@@ -32,7 +32,7 @@ Questo documento riassume il refactor architetturale completato sulle milestone 
   - Stato parametri pipeline.
   - Preset:
     - `ApplySafePreset()`
-    - `ApplyAggressiveRecoverPreset()`
+- `ApplyAggressivePreset()`
   - Costruzione opzioni:
     - `BuildOptions(...)`
 
@@ -85,3 +85,43 @@ Questo documento riassume il refactor architetturale completato sulle milestone 
 1. Spostare ulteriormente stato/comandi da `MainWindow` a ViewModel dedicati.
 2. Espandere `AiPixelScaler.CLI` con flag completi e comandi batch parity.
 3. Implementare plugin loader con version guardrails e isolamento errori.
+
+---
+
+## Sprite Studio — chiusura gap (2026-05-02)
+
+Audit post-implementazione ha rilevato e chiuso tre gap prima di procedere a Tileset Studio.
+
+### Gap 1 — `DefringeOpaque` UI non collegata (risolto)
+
+**Problema:** `TxtSpriteDefringeOpaque` esisteva nel pannello e veniva letto da `GetCleanupState()`, ma il valore non raggiungeva mai i metodi che lo usano. Tre punti hardcodavano `250` ignorando la UI:
+- `SyncSpriteCleanupStateFromControls()` — stringa `"250"` fissa
+- `RunDefringe()` — `const byte opaque = 250`
+- `RunAiCleanupWizard()` — `const byte defOpaque = 250`
+
+**Causa radice:** `PipelineFormState` non aveva un campo `DefringeOpaque`, quindi il valore non poteva essere memorizzato e propagato.
+
+**Soluzione:**
+- Aggiunto `string DefringeOpaque = "250"` (con default opzionale) a `PipelineFormState` in `PipelineViewModel.cs`
+- `ApplySpriteCleanupStateToControls()` ora salva `state.DefringeOpaque` in `_pipelineFormState`
+- `SyncSpriteCleanupStateFromControls()` ora legge `_pipelineFormState.DefringeOpaque`
+- `RunDefringe()` e `RunAiCleanupWizard()` calcolano il byte da `_pipelineFormState.DefringeOpaque` con `InputParsing.ParseInt` e clamp `[1, 254]`
+- `ToFormState()` in `PipelineViewModel` include `DefringeOpaque: "250"` come default nei flussi preset
+
+### Gap 2 — `BtnGoStilizza` / `BtnGoTemplate` bypassavano `ActivateStudio` (risolto)
+
+**Problema:** I due pulsanti di navigazione verso Tileset usavano `MainTabs.SelectedIndex = 2` direttamente invece di `ActivateStudio(StudioKind.Tileset)`. Conseguenza: `_currentStudio` restava su `Sprite`, `SpriteStudioPanel` rimaneva visibile, il messaggio di stato non veniva aggiornato e `EnterSelectionCanvas()` non veniva chiamato.
+
+**Soluzione:** Sostituiti entrambi con `ActivateStudio(StudioKind.Tileset)` in `MainWindow.axaml.cs`.
+
+### Gap 3 — `ApplyQuantize` eseguiva la pipeline completa (risolto)
+
+**Problema:** Il case `SpriteStudioAction.ApplyQuantize` chiamava `RunPixelPipeline()`, che esegue tutti gli stadi abilitati (rimozione sfondo, denoise, outline, alpha threshold…). L'utente si aspettava solo la riduzione palette.
+
+**Soluzione:** Aggiunto metodo dedicato `RunSpriteQuantize()` in `MainWindow.axaml.cs`:
+- Legge `MaxColors` e `QuantizerIndex` da `_pipelineFormState` (sincronizzato via `ApplySpriteCleanupStateToControls()`)
+- Chiama direttamente `PaletteExtractorAlgorithms.ExtractWu/ExtractOctree` + `PaletteMapper.ApplyInPlace`
+- Nessun dither (coerente col pannello Sprite Studio che non espone dither)
+- Il case `ApplyQuantize` ora chiama solo `RunSpriteQuantize()`
+
+**Build post-fix:** 0 errori, 0 warning.

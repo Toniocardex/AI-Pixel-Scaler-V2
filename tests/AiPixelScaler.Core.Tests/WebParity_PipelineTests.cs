@@ -7,12 +7,12 @@ namespace AiPixelScaler.Core.Tests;
 public class WebParity_PipelineTests
 {
     [Fact]
-    public void ChromaKey_removes_exact_green()
+    public void BackgroundIsolation_removes_exact_edge_connected_green()
     {
         using var img = new Image<Rgba32>(2, 1);
         img[0, 0] = new Rgba32(0, 255, 0, 255);
         img[1, 0] = new Rgba32(0, 0, 0, 255);
-        ChromaKey.ApplyInPlace(img, new Rgba32(0, 255, 0, 255), 0);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(0, 255, 0, 255), ColorTolerance: 0, ProtectStrongEdges: false, UseOklab: false));
         Assert.Equal(0, img[0, 0].A);
         Assert.Equal(255, img[1, 0].A);
     }
@@ -28,27 +28,27 @@ public class WebParity_PipelineTests
     }
 
     [Fact]
-    public void EdgeBackground_removes_edge_connected_magenta()
+    public void BackgroundIsolation_removes_edge_connected_magenta()
     {
         using var img = new Image<Rgba32>(3, 3);
         for (var y = 0; y < 3; y++)
         for (var x = 0; x < 3; x++)
             img[x, y] = new Rgba32(255, 0, 255, 255);
         img[1, 1] = new Rgba32(0, 0, 0, 255);
-        EdgeBackgroundFill.ApplyInPlace(img, new Rgba32(255, 0, 255, 255), 0);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(255, 0, 255, 255), ColorTolerance: 0, ProtectStrongEdges: false, UseOklab: false));
         Assert.Equal(0, img[0, 0].A);
         Assert.Equal(255, img[1, 1].A);
     }
 
     [Fact]
-    public void EdgeBackground_stops_at_sobel_edge()
+    public void BackgroundIsolation_stops_at_sobel_edge()
     {
         using var img = new Image<Rgba32>(7, 7, new Rgba32(240, 240, 240, 255));
         for (var y = 2; y <= 4; y++)
         for (var x = 2; x <= 4; x++)
             img[x, y] = new Rgba32(20, 20, 20, 255);
 
-        EdgeBackgroundFill.ApplyInPlace(img, new Rgba32(240, 240, 240, 255), 0);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(240, 240, 240, 255), ColorTolerance: 0, EdgeThreshold: 48, ProtectStrongEdges: true));
 
         Assert.Equal(0, img[0, 0].A);
         Assert.Equal(255, img[3, 3].A);

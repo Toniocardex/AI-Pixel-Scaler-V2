@@ -82,9 +82,9 @@ public class AlphaThresholdTests
     }
 }
 
-// ─── ChromaKey (distanza Euclidea) ───────────────────────────────────────────
+// ─── BackgroundIsolation (distanza Euclidea) ───────────────────────────────────────────
 
-public class ChromaKeyEuclideanTests
+public class BackgroundIsolationEuclideanTests
 {
     [Fact]
     public void ExactMatch_ToleranceZero_RemovesPixel()
@@ -92,7 +92,7 @@ public class ChromaKeyEuclideanTests
         using var img = new Image<Rgba32>(1, 1);
         img[0, 0] = new Rgba32(0, 255, 0, 255);
 
-        ChromaKey.ApplyInPlace(img, new Rgba32(0, 255, 0, 255), tolerance: 0);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(0, 255, 0, 255), ColorTolerance: 0, ProtectStrongEdges: false, UseOklab: false));
 
         Assert.Equal(0, img[0, 0].A);
     }
@@ -103,7 +103,7 @@ public class ChromaKeyEuclideanTests
         using var img = new Image<Rgba32>(1, 1);
         img[0, 0] = new Rgba32(1, 255, 0, 255); // distanza = √1 > 0
 
-        ChromaKey.ApplyInPlace(img, new Rgba32(0, 255, 0, 255), tolerance: 0);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(0, 255, 0, 255), ColorTolerance: 0, ProtectStrongEdges: false, UseOklab: false));
 
         Assert.Equal(255, img[0, 0].A);
     }
@@ -115,7 +115,7 @@ public class ChromaKeyEuclideanTests
         using var img = new Image<Rgba32>(1, 1);
         img[0, 0] = new Rgba32(3, 255, 4, 255);
 
-        ChromaKey.ApplyInPlace(img, new Rgba32(0, 255, 0, 255), tolerance: 5);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(0, 255, 0, 255), ColorTolerance: 5, ProtectStrongEdges: false, UseOklab: false));
 
         Assert.Equal(0, img[0, 0].A);
     }
@@ -127,7 +127,7 @@ public class ChromaKeyEuclideanTests
         using var img = new Image<Rgba32>(1, 1);
         img[0, 0] = new Rgba32(6, 255, 0, 255);
 
-        ChromaKey.ApplyInPlace(img, new Rgba32(0, 255, 0, 255), tolerance: 5);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(0, 255, 0, 255), ColorTolerance: 5, ProtectStrongEdges: false, UseOklab: false));
 
         Assert.Equal(255, img[0, 0].A);
     }
@@ -138,7 +138,7 @@ public class ChromaKeyEuclideanTests
         using var img = new Image<Rgba32>(1, 1);
         img[0, 0] = new Rgba32(0, 255, 0, 0); // già trasparente
 
-        ChromaKey.ApplyInPlace(img, new Rgba32(0, 255, 0, 255), tolerance: 100);
+        BackgroundIsolation.ApplyInPlace(img, new(new Rgba32(0, 255, 0, 255), ColorTolerance: 100, ProtectStrongEdges: false, UseOklab: false));
 
         // non deve cambiare A (era già 0)
         Assert.Equal(0, img[0, 0].A);

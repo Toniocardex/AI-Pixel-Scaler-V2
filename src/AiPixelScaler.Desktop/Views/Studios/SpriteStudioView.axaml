@@ -69,19 +69,19 @@
 
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
-            <TextBlock Classes="section-title" Text="Alpha Clean"/>
-            <CheckBox x:Name="ChkSpriteChroma" Content="Chroma key"/>
+            <TextBlock Classes="section-title" Text="Rimozione sfondo"/>
+            <TextBlock Classes="studio-hint" Text="Isola solo lo sfondo connesso all'esterno, proteggendo i dettagli interni dello sprite."/>
             <Grid ColumnDefinitions="*,6,64">
-              <TextBox x:Name="TxtSpriteChromaHex" Grid.Column="0" Text="#00FF00" PlaceholderText="hex"/>
-              <TextBox x:Name="TxtSpriteChromaTol" Grid.Column="2" Text="0"/>
+              <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="0" Text="#00FF00" PlaceholderText="sfondo"/>
+              <TextBox x:Name="TxtSpriteBackgroundTol" Grid.Column="2" Text="10"/>
             </Grid>
             <Grid ColumnDefinitions="*,6,64">
-              <TextBox x:Name="TxtSpriteEdgeHex" Grid.Column="0" Text="#00FF00" PlaceholderText="sfondo"/>
-              <TextBox x:Name="TxtSpriteEdgeTol" Grid.Column="2" Text="8"/>
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Protezione bordi"/>
+              <TextBox x:Name="TxtSpriteBackgroundEdge" Grid.Column="2" Text="48"/>
             </Grid>
             <CheckBox x:Name="ChkSpriteAlphaThreshold" Content="Binarizza alpha"/>
             <TextBox x:Name="TxtSpriteAlphaThreshold" Text="128"/>
-            <Button x:Name="BtnSpriteEdgeBackground" Classes="secondary" Content="Rimuovi sfondo bordo" HorizontalAlignment="Stretch"/>
+            <Button x:Name="BtnSpriteBackgroundIsolation" Classes="secondary" Content="Rimuovi sfondo" HorizontalAlignment="Stretch"/>
           </StackPanel>
         </Border>
 
@@ -227,6 +227,15 @@
           <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
             <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
             <TextBlock Text="Esporta frame selezionato"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnSpriteExportFramesZip"
+                Classes="secondary"
+                HorizontalAlignment="Stretch"
+                IsEnabled="False">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+            <TextBlock Text="Esporta tutti in ZIP"/>
           </StackPanel>
         </Button>
         <Button x:Name="BtnSpriteFloatingPaste" Classes="secondary" HorizontalAlignment="Stretch">

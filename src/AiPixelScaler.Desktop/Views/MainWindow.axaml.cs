@@ -29,6 +29,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -53,20 +54,10 @@ public partial class MainWindow : Window
     private readonly FloatingPasteCoordinator _floatingPaste;
     private readonly PipelineViewModel _pipelineVm = new();
     private PipelineViewModel.PipelineFormState _pipelineFormState = new(
-        EnableChroma: false,
-        EnableChromaSnapRgb: false,
-        ChromaHex: "#00FF00",
-        ChromaTolerance: "0",
-        EnableAdvancedCleaner: false,
-        BilateralSigmaSpatial: "1.25",
-        BilateralSigmaRange: "0.085",
-        BilateralPasses: "1",
-        EnablePixelGridEnforce: false,
-        NativeWidth: "64",
-        NativeHeight: "64",
-        EnablePaletteSnap: false,
-        PaletteId: string.Empty,
-        PaletteMetadataPath: string.Empty,
+        EnableBackgroundIsolation: false,
+        EnableBackgroundSnapRgb: false,
+        BackgroundHex: "#00FF00",
+        BackgroundTolerance: "0",
         EnableQuantize: false,
         MaxColors: "16",
         QuantizerIndex: 0,
@@ -75,7 +66,11 @@ public partial class MainWindow : Window
         EnableOutline: false,
         OutlineHex: "#000000",
         EnableAlphaThreshold: true,
-        AlphaThreshold: "128");
+        AlphaThreshold: "128",
+        DefringeOpaque: "250");
+    private string _backgroundIsolationHex = "#00FF00";
+    private string _backgroundIsolationTolerance = "10";
+    private string _backgroundIsolationEdgeThreshold = "48";
     private string _quickColorsAfterText = "-";
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
@@ -231,8 +226,8 @@ public partial class MainWindow : Window
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
         BtnGoAllinea.Click += (_, _) => ActivateStudio(StudioKind.Animation);
-        BtnGoStilizza.Click += (_, _) => MainTabs.SelectedIndex = 2;
-        BtnGoTemplate.Click += (_, _) => MainTabs.SelectedIndex = 2;
+        BtnGoStilizza.Click += (_, _) => ActivateStudio(StudioKind.Tileset);
+        BtnGoTemplate.Click += (_, _) => ActivateStudio(StudioKind.Tileset);
         ChkExportCustomCellSize.IsCheckedChanged += (_, _) =>
         {
             var enabled = ChkExportCustomCellSize.IsChecked == true;
@@ -338,9 +333,9 @@ public partial class MainWindow : Window
             case SpriteStudioAction.ApplyMedian:
                 RunMedianFilter();
                 break;
-            case SpriteStudioAction.ApplyEdgeBackground:
+            case SpriteStudioAction.ApplyBackgroundIsolation:
                 ApplySpriteCleanupStateToControls();
-                RunEdgeBackground();
+                RunBackgroundIsolation();
                 break;
             case SpriteStudioAction.ApplyDenoise:
                 ApplySpriteCleanupStateToControls();
@@ -378,6 +373,9 @@ public partial class MainWindow : Window
                 _selectedSpriteCellIndex = SpriteStudioPanel.SelectedCellIndex;
                 await SaveSelectedFrameAsync(_selectedSpriteCellIndex);
                 break;
+            case SpriteStudioAction.ExportAllFramesZip:
+                await ExportFramesZipAsync();
+                break;
             case SpriteStudioAction.OpenFloatingPaste:
                 EnterPasteMode();
                 break;
@@ -394,9 +392,7 @@ public partial class MainWindow : Window
                 ExitPasteMode();
                 break;
             case SpriteStudioAction.ApplyQuantize:
-                ApplySpriteCleanupStateToControls();
-                _pipelineFormState = _pipelineFormState with { EnableQuantize = true };
-                RunPixelPipeline();
+                RunSpriteQuantize();
                 break;
             case SpriteStudioAction.MirrorHorizontal:
                 RunMirror(horizontal: true);
@@ -421,36 +417,35 @@ public partial class MainWindow : Window
         var state = SpriteStudioPanel.GetCleanupState();
         _pipelineFormState = _pipelineFormState with
         {
-            EnableChroma = state.EnableChroma,
-            ChromaHex = state.ChromaHex,
-            ChromaTolerance = state.ChromaTolerance,
-            EnableChromaSnapRgb = false,
+            EnableBackgroundIsolation = false,
+            BackgroundHex = _backgroundIsolationHex,
+            BackgroundTolerance = _backgroundIsolationTolerance,
+            EnableBackgroundSnapRgb = false,
             EnableAlphaThreshold = state.EnableAlphaThreshold,
             AlphaThreshold = state.AlphaThreshold,
+            DefringeOpaque = state.DefringeOpaque,
             EnableOutline = state.EnableOutline,
             OutlineHex = state.OutlineHex,
             EnableMajorityDenoise = state.EnableMajorityDenoise,
             MinIsland = state.MinIsland,
             EnableQuantize = state.EnableQuantize,
             MaxColors = state.QuantizeColors,
-            QuantizerIndex = state.QuantizeMethodIndex,
-            EnableAdvancedCleaner = false,
-            EnablePixelGridEnforce = false,
-            EnablePaletteSnap = false
+            QuantizerIndex = state.QuantizeMethodIndex
         };
+        _backgroundIsolationHex = state.BackgroundHex;
+        _backgroundIsolationTolerance = state.BackgroundTolerance;
+        _backgroundIsolationEdgeThreshold = state.BackgroundEdgeThreshold;
     }
 
     private void SyncSpriteCleanupStateFromControls()
     {
         SpriteStudioPanel.SetCleanupState(new SpriteCleanupState(
-            EnableChroma: _pipelineFormState.EnableChroma,
-            ChromaHex: _pipelineFormState.ChromaHex,
-            ChromaTolerance: _pipelineFormState.ChromaTolerance,
-            EdgeHex: _pipelineFormState.ChromaHex,
-            EdgeTolerance: _pipelineFormState.ChromaTolerance,
+            BackgroundHex: _backgroundIsolationHex,
+            BackgroundTolerance: _backgroundIsolationTolerance,
+            BackgroundEdgeThreshold: _backgroundIsolationEdgeThreshold,
             EnableAlphaThreshold: _pipelineFormState.EnableAlphaThreshold,
             AlphaThreshold: _pipelineFormState.AlphaThreshold,
-            DefringeOpaque: "250",
+            DefringeOpaque: _pipelineFormState.DefringeOpaque,
             EnableOutline: _pipelineFormState.EnableOutline,
             OutlineHex: _pipelineFormState.OutlineHex,
             MinIsland: _pipelineFormState.MinIsland,
@@ -893,12 +888,9 @@ public partial class MainWindow : Window
         switch (CmbPipetteTarget.SelectedIndex)
         {
             case 0:
-                _pipelineFormState = _pipelineFormState with { ChromaHex = hx };
+                _backgroundIsolationHex = hx;
                 break;
             case 1:
-                _pipelineFormState = _pipelineFormState with { ChromaHex = hx };
-                break;
-            case 2:
                 _pipelineFormState = _pipelineFormState with { OutlineHex = hx };
                 break;
         }
@@ -1064,6 +1056,21 @@ public partial class MainWindow : Window
         UpdateExportCellMinRequiredHint();
         UpdateWorkspaceZoomSlider();
         UpdateWorkspaceScrollBars();
+    }
+
+    private void FitOpenedImageInViewport()
+    {
+        void ApplyFit()
+        {
+            if (Editor.FitImageInViewport())
+            {
+                UpdateWorkspaceZoomSlider();
+                UpdateWorkspaceScrollBars();
+            }
+        }
+
+        ApplyFit();
+        Dispatcher.UIThread.Post(ApplyFit);
     }
 
     private void InitWorkspaceScrollBars()
@@ -1367,14 +1374,14 @@ public partial class MainWindow : Window
         _isApplyingPipelinePreset = true;
         try
         {
-            _pipelineVm.ApplyAggressiveRecoverPreset();
+            _pipelineVm.ApplyAggressivePreset();
             ApplyPipelineFormStateToControls(_pipelineVm.ToFormState());
         }
         finally
         {
             _isApplyingPipelinePreset = false;
         }
-        SetStatus("Preset Aggressivo+Recupero impostato.");
+        SetStatus("Preset Aggressivo impostato.");
         UpdatePipelinePresetBadge();
     }
 
@@ -1406,8 +1413,6 @@ public partial class MainWindow : Window
         }
 
         var formState = ReadPipelineFormStateFromControls();
-        if (string.IsNullOrWhiteSpace(formState.PaletteId))
-            formState = formState with { PaletteId = TryResolvePaletteIdFromMetadata(formState.PaletteMetadataPath) ?? string.Empty };
         return _pipelineVm.TryBuildOptionsFromFormState(formState, includeOutline, out options, out error);
     }
 
@@ -1444,27 +1449,6 @@ public partial class MainWindow : Window
 
     private void HookPipelinePresetResetOnManualChanges()
     {
-    }
-
-    private static void SetText(Avalonia.Controls.TextBox textBox, string value) => textBox.Text = value;
-
-    private static string? TryResolvePaletteIdFromMetadata(string? metadataPath)
-    {
-        if (string.IsNullOrWhiteSpace(metadataPath))
-            return null;
-        var path = metadataPath.Trim();
-        if (!File.Exists(path))
-            return null;
-        try
-        {
-            var json = File.ReadAllText(path);
-            var meta = JsonExport.Deserialize(json);
-            return string.IsNullOrWhiteSpace(meta?.PaletteId) ? null : meta.PaletteId.Trim();
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private void ResetPresetOnManualPipelineEdit()
@@ -1543,19 +1527,27 @@ public partial class MainWindow : Window
             "Errore ridimensionamento");
     }
 
-    private void RunEdgeBackground()
+    private void RunBackgroundIsolation()
     {
-        if (!InputParsing.TryParseHexRgb(_pipelineFormState.ChromaHex, out var key))
+        if (!InputParsing.TryParseHexRgb(_backgroundIsolationHex, out var key))
         {
-            SetStatus("Edge BFS: key hex non valida.");
+            SetStatus("Rimuovi sfondo: colore sfondo non valido.");
             return;
         }
-        var tol = Math.Max(0, InputParsing.ParseInt(_pipelineFormState.ChromaTolerance, 8));
+        var tol = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationTolerance, 10));
+        var edge = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationEdgeThreshold, 48));
         RunTransform(
-            img => EdgeBackgroundFill.ApplyInPlace(img, key, tol),
-            "Sfondo rimosso dal bordo dell'immagine.",
+            img => BackgroundIsolation.ApplyInPlace(
+                img,
+                new BackgroundIsolation.Options(
+                    BackgroundColor: key,
+                    ColorTolerance: tol,
+                    EdgeThreshold: edge,
+                    UseOklab: true,
+                    ProtectStrongEdges: true)),
+            $"Sfondo rimosso (colore {RgbaToHex(key)}, tolleranza {tol}, bordi {edge}).",
             clearCells: true,
-            "Errore edge BFS");
+            "Errore rimozione sfondo");
     }
 
     private async Task ExportTiledMapJsonAsync()
@@ -1665,6 +1657,7 @@ public partial class MainWindow : Window
                 EnterSelectionCanvas(IsRoiSelectionModeRequested());
                 UpdateSelectionInfo();
                 RefreshView();
+                FitOpenedImageInViewport();
                 _workspaceTabs.MarkActiveClean();
                 RefreshWorkspaceChrome();
                 SetStatus($"Immagine aperta in nuovo workspace ({tabTitle}): {_document!.Width}×{_document.Height} px.");
@@ -1691,6 +1684,7 @@ public partial class MainWindow : Window
             EnterSelectionCanvas(IsRoiSelectionModeRequested());
             UpdateSelectionInfo();
             RefreshView();
+            FitOpenedImageInViewport();
             _workspaceTabs.MarkActiveClean();
             RefreshWorkspaceChrome();
             SetStatus($"Immagine aperta: {_document.Width}×{_document.Height} px. Scheda «Immagine» o «Sprite».");
@@ -2019,18 +2013,14 @@ public partial class MainWindow : Window
         {
             PushUndo();
 
-            InputParsing.TryParseHexRgb(_pipelineFormState.ChromaHex, out var bgKey);
-            var bgTol = Math.Max(0, InputParsing.ParseInt(_pipelineFormState.ChromaTolerance, 8));
             var alphaThr = (byte)Math.Clamp(InputParsing.ParseInt(_pipelineFormState.AlphaThreshold, 128), 0, 255);
-            const byte defOpaque = 250;
+            var defOpaque = (byte)Math.Clamp(InputParsing.ParseInt(_pipelineFormState.DefringeOpaque, 250), 1, 254);
             var minIsland = Math.Max(1, InputParsing.ParseInt(_pipelineFormState.MinIsland, 4));
             var palColors = Math.Clamp(InputParsing.ParseInt(_pipelineFormState.MaxColors, 16), 2, 64);
 
             var report = AiCleanupWizard.Apply(_document, new AiCleanupWizard.Options
             {
-                RemoveBgColor   = true,
-                BgKey           = bgKey,
-                BgTolerance     = bgTol,
+                RemoveBgColor   = false,
                 DefringeEdges   = true,
                 DefringeOpaque  = defOpaque,
                 BinarizeAlpha   = true,
@@ -2060,7 +2050,7 @@ public partial class MainWindow : Window
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            const byte opaque = 250;
+            var opaque = (byte)Math.Clamp(InputParsing.ParseInt(_pipelineFormState.DefringeOpaque, 250), 1, 254);
             // Pre-flight: defringe agisce solo su pixel semi-trasparenti (0 < α < opaque).
             // Se non ce ne sono, è no-op → avvisa l'utente esplicitamente.
             var semiCount = ImageUtils.CountSemiTransparent(_document, opaque);
@@ -2131,6 +2121,31 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RunSpriteQuantize()
+    {
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        try
+        {
+            ApplySpriteCleanupStateToControls();
+            var n = Math.Clamp(InputParsing.ParseInt(_pipelineFormState.MaxColors, 16), 2, 64);
+            var palette = _pipelineFormState.QuantizerIndex switch
+            {
+                1 => PaletteExtractorAlgorithms.ExtractOctree(_document, n),
+                _ => PaletteExtractorAlgorithms.ExtractWu(_document, n),
+            };
+            if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
+            PushUndo();
+            PaletteMapper.ApplyInPlace(_document, palette, PaletteMapper.DitherMode.None);
+            RefreshView();
+            var method = _pipelineFormState.QuantizerIndex == 1 ? "Octree" : "Wu";
+            SetStatus($"Quantize applicato: {palette.Count} colori ({method}).");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Errore quantize: {ex.Message}");
+        }
+    }
+
     private void RunMakeTileable()
     {
         var blend = Math.Clamp(InputParsing.ParseInt(TxtSeamlessBlend.Text, 4), 1, 16);
@@ -2197,13 +2212,15 @@ public partial class MainWindow : Window
             ChkExportKeepCellSize.IsChecked == true,
             TxtExportCellW.Text,
             TxtExportCellH.Text,
-            _pipelineFormState.PaletteId,
+            null,
             StorageProvider,
             SetStatus);
     }
     // ─── Gomma ───────────────────────────────────────────────────────────────
 
     private bool _eraserUndoPushed;
+    private int _eraserDirtyMinX = int.MaxValue;
+    private int _eraserDirtyMaxX = int.MinValue;
     private int _eraserDirtyMinY = int.MaxValue;
     private int _eraserDirtyMaxY = int.MinValue;
     private long _eraserLastFlushTicks;
@@ -2219,51 +2236,60 @@ public partial class MainWindow : Window
             _eraserUndoPushed = true;
         }
 
-        var r    = e.Radius;
+        var size = Math.Max(1, e.Size);
         var imgW = _document.Width;
         var imgH = _document.Height;
+        var xMin = Math.Clamp(e.ImageX, 0, imgW);
+        var yMin = Math.Clamp(e.ImageY, 0, imgH);
+        var xMax = Math.Clamp(e.ImageX + size, 0, imgW);
+        var yMax = Math.Clamp(e.ImageY + size, 0, imgH);
+        if (xMin >= xMax || yMin >= yMax) return;
 
         _document.ProcessPixelRows(accessor =>
         {
-            for (var dy = -r; dy <= r; dy++)
+            for (var py = yMin; py < yMax; py++)
             {
-                var py = e.ImageY + dy;
-                if (py < 0 || py >= imgH) continue;
                 var row = accessor.GetRowSpan(py);
-                for (var dx = -r; dx <= r; dx++)
+                for (var px = xMin; px < xMax; px++)
                 {
-                    if (dx * dx + dy * dy > r * r) continue;
-                    var px = e.ImageX + dx;
-                    if (px < 0 || px >= imgW) continue;
                     if (row[px].A != 0)
                         row[px].A = 0;
                 }
             }
         });
 
-        var yMin = Math.Max(0, e.ImageY - r);
-        var yMax = Math.Min(imgH, e.ImageY + r + 1);
+        _eraserDirtyMinX = Math.Min(_eraserDirtyMinX, xMin);
+        _eraserDirtyMaxX = Math.Max(_eraserDirtyMaxX, xMax);
         _eraserDirtyMinY = Math.Min(_eraserDirtyMinY, yMin);
         _eraserDirtyMaxY = Math.Max(_eraserDirtyMaxY, yMax);
 
         var now = Environment.TickCount64;
-        if (now - _eraserLastFlushTicks >= 16 && _eraserDirtyMinY < _eraserDirtyMaxY)
+        if (now - _eraserLastFlushTicks >= 16 && HasDirtyEraserRegion())
         {
-            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinY, _eraserDirtyMaxY);
+            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinX, _eraserDirtyMinY, _eraserDirtyMaxX, _eraserDirtyMaxY);
             _eraserLastFlushTicks = now;
-            _eraserDirtyMinY = int.MaxValue;
-            _eraserDirtyMaxY = int.MinValue;
+            ClearDirtyEraserRegion();
         }
     }
 
     private void OnEraserStrokeEnded(object? sender, EventArgs e)
     {
-        if (_document is not null && _eraserDirtyMinY < _eraserDirtyMaxY)
-            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinY, _eraserDirtyMaxY);
+        if (_document is not null && HasDirtyEraserRegion())
+            Editor.UpdateBitmapRegion(_document, _eraserDirtyMinX, _eraserDirtyMinY, _eraserDirtyMaxX, _eraserDirtyMaxY);
 
+        ClearDirtyEraserRegion();
+        _eraserUndoPushed = false;
+    }
+
+    private bool HasDirtyEraserRegion() =>
+        _eraserDirtyMinX < _eraserDirtyMaxX && _eraserDirtyMinY < _eraserDirtyMaxY;
+
+    private void ClearDirtyEraserRegion()
+    {
+        _eraserDirtyMinX = int.MaxValue;
+        _eraserDirtyMaxX = int.MinValue;
         _eraserDirtyMinY = int.MaxValue;
         _eraserDirtyMaxY = int.MinValue;
-        _eraserUndoPushed = false;
     }
 
     // ─── Atlas pulito (clone griglia + manual paste) ─────────────────────────

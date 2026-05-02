@@ -22,7 +22,7 @@ public partial class SpriteStudioView : UserControl
         BtnSpritePipelineApply.Click += (_, _) => Request(SpriteStudioAction.ApplyPipeline);
         BtnSpriteDefringe.Click += (_, _) => Request(SpriteStudioAction.ApplyDefringe);
         BtnSpriteMedian.Click += (_, _) => Request(SpriteStudioAction.ApplyMedian);
-        BtnSpriteEdgeBackground.Click += (_, _) => Request(SpriteStudioAction.ApplyEdgeBackground);
+        BtnSpriteBackgroundIsolation.Click += (_, _) => Request(SpriteStudioAction.ApplyBackgroundIsolation);
         BtnSpriteDenoise.Click += (_, _) => Request(SpriteStudioAction.ApplyDenoise);
         BtnSpriteSelect.Click += (_, _) => Request(SpriteStudioAction.SelectArea);
         BtnSpriteSelectAll.Click += (_, _) => Request(SpriteStudioAction.SelectAll);
@@ -38,6 +38,7 @@ public partial class SpriteStudioView : UserControl
         BtnSpriteDetect.Click += (_, _) => Request(SpriteStudioAction.DetectSprites);
         BtnSpriteGridSlice.Click += (_, _) => Request(SpriteStudioAction.GridSlice);
         BtnSpriteSaveSelectedFrame.Click += (_, _) => Request(SpriteStudioAction.SaveSelectedFrame);
+        BtnSpriteExportFramesZip.Click += (_, _) => Request(SpriteStudioAction.ExportAllFramesZip);
         BtnSpriteFloatingPaste.Click += (_, _) => Request(SpriteStudioAction.OpenFloatingPaste);
         BtnSpritePasteDest.Click += (_, _) => Request(SpriteStudioAction.PasteDestination);
         BtnSpritePasteSrc.Click += (_, _) => Request(SpriteStudioAction.PasteSource);
@@ -106,6 +107,7 @@ public partial class SpriteStudioView : UserControl
     {
         SpriteCellList.ItemsSource = cells;
         BtnSpriteSaveSelectedFrame.IsEnabled = cells.Count > 0;
+        BtnSpriteExportFramesZip.IsEnabled = cells.Count > 0;
         TxtSpriteCellsSummary.Text = cells.Count == 0 ? "Nessun frame rilevato." : $"{cells.Count} frame/celle disponibili.";
     }
 
@@ -119,11 +121,9 @@ public partial class SpriteStudioView : UserControl
     }
 
     public SpriteCleanupState GetCleanupState() => new(
-        ChkSpriteChroma.IsChecked == true,
-        TxtSpriteChromaHex.Text ?? string.Empty,
-        TxtSpriteChromaTol.Text ?? string.Empty,
-        TxtSpriteEdgeHex.Text ?? string.Empty,
-        TxtSpriteEdgeTol.Text ?? string.Empty,
+        TxtSpriteBackgroundHex.Text ?? string.Empty,
+        TxtSpriteBackgroundTol.Text ?? string.Empty,
+        TxtSpriteBackgroundEdge.Text ?? string.Empty,
         ChkSpriteAlphaThreshold.IsChecked == true,
         TxtSpriteAlphaThreshold.Text ?? string.Empty,
         TxtSpriteDefringeOpaque.Text ?? string.Empty,
@@ -140,11 +140,9 @@ public partial class SpriteStudioView : UserControl
         _syncing = true;
         try
         {
-            ChkSpriteChroma.IsChecked = state.EnableChroma;
-            TxtSpriteChromaHex.Text = state.ChromaHex;
-            TxtSpriteChromaTol.Text = state.ChromaTolerance;
-            TxtSpriteEdgeHex.Text = state.EdgeHex;
-            TxtSpriteEdgeTol.Text = state.EdgeTolerance;
+            TxtSpriteBackgroundHex.Text = state.BackgroundHex;
+            TxtSpriteBackgroundTol.Text = state.BackgroundTolerance;
+            TxtSpriteBackgroundEdge.Text = state.BackgroundEdgeThreshold;
             ChkSpriteAlphaThreshold.IsChecked = state.EnableAlphaThreshold;
             TxtSpriteAlphaThreshold.Text = state.AlphaThreshold;
             TxtSpriteDefringeOpaque.Text = state.DefringeOpaque;
@@ -166,11 +164,9 @@ public partial class SpriteStudioView : UserControl
 }
 
 public sealed record SpriteCleanupState(
-    bool EnableChroma,
-    string ChromaHex,
-    string ChromaTolerance,
-    string EdgeHex,
-    string EdgeTolerance,
+    string BackgroundHex,
+    string BackgroundTolerance,
+    string BackgroundEdgeThreshold,
     bool EnableAlphaThreshold,
     string AlphaThreshold,
     string DefringeOpaque,

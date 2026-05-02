@@ -9,7 +9,7 @@ namespace AiPixelScaler.Batch;
 
 /// <summary>
 /// Elaborazione batch: cartella in → cartella out (solo PNG nel primo livello).
-/// Uso: aipixel-batch &lt;inputDir&gt; &lt;outputDir&gt; [--indexed] [--palette N] [--chroma-snap #RRGGBB tol] [--shared-palette]
+/// Uso: aipixel-batch &lt;inputDir&gt; &lt;outputDir&gt; [--indexed] [--palette N] [--background-snap #RRGGBB tol] [--shared-palette]
 /// </summary>
 internal static class Program
 {
@@ -18,7 +18,7 @@ internal static class Program
         if (args.Length < 2)
         {
             Console.Error.WriteLine(
-                "Uso: aipixel-batch <cartellaIngresso> <cartellaUscita> [--indexed] [--palette N] [--chroma-snap #RRGGBB tol] [--shared-palette]");
+                "Uso: aipixel-batch <cartellaIngresso> <cartellaUscita> [--indexed] [--palette N] [--background-snap #RRGGBB tol] [--shared-palette]");
             return 1;
         }
 
@@ -27,7 +27,7 @@ internal static class Program
         var indexed = args.Contains("--indexed", StringComparer.OrdinalIgnoreCase);
         var sharedPalette = args.Contains("--shared-palette", StringComparer.OrdinalIgnoreCase);
         var paletteN = OptionParsing.ParseFlagInt(args, "--palette");
-        ParseChromaSnap(args, out var snapKey, out var snapTol);
+        ParseBackgroundSnap(args, out var snapKey, out var snapTol);
 
         if (!Directory.Exists(inputDir))
         {
@@ -60,10 +60,10 @@ internal static class Program
                 using var image = Image.Load<Rgba32>(path);
 
                 var options = new PixelArtPipeline.Options(
-                    EnableChroma: snapKey.HasValue,
-                    ChromaSnapRgb: snapKey.HasValue,
-                    ChromaColor: snapKey ?? new Rgba32(0, 255, 0, 255),
-                    ChromaTolerance: snapTol,
+                    EnableBackgroundIsolation: snapKey.HasValue,
+                    BackgroundSnapRgb: snapKey.HasValue,
+                    BackgroundColor: snapKey ?? new Rgba32(0, 255, 0, 255),
+                    BackgroundTolerance: snapTol,
                     EnableQuantize: globalPalette is null && paletteN is >= 2 and <= 256,
                     MaxColors: paletteN.GetValueOrDefault(16),
                     Quantizer: PixelArtProcessor.QuantizerKind.Wu);
@@ -102,13 +102,13 @@ internal static class Program
 
         return 0;
     }
-    private static void ParseChromaSnap(string[] args, out Rgba32? key, out double tol)
+    private static void ParseBackgroundSnap(string[] args, out Rgba32? key, out double tol)
     {
         key = null;
         tol = 0;
         for (var i = 0; i < args.Length - 2; i++)
         {
-            if (!string.Equals(args[i], "--chroma-snap", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(args[i], "--background-snap", StringComparison.OrdinalIgnoreCase)) continue;
             if (!ColorParsing.TryParseHexRgb(args[i + 1], out var k)) break;
             key = k;
             if (double.TryParse(args[i + 2], System.Globalization.NumberStyles.Float,

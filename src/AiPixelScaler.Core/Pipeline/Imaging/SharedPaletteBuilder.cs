@@ -8,15 +8,15 @@ public static class SharedPaletteBuilder
     public static IReadOnlyList<Rgba32> BuildFromFiles(
         IReadOnlyList<string> files,
         int maxColors,
-        Rgba32? chromaSnapKey = null,
-        double chromaSnapTolerance = 0)
+        Rgba32? backgroundSnapKey = null,
+        double backgroundSnapTolerance = 0)
     {
         var union = new HashSet<Rgba32>();
         foreach (var path in files)
         {
             using var img = Image.Load<Rgba32>(path);
-            if (chromaSnapKey.HasValue)
-                ChromaKey.SnapKeyRgbInPlace(img, chromaSnapKey.Value, Math.Max(0, chromaSnapTolerance));
+            if (backgroundSnapKey.HasValue)
+                BackgroundIsolation.SnapBackgroundRgbInPlace(img, backgroundSnapKey.Value, Math.Max(0, backgroundSnapTolerance));
             foreach (var c in PaletteExtractorAlgorithms.ExtractWu(img, Math.Clamp(maxColors, 2, 256)))
                 union.Add(c);
         }

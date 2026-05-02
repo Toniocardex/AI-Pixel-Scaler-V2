@@ -68,4 +68,30 @@ public static class Rgba32BitmapBridge
             }
         });
     }
+
+    public static void UpdateRect(WriteableBitmap wb, Image<Rgba32> source, int xMin, int yMin, int xMax, int yMax)
+    {
+        xMin = Math.Max(0, xMin);
+        yMin = Math.Max(0, yMin);
+        xMax = Math.Min(source.Width, xMax);
+        yMax = Math.Min(source.Height, yMax);
+        if (xMin >= xMax || yMin >= yMax) return;
+
+        var byteX = xMin * 4;
+        var byteCount = (xMax - xMin) * 4;
+        using var fb = wb.Lock();
+        source.ProcessPixelRows(accessor =>
+        {
+            for (var y = yMin; y < yMax; y++)
+            {
+                var src = MemoryMarshal.AsBytes(accessor.GetRowSpan(y)).Slice(byteX, byteCount);
+                unsafe
+                {
+                    fixed (byte* p = src)
+                        Buffer.MemoryCopy(p, (void*)(fb.Address + y * fb.RowBytes + byteX),
+                                          fb.RowBytes - byteX, src.Length);
+                }
+            }
+        });
+    }
 }

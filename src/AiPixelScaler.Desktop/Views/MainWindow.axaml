@@ -217,7 +217,7 @@
         <NumericUpDown x:Name="TxtEraserRadius" Classes="toolbar"
                        Value="4" Minimum="1" Maximum="64" Increment="1" FormatString="0"
                        Width="44" IsEnabled="False"
-                       ToolTip.Tip="Raggio del pennello gomma in pixel-immagine"/>
+                       ToolTip.Tip="Dimensione quadrata della gomma in pixel-immagine"/>
 
         <!-- Pipette tool -->
         <ToggleButton x:Name="ChkPipette" Classes="tool-toggle"
@@ -421,7 +421,6 @@
 
             <!-- Controlli nascosti necessari al code-behind -->
             <ComboBox x:Name="CmbPipetteTarget" IsVisible="False" SelectedIndex="0">
-              <ComboBoxItem Content="Chroma key"/>
               <ComboBoxItem Content="Rimuovi sfondo"/>
               <ComboBoxItem Content="Contorno"/>
             </ComboBox>

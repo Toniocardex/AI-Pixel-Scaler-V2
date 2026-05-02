@@ -6,19 +6,10 @@ namespace AiPixelScaler.Core.Pipeline.Imaging;
 public static class PixelArtPipeline
 {
     public sealed record Options(
-        bool EnableChroma = true,
-        bool ChromaSnapRgb = false,
-        Rgba32 ChromaColor = default,
-        double ChromaTolerance = 0,
-        bool EnableAdvancedCleaner = false,
-        double BilateralSigmaSpatial = 1.25,
-        double BilateralSigmaRange = 0.085,
-        int BilateralPasses = 1,
-        bool EnablePixelGridEnforce = false,
-        int NativeWidth = 64,
-        int NativeHeight = 64,
-        bool EnablePaletteSnap = false,
-        string? PaletteId = null,
+        bool EnableBackgroundIsolation = true,
+        bool BackgroundSnapRgb = false,
+        Rgba32 BackgroundColor = default,
+        double BackgroundTolerance = 0,
         bool EnableQuantize = true,
         int MaxColors = 16,
         PixelArtProcessor.QuantizerKind Quantizer = PixelArtProcessor.QuantizerKind.Wu,
@@ -27,70 +18,49 @@ public static class PixelArtPipeline
         int? IslandMinArea = null,
         bool EnableOutline = false,
         Rgba32 OutlineColor = default,
-        byte? AlphaThreshold = null,
-        bool EnableRecoverFill = false,
-        int RecoverIterations = 2,
-        bool RequantizeAfterRecover = true);
+        byte? AlphaThreshold = null);
 
     public sealed record Report(
         int UniqueColorsBefore,
         int UniqueColorsAfter,
         IReadOnlyList<Rgba32> Palette,
-        int RecoveredPixels,
         IReadOnlyList<string> Steps);
 
     public static Report ApplyInPlace(Image<Rgba32> image, Options options)
     {
         var before = PixelArtValidation.CountUniqueColors(image);
         var steps = new List<string>();
-        var key = options.ChromaColor.Equals(default(Rgba32)) ? new Rgba32(0, 255, 0, 255) : options.ChromaColor;
+        var key = options.BackgroundColor.Equals(default(Rgba32)) ? new Rgba32(0, 255, 0, 255) : options.BackgroundColor;
 
-        if (options.EnableChroma)
+        if (options.EnableBackgroundIsolation)
         {
-            var tol = Math.Max(0, options.ChromaTolerance);
-            if (options.ChromaSnapRgb)
+            var tol = Math.Max(0, options.BackgroundTolerance);
+            if (options.BackgroundSnapRgb)
             {
-                ChromaKey.SnapKeyRgbInPlace(image, key, tol);
-                steps.Add($"chroma snap (tol {tol:0.##})");
+                BackgroundIsolation.SnapBackgroundRgbInPlace(image, key, tol);
+                steps.Add($"background snap (tol {tol:0.##})");
             }
             else
             {
-                ChromaKey.ApplyInPlace(image, key, tol);
-                steps.Add($"chroma key (tol {tol:0.##})");
+                BackgroundIsolation.ApplyInPlace(
+                    image,
+                    new BackgroundIsolation.Options(
+                        BackgroundColor: key,
+                        ColorTolerance: tol,
+                        EdgeThreshold: tol <= 0 ? 48 : Math.Clamp(tol * 6, 8, 255),
+                        UseOklab: true,
+                        ProtectStrongEdges: true));
+                steps.Add($"background isolation (tol {tol:0.##})");
             }
         }
 
         IReadOnlyList<Rgba32> palette = [];
-        if (options.EnableAdvancedCleaner)
-        {
-            palette = AdvancedPixelCleaner.ApplyInPlace(
-                image,
-                options.MaxColors,
-                options.Quantizer,
-                new AdvancedPixelCleaner.Options(
-                    SigmaSpatial: options.BilateralSigmaSpatial,
-                    SigmaRange: options.BilateralSigmaRange,
-                    BilateralPasses: options.BilateralPasses,
-                    EnablePixelGridEnforce: options.EnablePixelGridEnforce,
-                    NativeWidth: options.NativeWidth,
-                    NativeHeight: options.NativeHeight,
-                    EnablePaletteSnap: options.EnablePaletteSnap,
-                    PaletteId: options.PaletteId),
-                steps);
-        }
 
         if (options.EnableQuantize && palette.Count == 0)
         {
             palette = PipelineSharedStages.ApplyPaletteReduction(image, options.MaxColors, PaletteMapper.DitherMode.None, options.Quantizer);
             if (palette.Count > 0)
                 steps.Add($"quantize {options.Quantizer} ({palette.Count})");
-        }
-
-        if (options.EnablePaletteSnap && PaletteIdResolver.TryResolve(options.PaletteId, out var lockedPalette))
-        {
-            PaletteMapper.ApplyInPlace(image, lockedPalette, PaletteMapper.DitherMode.None);
-            palette = lockedPalette;
-            steps.Add($"quantize snap {options.PaletteId}");
         }
 
         if (options.EnableMajorityDenoise)
@@ -118,25 +88,8 @@ public static class PixelArtPipeline
             steps.Add($"alpha {thr}");
         }
 
-        var recovered = 0;
-        if (options.EnableRecoverFill)
-        {
-            recovered = MissingPixelFill.FillInternalTransparentInPlace(image, Math.Max(1, options.RecoverIterations));
-            steps.Add($"recover +{recovered}px");
-
-            if (options.RequantizeAfterRecover && options.EnableQuantize)
-            {
-                var pal2 = PipelineSharedStages.ApplyPaletteReduction(image, options.MaxColors, PaletteMapper.DitherMode.None, options.Quantizer);
-                if (pal2.Count > 0)
-                {
-                    palette = pal2;
-                    steps.Add($"requantize ({pal2.Count})");
-                }
-            }
-        }
-
         var after = PixelArtValidation.CountUniqueColors(image);
-        return new Report(before, after, palette, recovered, steps);
+        return new Report(before, after, palette, steps);
     }
 
 }

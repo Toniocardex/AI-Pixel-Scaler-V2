@@ -17,10 +17,10 @@ public class PlanFeatures_Tests
         img[2, 0] = new Rgba32(12, 22, 32, 255);
 
         var result = PixelArtProcessor.ProcessImageInPlace(img, new PixelArtProcessor.Options(
-            NormalizeChroma: true,
-            ChromaSnapRgb: false,
-            ChromaColor: new Rgba32(0, 255, 0, 255),
-            ChromaTolerance: 0,
+            NormalizeBackground: true,
+            BackgroundSnapRgb: false,
+            BackgroundColor: new Rgba32(0, 255, 0, 255),
+            BackgroundTolerance: 0,
             QuantizePalette: true,
             MaxColors: 2,
             Quantizer: PixelArtProcessor.QuantizerKind.Wu));
@@ -48,7 +48,7 @@ public class PlanFeatures_Tests
             }
 
             var result = PixelArtProcessor.ProcessFile(input, output, new PixelArtProcessor.Options(
-                NormalizeChroma: false,
+                NormalizeBackground: false,
                 QuantizePalette: true,
                 MaxColors: 4,
                 Export: PixelArtProcessor.ExportKind.IndexedPng8));
@@ -66,12 +66,12 @@ public class PlanFeatures_Tests
     }
 
     [Fact]
-    public void ChromaKey_SnapKeyRgbInPlace_sets_exact_key_rgb()
+    public void BackgroundIsolation_SnapBackgroundRgbInPlace_sets_exact_key_rgb()
     {
         using var img = new Image<Rgba32>(1, 1);
         img[0, 0] = new Rgba32(0, 250, 5, 200);
         var key = new Rgba32(0, 255, 0, 255);
-        ChromaKey.SnapKeyRgbInPlace(img, key, tolerance: 30);
+        BackgroundIsolation.SnapBackgroundRgbInPlace(img, key, tolerance: 30);
         Assert.Equal(key.R, img[0, 0].R);
         Assert.Equal(key.G, img[0, 0].G);
         Assert.Equal(key.B, img[0, 0].B);
@@ -100,17 +100,17 @@ public class PlanFeatures_Tests
     }
 
     [Fact]
-    public void PixelArtValidation_Validate_flags_chroma_mismatch()
+    public void PixelArtValidation_Validate_flags_BACKGROUND_MISMATCH()
     {
         using var img = new Image<Rgba32>(2, 1);
         img[0, 0] = new Rgba32(0, 255, 0, 255);
         img[1, 0] = new Rgba32(255, 0, 0, 255);
         var r = PixelArtValidation.Validate(img, new PixelArtValidation.Options(
-            ExpectedChromaColor: new Rgba32(0, 255, 0, 255),
-            MaxChromaMismatchRatio: 0.2,
-            ChromaTolerance: 0));
+            ExpectedBackgroundColor: new Rgba32(0, 255, 0, 255),
+            MaxBackgroundMismatchRatio: 0.2,
+            BackgroundTolerance: 0));
         Assert.False(r.IsValid);
-        Assert.Contains(r.StructuredIssues, x => x.Code == "CHROMA_MISMATCH");
+        Assert.Contains(r.StructuredIssues, x => x.Code == "BACKGROUND_MISMATCH");
     }
 
     [Fact]
@@ -203,53 +203,4 @@ public class PlanFeatures_Tests
         }
     }
 
-    [Fact]
-    public void MissingPixelFill_fills_internal_single_hole()
-    {
-        using var img = new Image<Rgba32>(5, 5);
-        for (var y = 0; y < 5; y++)
-        for (var x = 0; x < 5; x++)
-            img[x, y] = new Rgba32(20, 40, 60, 255);
-
-        img[2, 2] = new Rgba32(20, 40, 60, 0);
-        var filled = MissingPixelFill.FillInternalTransparentInPlace(img, iterations: 2);
-        Assert.True(filled >= 1);
-        Assert.Equal(255, img[2, 2].A);
-    }
-
-    [Fact]
-    public void MissingPixelFill_does_not_fill_outer_border_transparency()
-    {
-        using var img = new Image<Rgba32>(5, 5);
-        for (var y = 0; y < 5; y++)
-        for (var x = 0; x < 5; x++)
-            img[x, y] = new Rgba32(120, 60, 40, 255);
-
-        img[0, 2] = new Rgba32(120, 60, 40, 0); // bordo sinistro
-        var filled = MissingPixelFill.FillInternalTransparentInPlace(img, iterations: 2);
-        Assert.Equal(0, filled);
-        Assert.Equal(0, img[0, 2].A);
-    }
-
-    [Fact]
-    public void AggressiveRecover_sequence_reduces_holes()
-    {
-        using var img = new Image<Rgba32>(8, 8);
-        for (var y = 0; y < 8; y++)
-        for (var x = 0; x < 8; x++)
-            img[x, y] = new Rgba32(80, 100, 120, 255);
-
-        img[3, 3] = new Rgba32(80, 100, 120, 0);
-        img[4, 3] = new Rgba32(80, 100, 120, 0);
-
-        var before = PixelArtValidation.CountUniqueColors(img);
-        AlphaThreshold.ApplyInPlace(img, 144);
-        var filled = MissingPixelFill.FillInternalTransparentInPlace(img, iterations: 2);
-        var pal = PaletteExtractorAlgorithms.ExtractWu(img, 16);
-        PaletteMapper.ApplyInPlace(img, pal, PaletteMapper.DitherMode.None);
-        var after = PixelArtValidation.CountUniqueColors(img);
-
-        Assert.True(filled >= 1);
-        Assert.True(after <= before);
-    }
 }

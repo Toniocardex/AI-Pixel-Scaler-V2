@@ -59,15 +59,15 @@ La shell desktop sta migrando in modo progressivo verso tre aree operative:
 
 `MainWindow` resta per ora la shell di compatibilita': gestisce toolbar, workspace condiviso, stato documento e routing tra Start Page e Studio attivo. La logica applicativa viene estratta gradualmente in controller dedicati sotto `AiPixelScaler.Desktop/Controllers`.
 
-`SpriteStudioView` e' la prima view Studio introdotta: espone import, cleanup, ROI, slicing, floating paste, quantize, resize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni. Il blocco ROI nella view Sprite sincronizza lo stato della selezione corrente e richiama select all, clear, export ROI, crop e remove tramite il `SelectionController` gia' estratto. Il blocco Slicing sincronizza crop manuale, righe/colonne griglia, celle rilevate, export frame e stato atlas pulito con il backplane legacy e il `SlicingController`. Dopo la verifica end-to-end, i tab legacy `Slice` e `Selezione` sono stati rimossi e il loro stato e' gestito da `SpriteStudioView` e campi interni della shell. Il blocco Cleanup/Filtri espone preset, Alpha Clean, Edge Refinement, Denoise e Quantize nella view Sprite; prima dell'esecuzione copia i valori sui controlli legacy e riusa la pipeline esistente. Il blocco trasformazioni/export espone resize nearest, mirror H/V, export PNG e JSON.
+`SpriteStudioView` e' la prima view Studio introdotta: espone import, cleanup, ROI, slicing, floating paste, quantize, resize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni. Il blocco ROI nella view Sprite sincronizza lo stato della selezione corrente e richiama select all, clear, export ROI, crop e remove tramite il `SelectionController` gia' estratto. Il blocco Slicing sincronizza crop manuale, righe/colonne griglia, celle rilevate, export frame e stato atlas pulito con il backplane legacy e il `SlicingController`. Dopo la verifica end-to-end, i tab legacy `Slice` e `Selezione` sono stati rimossi e il loro stato e' gestito da `SpriteStudioView` e campi interni della shell. Il blocco Cleanup/Filtri espone preset, Rimozione sfondo, Edge Refinement, Denoise e Quantize nella view Sprite; prima dell'esecuzione copia i valori sui controlli legacy e riusa la pipeline esistente. Il blocco trasformazioni/export espone resize nearest, mirror H/V, export PNG e JSON.
 
 ### 4.2 Filtri Sprite Studio
 
 Il pannello di pulizia Sprite distingue i filtri reali dai preset:
 
-- **Preset:** `Default`, `Sicuro`, `Aggressivo + Recupero` sono ricette che impostano valori iniziali modificabili.
-- **One-click cleanup:** esegue i filtri abilitati con i valori visibili nella UI.
-- **Alpha Clean:** raggruppa chroma key, rimozione sfondo collegato al bordo e alpha threshold.
+- **Preset:** `Default`, `Sicuro`, `Aggressivo` sono ricette che impostano valori iniziali modificabili.
+- **One-click cleanup:** esegue pulizia rapida senza rimozione sfondo bordo automatica.
+- **Rimozione sfondo:** usa `BackgroundIsolation` come unico filtro dedicato: flood fill dal bordo, tolleranza colore, soglia bordi e alpha threshold opzionale.
 - **Edge Refinement:** raggruppa defringe e outline.
 - **Denoise:** raggruppa median, isole minime e denoise a maggioranza 3x3.
 - **Quantize:** filtro autonomo con colori massimi e metodo (`Wu`, `Octree`); non viene attivato automaticamente dai preset.

@@ -11,10 +11,10 @@ public static class PixelArtProcessor
     public enum ExportKind { RgbaPng, IndexedPng8 }
 
     public sealed record Options(
-        bool NormalizeChroma = true,
-        bool ChromaSnapRgb = false,
-        Rgba32 ChromaColor = default,
-        double ChromaTolerance = 0,
+        bool NormalizeBackground = true,
+        bool BackgroundSnapRgb = false,
+        Rgba32 BackgroundColor = default,
+        double BackgroundTolerance = 0,
         bool QuantizePalette = true,
         int MaxColors = 32,
         QuantizerKind Quantizer = QuantizerKind.Wu,
@@ -29,10 +29,10 @@ public static class PixelArtProcessor
     public static Result ProcessImageInPlace(Image<Rgba32> image, Options options)
     {
         var report = PixelArtPipeline.ApplyInPlace(image, new PixelArtPipeline.Options(
-            EnableChroma: options.NormalizeChroma,
-            ChromaSnapRgb: options.ChromaSnapRgb,
-            ChromaColor: options.ChromaColor,
-            ChromaTolerance: options.ChromaTolerance,
+            EnableBackgroundIsolation: options.NormalizeBackground,
+            BackgroundSnapRgb: options.BackgroundSnapRgb,
+            BackgroundColor: options.BackgroundColor,
+            BackgroundTolerance: options.BackgroundTolerance,
             EnableQuantize: options.QuantizePalette,
             MaxColors: options.MaxColors,
             Quantizer: options.Quantizer));

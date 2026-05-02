@@ -4,7 +4,7 @@ Stato: audit approvato come guida di refactor; implementazione progressiva in co
 
 Regola: nessuna rimozione e' stata applicata. Le decisioni `remove` o `merge` sono solo candidate e richiedono conferma.
 
-Nota implementativa corrente: Start Page e routing shell sono stati introdotti. `SpriteStudioView` ora copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. I tab legacy `Sprite`, `Slice` e `Selezione` sono stati rimossi; lo stato pipeline Sprite non dipende piu' da controlli XAML legacy. `Stilizza` resta nel perimetro Tileset.
+Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. I tab legacy `Sprite`, `Slice` e `Selezione` sono stati rimossi; lo stato pipeline Sprite non dipende piu' da controlli XAML legacy. Tre gap post-audit sono stati risolti: `DefringeOpaque` ora round-trippa da UI a runtime; `BtnGoStilizza`/`BtnGoTemplate` ora chiamano `ActivateStudio(StudioKind.Tileset)`; `ApplyQuantize` usa `RunSpriteQuantize()` standalone invece della pipeline completa. **Prossimo studio: Tileset Studio.**
 
 | Funzione | UI attuale | Handler / modulo | Dipendenze principali | Studio destinazione | Decisione proposta | Motivazione |
 |---|---|---|---|---|---|---|
@@ -22,14 +22,13 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 | Workflow rapido | Sprite tab | `RunWorkspaceGuideActionAsync`, `AdvanceWorkflowStepAsync` | workflow state, document, cells | Sprite | keep | Guida il flusso sprite base. |
 | Quick process | Pipeline panel | `RunQuickProcess` / `PipelineExecutionService` | `PipelineViewModel`, `_cleanApplied` | Sprite | keep | Pulizia sprite base. |
 | Preset default/sicuro/aggressivo | Pipeline panel | `ApplySafePresetToControls`, `ApplyAggressivePresetToControls`, futura azione default | `PipelineViewModel` | Sprite | keep + redefine | I preset non sono filtri: diventano ricette che impostano valori ideali sui filtri visibili e poi lasciano l'utente in stato `Personalizzato` se modifica i parametri. |
-| Pipeline avanzata | Pipeline panel | `RunPixelPipeline` | alpha clean, edge refinement, denoise, quantize opzionale, outline | Sprite | keep + merge | Deve diventare azione batch sui filtri visibili, non modulo parallelo. |
-| AI cleanup | Pipeline panel | `RunAiCleanupWizard` | edge, alpha, defringe, denoise, palette opzionale | Sprite | keep + merge | Resta one-click cleanup, ma orchestra filtri visibili; non deve duplicare la UI dei filtri. |
-| Alpha Clean | Pipeline panel | `RunQuickProcess`, `RunEdgeBackground`, alpha/chroma controls | chroma key, edge background, alpha threshold | Sprite | keep + merge | Accorpa le funzioni ripetute di rimozione sfondo/alpha in un solo gruppo. |
+| Pipeline avanzata | Pipeline panel | `RunPixelPipeline` | rimozione sfondo, edge refinement, denoise, quantize opzionale, outline | Sprite | keep + merge | Deve diventare azione batch sui filtri visibili, non modulo parallelo. |
+| AI cleanup | Pipeline panel | `RunAiCleanupWizard` | alpha, defringe, denoise, palette opzionale | Sprite | keep + merge | Resta one-click cleanup, ma usa `BackgroundIsolation` come unico filtro dedicato di rimozione sfondo. |
+| Rimozione sfondo | Sprite Studio cleanup | `RunBackgroundIsolation` | colore sfondo, tolleranza, soglia bordi | Sprite | keep | Unico filtro di rimozione sfondo: flood fill dal bordo, non tocca aree interne non collegate. |
 | Defringe | Pipeline panel | `RunDefringe` | alpha/semi-transparent pixels | Sprite | keep | Refinement contorni. |
 | Median filter | Pipeline panel | `RunMedianFilter` | document transform | Sprite | keep | Pulizia rumore. |
-| Edge background remove | Pipeline panel | `RunEdgeBackground` | key color/tolerance | Sprite | keep | Isolamento sfondo/contorni. |
 | Denoise islands | Pipeline panel | `RunDenoise` | island threshold | Sprite | keep | Rimozione pixel isolati. |
-| Quantize / Riduci palette | Pipeline/Stilizza tab | `RunPaletteReduce`, quantize controls, palette presets | max colors, method, dither, palette preset | Sprite | keep + move standalone | Deve uscire dalla pulizia immagine e diventare filtro autonomo `Quantize`, con controllo fine dei parametri. |
+| Quantize / Riduci palette | SpriteStudioView | `RunSpriteQuantize` (standalone), `RunPaletteReduce` (Tileset) | max colors, method — da `_pipelineFormState` | Sprite | **done** | `RunSpriteQuantize` legge `MaxColors`/`QuantizerIndex` da stato e chiama direttamente `PaletteExtractorAlgorithms` + `PaletteMapper`; nessun dither in Sprite. `RunPaletteReduce` resta per Tileset con dither e palette preset. |
 | Resize nearest | Pipeline panel | `RunNearestResize` | target W/H | Sprite | keep | Pixel scaling semplice. |
 | Crop manuale immediato | Slice tab | `ChkSpriteCrop`, `OnEditorImageSelectionCompleted` | editor selection, `AtlasCropper` | Sprite | keep | Diverso dalla ROI non distruttiva; va etichettato chiaramente. |
 | Dividi a griglia | Slice tab | `SlicingController.RunGridSlice` | rows/cols, `_cells` | Sprite | keep | Slicing manuale sprite sheet. |
@@ -69,7 +68,7 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 
 | Candidate | Proposta | Motivo |
 |---|---|---|
-| Cleanup image filters ripetuti | merge in `Alpha Clean`, `Edge Refinement`, `Denoise` | Chroma/edge/alpha, defringe/outline e median/island/majority sono oggi dispersi tra quick workflow, pipeline e wizard. |
+| Cleanup image filters ripetuti | merge in `Rimozione sfondo`, `Edge Refinement`, `Denoise` | BackgroundIsolation/alpha, defringe/outline e median/island/majority erano dispersi tra quick workflow, pipeline e wizard. |
 | Quantize dentro cleanup | move standalone filter | La quantizzazione richiede controllo separato: colori, metodo, dither e palette preset non devono sembrare parte obbligatoria della pulizia. |
 | Preset pulizia | keep as recipes | I preset restano utili se impostano valori sui filtri visibili; non devono duplicare funzioni o nascondere passaggi. |
 | Quick export PNG/JSON + Export tab PNG/JSON | merge UI, keep handler unico | Stesso handler e stesso output, evitare due moduli visuali separati. |
@@ -79,7 +78,7 @@ Nota implementativa corrente: Start Page e routing shell sono stati introdotti. 
 | Sprite Studio view + tab legacy Sprite/Slice/Stilizza/Export/Selezione | Sprite closed | `SpriteStudioView` e' l'ingresso operativo Sprite. I tab legacy `Sprite`, `Slice` e `Selezione` sono rimossi; `Stilizza` e funzioni tile restano da migrare in Tileset Studio. |
 | ROI Sprite Studio + tab Selezione legacy | migrated + legacy removed | Il pannello Sprite mostra e controlla la ROI completa; il tab legacy `Selezione` e i suoi controlli XAML/code-behind sono stati rimossi. |
 | Slicing Sprite Studio + tab Slice legacy | migrated + legacy removed | Il pannello Sprite mostra e controlla crop manuale, rileva sprite, griglia, frame list, export frame e atlas pulito; il tab legacy `Slice` e i suoi controlli XAML/code-behind sono stati rimossi. |
-| Cleanup Sprite Studio + pipeline legacy | migrated + legacy removed | Il pannello Sprite mostra e controlla preset, Alpha Clean, Edge Refinement, Denoise e Quantize; lo stato pipeline e' in memoria, non in controlli XAML legacy. |
+| Cleanup Sprite Studio + pipeline legacy | migrated + legacy removed | Il pannello Sprite mostra e controlla preset, Rimozione sfondo, Edge Refinement, Denoise e Quantize; lo stato pipeline e' in memoria, non in controlli XAML legacy. |
 | Trasformazioni/export Sprite + tab legacy Stilizza/Export | Sprite closed | Il pannello Sprite espone resize nearest, mirror H/V, export PNG e JSON. `Stilizza` passa a Tileset Studio; export ZIP/Tiled restano rispettivamente Animation/Tileset. |
 | Video Frame Extractor | roadmap Animation Studio | Nuova funzione, non duplicato di import frame: estrae PNG da video e poi li consegna al flusso frame esistente. |
 
@@ -100,7 +99,7 @@ Questi default sono il punto di partenza ideale. I preset modificano questi valo
 
 | Filtro | Default | Note UI |
 |---|---|---|
-| Alpha Clean | Chroma key off, Edge background tolerance `8`, Alpha threshold `128` | Gruppo unico per rimozione sfondo, chroma e alpha. |
+| Rimozione sfondo | Background color `#00FF00`, tolerance `10`, edge threshold `48`, Alpha threshold `128` | BackgroundIsolation e alpha threshold; nessun secondo modulo di rimozione sfondo. |
 | Edge Refinement | Defringe opaque threshold `250`, Outline off, Outline color `#000000` | Contiene defringe e contorno 1px. |
 | Denoise | Median manual/off, Island min size `2`, Majority denoise off | Contiene median, island denoise e majority 3x3. |
 | Quantize | Max colors `16`, Method `Wu`, Dither off, Palette preset `Auto` | Filtro autonomo con apply dedicato. |
@@ -112,7 +111,7 @@ Questi default sono il punto di partenza ideale. I preset modificano questi valo
 |---|---|
 | Default | Ripristina i valori ideali sopra. |
 | Sicuro | Pulizia leggera, quantize disattivato, denoise conservativo. |
-| Aggressivo + Recupero | Pulizia forte, denoise piu' marcato, quantize opzionale ma non obbligatorio. |
+| Aggressivo | Pulizia forte, denoise piu' marcato, quantize opzionale ma non obbligatorio. |
 | One-click cleanup | Esegue i filtri abilitati con i valori correnti; non introduce parametri nascosti. |
 
 ## Nessuna rimozione approvata

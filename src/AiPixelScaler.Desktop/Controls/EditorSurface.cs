@@ -160,11 +160,27 @@ public class EditorSurface : Control
 
     // ─── Static brushes ───────────────────────────────────────────────────────
 
-    private static readonly SolidColorBrush CheckerBrushA = new(Avalonia.Media.Color.FromArgb(0xff, 0x2a, 0x2a, 0x2e));
-    private static readonly SolidColorBrush CheckerBrushB = new(Avalonia.Media.Color.FromArgb(0xff, 0x1e, 0x1e, 0x22));
-    private static readonly SolidColorBrush InfoBgBrush   = new(Avalonia.Media.Color.FromArgb(190, 8, 8, 18));
-    private static readonly SolidColorBrush InfoFgBrush   = new(Avalonia.Media.Color.FromArgb(255, 255, 255, 255));
-    private static readonly SolidColorBrush EraserBrush   = new(Avalonia.Media.Color.FromArgb(50, 255, 80, 80));
+    private static readonly SolidColorBrush CheckerBrushA       = new(Avalonia.Media.Color.FromArgb(0xff, 0x2a, 0x2a, 0x2e));
+    private static readonly SolidColorBrush CheckerBrushB       = new(Avalonia.Media.Color.FromArgb(0xff, 0x1e, 0x1e, 0x22));
+    private static readonly SolidColorBrush InfoBgBrush         = new(Avalonia.Media.Color.FromArgb(190, 8, 8, 18));
+    private static readonly SolidColorBrush InfoFgBrush         = new(Avalonia.Media.Color.FromArgb(255, 255, 255, 255));
+    private static readonly SolidColorBrush EraserBrush         = new(Avalonia.Media.Color.FromArgb(50, 255, 80, 80));
+    private static readonly SolidColorBrush LightGridBrush      = new(Avalonia.Media.Color.FromArgb(60,  255, 255, 255));
+    private static readonly SolidColorBrush SliceGridBrush      = new(Avalonia.Media.Color.FromArgb(220, 255, 180, 0));
+    private static readonly SolidColorBrush AlignMajorBrush     = new(Avalonia.Media.Color.FromArgb(210, 140, 200, 255));
+    private static readonly SolidColorBrush AlignGutterBrush    = new(Avalonia.Media.Color.FromArgb(160, 255, 140, 200));
+    private static readonly SolidColorBrush FrameUnselBrush     = new(Avalonia.Media.Color.FromArgb(180, 90,  200, 255));
+    private static readonly SolidColorBrush FrameSelBrush       = new(Avalonia.Media.Color.FromArgb(255, 255, 200, 0));
+    private static readonly SolidColorBrush FrameGuideBrush     = new(Avalonia.Media.Color.FromArgb(140, 255, 200, 0));
+    private static readonly SolidColorBrush FrameBaselineBrush  = new(Avalonia.Media.Color.FromArgb(180, 0,   220, 140));
+    private static readonly SolidColorBrush SelBrush            = new(Avalonia.Media.Color.FromArgb(255, 80,  220, 255));
+    private static readonly SolidColorBrush SelCommBrush        = new(Avalonia.Media.Color.FromArgb(210, 80,  220, 255));
+    private static readonly SolidColorBrush SelFillBrush        = new(Avalonia.Media.Color.FromArgb(22,  80,  200, 255));
+    private static readonly SolidColorBrush SnapDotBrush        = new(Avalonia.Media.Color.FromArgb(220, 255, 165, 0));
+    private static readonly SolidColorBrush SnapGuideBrush      = new(Avalonia.Media.Color.FromArgb(110, 255, 165, 0));
+    private static readonly SolidColorBrush TilePreviewBrush    = new(Avalonia.Media.Color.FromArgb(180, 255, 200, 0));
+    private static readonly SolidColorBrush FloatingBrush       = new(Avalonia.Media.Color.FromArgb(255, 255, 220, 80));
+    private static readonly SolidColorBrush EraserOutlineBrush  = new(Avalonia.Media.Color.FromArgb(220, 255, 80,  80));
 
     private static readonly Avalonia.Media.Color[] CellPalette =
     [
@@ -176,7 +192,30 @@ public class EditorSurface : Control
         Avalonia.Media.Color.FromArgb(180, 255, 130, 40),
     ];
 
+    // Pre-built fill/stroke brushes per palette slot — avoids per-cell allocation in DrawCellOverlay
+    private static readonly SolidColorBrush[] CellFillBrushes =
+        CellPalette.Select(c => new SolidColorBrush(Avalonia.Media.Color.FromArgb(30, c.R, c.G, c.B))).ToArray();
+    private static readonly SolidColorBrush[] CellStrokeBrushes =
+        CellPalette.Select(c => new SolidColorBrush(c)).ToArray();
+
     private List<SpriteCell> _spriteCells = [];
+
+    // ─── Zoom-cached pens (rebuilt only when zoom changes) ────────────────────
+    private double _cachedPenZoom = double.NaN;
+    private Pen _lightGridPen     = null!;
+    private Pen _sliceGridPen     = null!;
+    private Pen _alignMajorPen    = null!;
+    private Pen _alignGutterPen   = null!;
+    private Pen _frameUnselPen    = null!;
+    private Pen _frameSelPen      = null!;
+    private Pen _frameGuidePen    = null!;
+    private Pen _frameBasePen     = null!;
+    private Pen _selDragPen       = null!;
+    private Pen _selCommPen       = null!;
+    private Pen _eraserOutPen     = null!;
+    private Pen _tilePreviewPen   = null!;
+    private Pen _floatingPen      = null!;
+    private Pen _selSnapGuidePen  = null!;
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
@@ -186,10 +225,18 @@ public class EditorSurface : Control
         Focusable = true;
     }
 
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        foreach (var f in _workbenchRenderFrames) f.Dispose();
+        _workbenchRenderFrames = [];
+        _frameCells = [];
+    }
+
     public List<SpriteCell> SpriteCells
     {
         get => _spriteCells;
-        set { _spriteCells = value ?? []; InvalidateVisual(); }
+        set { _spriteCells = value ?? []; InvalidateSnapLineCache(); InvalidateVisual(); }
     }
 
     public Bitmap? Bitmap
@@ -310,13 +357,13 @@ public class EditorSurface : Control
         get => GetValue(IsEraserModeProperty);
         set
         {
+            if (IsEraserMode == value) return;
             SetValue(IsEraserModeProperty, value);
             Cursor = value ? new Cursor(StandardCursorType.Cross) : null;
-            InvalidateVisual();
         }
     }
 
-    /// <summary>Raggio del pennello gomma in pixel-immagine.</summary>
+    /// <summary>Dimensione del quadrato gomma in pixel-immagine.</summary>
     public int EraserRadius
     {
         get => GetValue(EraserRadiusProperty);
@@ -336,9 +383,9 @@ public class EditorSurface : Control
         get => GetValue(IsFrameEditModeProperty);
         set
         {
-            SetValue(IsFrameEditModeProperty, value);
+            if (IsFrameEditMode == value) return;
             if (!value) { _selectedFrameIndex = -1; _frameDragging = false; }
-            InvalidateVisual();
+            SetValue(IsFrameEditModeProperty, value);
         }
     }
 
@@ -470,6 +517,29 @@ public class EditorSurface : Control
         return true;
     }
 
+    /// <summary>Adatta l'immagine alla viewport lasciando un margine visivo in pixel schermo.</summary>
+    public bool FitImageInViewport(double screenPadding = 48)
+    {
+        var bmp = Bitmap;
+        if (bmp is null || bmp.PixelSize.Width <= 0 || bmp.PixelSize.Height <= 0) return false;
+        if (Bounds.Width <= 0 || Bounds.Height <= 0) return false;
+
+        var maxPadding = Math.Min(Bounds.Width, Bounds.Height) * 0.45;
+        var padding = Math.Clamp(screenPadding, 0, maxPadding);
+        var availableW = Math.Max(1, Bounds.Width - padding * 2);
+        var availableH = Math.Max(1, Bounds.Height - padding * 2);
+        var zoom = Math.Clamp(
+            Math.Min(availableW / bmp.PixelSize.Width, availableH / bmp.PixelSize.Height),
+            0.05,
+            64.0);
+
+        Zoom = zoom;
+        PanX = (Bounds.Width - bmp.PixelSize.Width * zoom) * 0.5;
+        PanY = (Bounds.Height - bmp.PixelSize.Height * zoom) * 0.5;
+        InvalidateVisual();
+        return true;
+    }
+
     /// <summary>Imposta lo zoom verso un punto schermo (come la rotellina), clamp 0.05–64.</summary>
     public void SetZoomTowardScreenPoint(double newZoom, double screenX, double screenY)
     {
@@ -572,6 +642,19 @@ public class EditorSurface : Control
         }
     }
 
+    public void UpdateBitmapRegion(Image<Rgba32> image, int xMin, int yMin, int xMax, int yMax)
+    {
+        if (Bitmap is WriteableBitmap wb)
+        {
+            Rgba32BitmapBridge.UpdateRect(wb, image, xMin, yMin, xMax, yMax);
+            InvalidateVisual();
+        }
+        else
+        {
+            SetSourceImage(image);
+        }
+    }
+
     public static (double wx, double wy) ScreenToImageFloat(Avalonia.Point screen, double panX, double panY, double zoom)
     {
         var z = Math.Max(zoom, 0.0001);
@@ -591,26 +674,82 @@ public class EditorSurface : Control
         return px >= 0 && py >= 0 && px < bmp.PixelSize.Width && py < bmp.PixelSize.Height;
     }
 
+    // ─── Snap-line cache ──────────────────────────────────────────────────────
+
+    private List<SpriteCell>? _snapLineCacheSource;
+    private List<int> _cachedXSnapLines = [];
+    private List<int> _cachedYSnapLines = [];
+
+    private void InvalidateSnapLineCache() { _snapLineCacheSource = null; }
+
+    private void EnsureSnapLineCache()
+    {
+        if (ReferenceEquals(_snapLineCacheSource, _spriteCells)) return;
+        _snapLineCacheSource = _spriteCells;
+        if (_spriteCells.Count == 0) { _cachedXSnapLines = []; _cachedYSnapLines = []; return; }
+        var xs = new HashSet<int>();
+        var ys = new HashSet<int>();
+        foreach (var c in _spriteCells)
+        {
+            xs.Add(c.BoundsInAtlas.MinX); xs.Add(c.BoundsInAtlas.MaxX);
+            ys.Add(c.BoundsInAtlas.MinY); ys.Add(c.BoundsInAtlas.MaxY);
+        }
+        _cachedXSnapLines = [.. xs.OrderBy(v => v)];
+        _cachedYSnapLines = [.. ys.OrderBy(v => v)];
+    }
+
+    // ─── Zoom-dependent pen cache ─────────────────────────────────────────────
+
+    private void RefreshPens(double zoom)
+    {
+        if (Math.Abs(zoom - _cachedPenZoom) < 1e-9) return;
+        _cachedPenZoom = zoom;
+        var t  = 1.0  / Math.Max(zoom, 0.0001);
+        var t5 = 1.5  * t;
+        _lightGridPen    = new Pen(LightGridBrush,     t);
+        _sliceGridPen    = new Pen(SliceGridBrush,     t5);
+        _alignMajorPen   = new Pen(AlignMajorBrush,   1.25 * t);
+        _alignGutterPen  = new Pen(AlignGutterBrush,  1.25 * t * 0.85)
+            { DashStyle = new DashStyle([4.0, 3.0], 0) };
+        _frameUnselPen   = new Pen(FrameUnselBrush,   t5);
+        _frameSelPen     = new Pen(FrameSelBrush,     t5 * 1.6);
+        _frameGuidePen   = new Pen(FrameGuideBrush,   t5 * 0.8)
+            { DashStyle = new DashStyle([3.0, 2.0], 0) };
+        _frameBasePen    = new Pen(FrameBaselineBrush, t5 * 0.8)
+            { DashStyle = new DashStyle([2.0, 2.0], 0) };
+        _selDragPen      = new Pen(SelBrush,           t5)
+            { LineCap = PenLineCap.Square, DashStyle = new DashStyle([4.0, 3.0], 0) };
+        _selCommPen      = new Pen(SelCommBrush,       t5)
+            { LineCap = PenLineCap.Square, DashStyle = new DashStyle([4.0, 3.0], 0) };
+        _eraserOutPen    = new Pen(EraserOutlineBrush, t5)
+            { LineCap = PenLineCap.Square, LineJoin = PenLineJoin.Miter };
+        _tilePreviewPen  = new Pen(TilePreviewBrush,  t5);
+        _floatingPen     = new Pen(FloatingBrush,     1.2 * t)
+            { DashStyle = new DashStyle([3.0, 3.0], 0) };
+        _selSnapGuidePen = new Pen(SnapGuideBrush,    0.8 * t);
+    }
+
     // ─── Property invalidation ────────────────────────────────────────────────
+
+    private static readonly HashSet<AvaloniaProperty> s_visualProps =
+    [
+        ZoomProperty, PanXProperty, PanYProperty, BitmapProperty,
+        ShowGridProperty, WorldGridSizeProperty,
+        SliceGridRowsProperty, SliceGridColsProperty,
+        SnapToGridProperty, SnapGridSizeProperty,
+        ShowAlignGridProperty,
+        AlignGridOffsetXProperty, AlignGridOffsetYProperty,
+        AlignGridCellWidthProperty, AlignGridCellHeightProperty,
+        AlignGridSpacingXProperty, AlignGridSpacingYProperty,
+        IsEraserModeProperty, EraserRadiusProperty,
+        IsFrameEditModeProperty, FrameSnapRadiusProperty, FrameSnapEnabledProperty,
+        IsTilePreviewModeProperty, IsCellClickModeProperty,
+    ];
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ZoomProperty         || change.Property == PanXProperty
-         || change.Property == PanYProperty          || change.Property == BitmapProperty
-         || change.Property == ShowGridProperty      || change.Property == WorldGridSizeProperty
-         || change.Property == SliceGridRowsProperty
-         || change.Property == SliceGridColsProperty || change.Property == SnapToGridProperty
-         || change.Property == SnapGridSizeProperty  || change.Property == ShowAlignGridProperty
-         || change.Property == AlignGridOffsetXProperty || change.Property == AlignGridOffsetYProperty
-         || change.Property == AlignGridCellWidthProperty || change.Property == AlignGridCellHeightProperty
-         || change.Property == AlignGridSpacingXProperty || change.Property == AlignGridSpacingYProperty
-         || change.Property == IsEraserModeProperty
-         || change.Property == EraserRadiusProperty  || change.Property == IsFrameEditModeProperty
-         || change.Property == FrameSnapRadiusProperty || change.Property == FrameSnapEnabledProperty
-         || change.Property == IsTilePreviewModeProperty
-         || change.Property == IsCellClickModeProperty)
-            InvalidateVisual();
+        if (s_visualProps.Contains(change.Property)) InvalidateVisual();
     }
 
     // ─── Render ───────────────────────────────────────────────────────────────
@@ -626,12 +765,14 @@ public class EditorSurface : Control
         _viewport.PanX = PanX;
         _viewport.PanY = PanY;
 
+        RefreshPens(_viewport.Zoom);
+        EnsureSnapLineCache();
+
         DrawCheckerboard(context, w, h);
 
         var bmp = Bitmap;
         var inWorkbench = IsFrameEditMode && _workbenchRenderFrames.Count > 0;
 
-        // Determina le dimensioni del world: dal Bitmap, oppure (in workbench) dai cell bounds
         int worldW, worldH;
         if (inWorkbench)
         {
@@ -650,16 +791,14 @@ public class EditorSurface : Control
             worldH = bmp.PixelSize.Height;
         }
 
-        var m = Matrix.Identity;
-        m *= Matrix.CreateScale(_viewport.Zoom, _viewport.Zoom);
-        m *= Matrix.CreateTranslation(_viewport.PanX, _viewport.PanY);
+        var m = Matrix.CreateScale(_viewport.Zoom, _viewport.Zoom)
+              * Matrix.CreateTranslation(_viewport.PanX, _viewport.PanY);
 
         using (context.PushTransform(m))
         {
             if (inWorkbench)
             {
-                // RENDER DIRETTO dei frame con i loro offset correnti.
-                // Niente atlas compose, niente Avalonia bitmap conversion: 60 FPS fluidi sul drag.
+                // RENDER DIRETTO dei frame con i loro offset correnti — 60 FPS fluidi sul drag.
                 foreach (var f in _workbenchRenderFrames)
                 {
                     var dstX = f.Cell.MinX + f.Offset.X - f.Padding;
@@ -674,14 +813,10 @@ public class EditorSurface : Control
                 // Pattern 3×3 con il tile centrale a (0,0) e 8 cloni attorno
                 for (var ty = -1; ty <= 1; ty++)
                 for (var tx = -1; tx <= 1; tx++)
-                {
                     context.DrawImage(bmp,
                         new Rect(0, 0, worldW, worldH),
                         new Rect(tx * worldW, ty * worldH, worldW, worldH));
-                }
-                var hPen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(180, 255, 200, 0)),
-                                   1.5 / Math.Max(_viewport.Zoom, 0.0001));
-                context.DrawRectangle(hPen, new Rect(0, 0, worldW, worldH));
+                context.DrawRectangle(_tilePreviewPen, new Rect(0, 0, worldW, worldH));
             }
             else if (bmp is not null)
             {
@@ -690,29 +825,22 @@ public class EditorSurface : Control
 
             if (!inWorkbench && _floatingOverlayBitmap is not null && _floatingW > 0 && _floatingH > 0)
             {
-                using (context.PushRenderOptions(new RenderOptions
-                       { BitmapInterpolationMode = BitmapInterpolationMode.None }))
+                using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.None }))
                 {
                     var srcW = _floatingOverlayBitmap.PixelSize.Width;
                     var srcH = _floatingOverlayBitmap.PixelSize.Height;
-                    context.DrawImage(
-                        _floatingOverlayBitmap,
+                    context.DrawImage(_floatingOverlayBitmap,
                         new Rect(0, 0, srcW, srcH),
                         new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
                 }
-
-                var fp = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 255, 220, 80)), 1.2 / Math.Max(_viewport.Zoom, 0.0001))
-                {
-                    DashStyle = new DashStyle([3.0, 3.0], 0)
-                };
-                context.DrawRectangle(fp, new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
+                context.DrawRectangle(_floatingPen, new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
             }
         }
 
         if (ShowGrid)
         {
             using (context.PushTransform(m))
-                DrawLightGrid(context, worldW, worldH, WorldGridSize, _viewport.Zoom);
+                DrawLightGrid(context, worldW, worldH, WorldGridSize, _lightGridPen);
         }
 
         if (SnapToGrid && SnapGridSize > 0)
@@ -724,7 +852,7 @@ public class EditorSurface : Control
         if (SliceGridRows > 0 && SliceGridCols > 0)
         {
             using (context.PushTransform(m))
-                DrawSliceGrid(context, worldW, worldH, SliceGridRows, SliceGridCols, _viewport.Zoom);
+                DrawSliceGrid(context, worldW, worldH, SliceGridRows, SliceGridCols, _sliceGridPen);
         }
 
         if (ShowAlignGrid && AlignGridCellWidth >= 1 && AlignGridCellHeight >= 1)
@@ -734,7 +862,7 @@ public class EditorSurface : Control
                     AlignGridOffsetX, AlignGridOffsetY,
                     AlignGridCellWidth, AlignGridCellHeight,
                     AlignGridSpacingX, AlignGridSpacingY,
-                    _viewport.Zoom);
+                    _alignMajorPen, _alignGutterPen);
         }
 
         if (_spriteCells.Count > 0 && SliceGridRows == 0 && SliceGridCols == 0)
@@ -749,42 +877,29 @@ public class EditorSurface : Control
             var box = BuildSelectionBoxInWorld(_selStartScreen, _selCurScreen, worldW, worldH);
             if (box is { IsEmpty: false })
             {
-                var t = 1.5 / Math.Max(_viewport.Zoom, 0.0001);
-                var selPen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 80, 220, 255)), t)
-                {
-                    LineCap = PenLineCap.Square,
-                    DashStyle = new DashStyle([4.0, 3.0], 0)
-                };
                 using (context.PushTransform(m))
                 {
-                    context.DrawRectangle(selPen, new Rect(box.MinX, box.MinY, box.Width, box.Height));
+                    context.DrawRectangle(_selDragPen, new Rect(box.MinX, box.MinY, box.Width, box.Height));
 
                     if (SnapToGrid && SnapGridSize > 0)
                     {
                         var (cwx, cwy) = ScreenToImageFloat(_selCurScreen, PanX, PanY, Zoom);
                         var worldThresh = SnapThreshold / Math.Max(_viewport.Zoom, 0.0001);
-                        var snappedX = SnapCoordToLines(cwx, BuildXSnapLines(), SnapGridSize, worldThresh);
-                        var snappedY = SnapCoordToLines(cwy, BuildYSnapLines(), SnapGridSize, worldThresh);
+                        var snappedX = SnapCoordToLines(cwx, _cachedXSnapLines, SnapGridSize, worldThresh);
+                        var snappedY = SnapCoordToLines(cwy, _cachedYSnapLines, SnapGridSize, worldThresh);
                         var dotR = 4.0 / Math.Max(_viewport.Zoom, 0.0001);
-                        context.FillRectangle(
-                            new SolidColorBrush(Avalonia.Media.Color.FromArgb(220, 255, 165, 0)),
+                        context.FillRectangle(SnapDotBrush,
                             new Rect(snappedX - dotR, snappedY - dotR, dotR * 2, dotR * 2));
 
-                        // Guide snap ai bordi delle celle (solo se celle definite)
                         if (_spriteCells.Count > 0)
                         {
-                            var snpPen = new Pen(
-                                new SolidColorBrush(Avalonia.Media.Color.FromArgb(110, 255, 165, 0)),
-                                0.8 / Math.Max(_viewport.Zoom, 0.0001));
-                            context.DrawLine(snpPen, new Avalonia.Point(box.MinX, 0), new Avalonia.Point(box.MinX, worldH));
-                            context.DrawLine(snpPen, new Avalonia.Point(box.MaxX, 0), new Avalonia.Point(box.MaxX, worldH));
-                            context.DrawLine(snpPen, new Avalonia.Point(0, box.MinY), new Avalonia.Point(worldW, box.MinY));
-                            context.DrawLine(snpPen, new Avalonia.Point(0, box.MaxY), new Avalonia.Point(worldW, box.MaxY));
+                            context.DrawLine(_selSnapGuidePen, new Avalonia.Point(box.MinX, 0), new Avalonia.Point(box.MinX, worldH));
+                            context.DrawLine(_selSnapGuidePen, new Avalonia.Point(box.MaxX, 0), new Avalonia.Point(box.MaxX, worldH));
+                            context.DrawLine(_selSnapGuidePen, new Avalonia.Point(0, box.MinY), new Avalonia.Point(worldW, box.MinY));
+                            context.DrawLine(_selSnapGuidePen, new Avalonia.Point(0, box.MaxY), new Avalonia.Point(worldW, box.MaxY));
                         }
                     }
                 }
-
-                // Info label dimensioni — in screen space (fuori dal transform)
                 DrawSelectionInfo(context, box.Width, box.Height, _selCurScreen, w, h);
             }
         }
@@ -792,25 +907,15 @@ public class EditorSurface : Control
         // ── Selezione committed (canvas-mode, persiste dopo il drag) ──────────
         if (IsSelectionMode && !_selDragging && _committedSelection is { IsEmpty: false } cs)
         {
-            var t = 1.5 / Math.Max(_viewport.Zoom, 0.0001);
-            var selPen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(210, 80, 220, 255)), t)
-            {
-                LineCap = PenLineCap.Square,
-                DashStyle = new DashStyle([4.0, 3.0], 0)
-            };
-            var fillBrush = new SolidColorBrush(Avalonia.Media.Color.FromArgb(22, 80, 200, 255));
             using (context.PushTransform(m))
             {
-                context.FillRectangle(fillBrush, new Rect(cs.MinX, cs.MinY, cs.Width, cs.Height));
-                context.DrawRectangle(selPen, new Rect(cs.MinX, cs.MinY, cs.Width, cs.Height));
+                context.FillRectangle(SelFillBrush, new Rect(cs.MinX, cs.MinY, cs.Width, cs.Height));
+                context.DrawRectangle(_selCommPen, new Rect(cs.MinX, cs.MinY, cs.Width, cs.Height));
 
-                // Maniglie agli angoli e ai lati (hit-test allineato agli stessi punti)
                 var hr = 3.5 / Math.Max(_viewport.Zoom, 0.0001);
-                var hb = new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 80, 220, 255));
                 foreach (var (hx, hy) in CommittedSelectionGripPoints(cs))
-                    context.FillRectangle(hb, new Rect(hx - hr, hy - hr, hr * 2, hr * 2));
+                    context.FillRectangle(SelBrush, new Rect(hx - hr, hy - hr, hr * 2, hr * 2));
             }
-            // Info label (in screen space)
             var infoScrPt = new Avalonia.Point(
                 cs.MaxX * _viewport.Zoom + _viewport.PanX,
                 cs.MaxY * _viewport.Zoom + _viewport.PanY + 4);
@@ -821,17 +926,22 @@ public class EditorSurface : Control
         if (IsFrameEditMode && _frameCells.Count > 0)
         {
             using (context.PushTransform(m))
-                DrawFrameWorkbench(context, _frameCells, _selectedFrameIndex, _viewport.Zoom);
+                DrawFrameWorkbench(context, _frameCells, _selectedFrameIndex,
+                    _frameUnselPen, _frameSelPen, _frameGuidePen, _frameBasePen);
         }
 
         // ── Cursore gomma ──────────────────────────────────────────────────────
         if (IsEraserMode && (IsPointerOver || _eraserDragging))
         {
-            var screenR = EraserRadius * Math.Max(_viewport.Zoom, 0.0001);
-            var eraserOutlinePen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(200, 255, 80, 80)), 1.5);
-            context.DrawEllipse(EraserBrush, eraserOutlinePen,
-                _eraserCurScreen,
-                screenR, screenR);
+            if (TryGetEraserBox(_eraserCurScreen, worldW, worldH, out var xMin, out var yMin, out var xMax, out var yMax))
+            {
+                using (context.PushTransform(m))
+                {
+                    var rect = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+                    context.FillRectangle(EraserBrush, rect);
+                    context.DrawRectangle(_eraserOutPen, rect);
+                }
+            }
         }
     }
 
@@ -889,120 +999,107 @@ public class EditorSurface : Control
 
         if (cur.Properties.IsMiddleButtonPressed)
         {
-            _midPanning = true;
-            _lastPointer = pos;
-            e.Pointer.Capture(this);
-            e.Handled = true;
-            return;
+            _midPanning = true; _lastPointer = pos;
+            e.Pointer.Capture(this); e.Handled = true; return;
         }
         if (!cur.Properties.IsLeftButtonPressed) return;
 
-        if (_floatingOverlayBitmap is not null
-            && !IsEraserMode
-            && !IsPipetteMode
-            && !IsSelectionMode
-            && !IsCellClickMode
-            && !(IsFrameEditMode && _frameCells.Count > 0)
-            && !IsTilePreviewMode)
-        {
-            var (fwx, fwy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
-            if (fwx >= _floatingX && fwy >= _floatingY
-                && fwx < _floatingX + _floatingW && fwy < _floatingY + _floatingH)
-            {
-                _floatingDragging = true;
-                _floatingGrabWx = fwx - _floatingX;
-                _floatingGrabWy = fwy - _floatingY;
-                e.Pointer.Capture(this);
-                e.Handled = true;
-                return;
-            }
-        }
+        if (TryBeginFloatingDrag(pos, e)) return;
+        if (IsEraserMode       && HandleEraserPress(pos, e))     return;
+        if (IsFrameEditMode    && HandleFrameEditPress(pos, e))   return;
+        if (IsCellClickMode    && HandleCellClickPress(pos, e))   return;
+        if (IsSelectionMode    && HandleSelectionPress(pos, e))   return;
+        if (IsPipetteMode)     { HandlePipettePress(pos, e); return; }
 
-        if (IsEraserMode)
-        {
-            _eraserDragging = true;
-            _eraserCurScreen = pos;
-            e.Pointer.Capture(this);
-            FireEraserStroke(pos);
-            e.Handled = true;
-            return;
-        }
-        if (IsFrameEditMode && _frameCells.Count > 0)
-        {
-            var (wx, wy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
-            var hit = -1;
-            for (var i = 0; i < _frameCells.Count; i++)
-            {
-                var c = _frameCells[i];
-                if (wx >= c.MinX && wy >= c.MinY && wx < c.MaxX && wy < c.MaxY) { hit = i; break; }
-            }
-            if (hit >= 0)
-            {
-                _selectedFrameIndex = hit;
-                FrameSelected?.Invoke(this, hit);
-                _frameDragging = true;
-                _frameDragStartScreen = pos;
-                e.Pointer.Capture(this);
-                InvalidateVisual();
-                e.Handled = true;
-                return;
-            }
-        }
-        if (IsCellClickMode && _spriteCells.Count > 0)
-        {
-            var (wx, wy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
-            for (var i = 0; i < _spriteCells.Count; i++)
-            {
-                var c = _spriteCells[i].BoundsInAtlas;
-                if (wx >= c.MinX && wy >= c.MinY && wx < c.MaxX && wy < c.MaxY)
-                {
-                    CellClicked?.Invoke(this, i);
-                    e.Handled = true;
-                    return;
-                }
-            }
-        }
-        if (IsSelectionMode)
-        {
-            var bmpSel = Bitmap;
-            if (bmpSel is { PixelSize.Width: > 0, PixelSize.Height: > 0 }
-                && !_selDragging
-                && _committedSelection is { IsEmpty: false } csHit)
-            {
-                var grip = HitTestCommittedSelectionGrip(pos, csHit);
-                if (grip != SelectionAdjustGrip.None)
-                {
-                    _selAdjustDragging = true;
-                    _selAdjustGrip = grip;
-                    _selAdjustBoxStart = csHit;
-                    var (wpx, wpy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
-                    var (spx, spy) = SnapWorldPoint(wpx, wpy);
-                    _selAdjustPointerWorldStart = new Avalonia.Point(spx, spy);
-                    e.Pointer.Capture(this);
-                    InvalidateVisual();
-                    e.Handled = true;
-                    return;
-                }
-            }
+        _panning = true; _lastPointer = pos;
+        e.Pointer.Capture(this);
+    }
 
-            _selDragging    = true;
-            _selStartScreen = pos;
-            _selCurScreen   = pos;
-            e.Pointer.Capture(this);
-            InvalidateVisual();
-            e.Handled = true;
-            return;
-        }
-        if (IsPipetteMode)
+    private bool TryBeginFloatingDrag(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        if (_floatingOverlayBitmap is null || IsEraserMode || IsPipetteMode
+            || IsSelectionMode || IsCellClickMode || IsTilePreviewMode
+            || (IsFrameEditMode && _frameCells.Count > 0)) return false;
+
+        var (fwx, fwy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+        if (fwx < _floatingX || fwy < _floatingY
+            || fwx >= _floatingX + _floatingW || fwy >= _floatingY + _floatingH) return false;
+
+        _floatingDragging = true;
+        _floatingGrabWx   = fwx - _floatingX;
+        _floatingGrabWy   = fwy - _floatingY;
+        e.Pointer.Capture(this); e.Handled = true;
+        return true;
+    }
+
+    private bool HandleEraserPress(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        _eraserDragging = true; _eraserCurScreen = pos;
+        e.Pointer.Capture(this); FireEraserStroke(pos); e.Handled = true;
+        return true;
+    }
+
+    private bool HandleFrameEditPress(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        if (_frameCells.Count == 0) return false;
+        var (wx, wy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+        for (var i = 0; i < _frameCells.Count; i++)
         {
-            _pipetteArmed    = true;
-            _pipetteDragCancel = false;
-            _pipettePress    = pos;
-            e.Pointer.Capture(this);
-            return;
+            var c = _frameCells[i];
+            if (wx >= c.MinX && wy >= c.MinY && wx < c.MaxX && wy < c.MaxY)
+            {
+                _selectedFrameIndex = i;
+                FrameSelected?.Invoke(this, i);
+                _frameDragging = true; _frameDragStartScreen = pos;
+                e.Pointer.Capture(this); InvalidateVisual(); e.Handled = true;
+                return true;
+            }
         }
-        _panning = true;
-        _lastPointer = pos;
+        return false;
+    }
+
+    private bool HandleCellClickPress(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        if (_spriteCells.Count == 0) return false;
+        var (wx, wy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+        for (var i = 0; i < _spriteCells.Count; i++)
+        {
+            var c = _spriteCells[i].BoundsInAtlas;
+            if (wx >= c.MinX && wy >= c.MinY && wx < c.MaxX && wy < c.MaxY)
+            {
+                CellClicked?.Invoke(this, i); e.Handled = true;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private bool HandleSelectionPress(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        var bmp = Bitmap;
+        if (bmp is { PixelSize.Width: > 0, PixelSize.Height: > 0 }
+            && !_selDragging
+            && _committedSelection is { IsEmpty: false } csHit)
+        {
+            var grip = HitTestCommittedSelectionGrip(pos, csHit);
+            if (grip != SelectionAdjustGrip.None)
+            {
+                _selAdjustDragging = true; _selAdjustGrip = grip; _selAdjustBoxStart = csHit;
+                var (wpx, wpy) = ScreenToImageFloat(pos, PanX, PanY, Zoom);
+                var (spx, spy) = SnapWorldPoint(wpx, wpy);
+                _selAdjustPointerWorldStart = new Avalonia.Point(spx, spy);
+                e.Pointer.Capture(this); InvalidateVisual(); e.Handled = true;
+                return true;
+            }
+        }
+        _selDragging = true; _selStartScreen = pos; _selCurScreen = pos;
+        e.Pointer.Capture(this); InvalidateVisual(); e.Handled = true;
+        return true;
+    }
+
+    private void HandlePipettePress(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        _pipetteArmed = true; _pipetteDragCancel = false; _pipettePress = pos;
         e.Pointer.Capture(this);
     }
 
@@ -1178,8 +1275,30 @@ public class EditorSurface : Control
                 return;
             _lastEraserX = ix;
             _lastEraserY = iy;
-            EraserStroke?.Invoke(this, new EraserStrokeEventArgs(ix, iy, EraserRadius));
+            if (TryGetEraserBox(screenPos, bmp.PixelSize.Width, bmp.PixelSize.Height, out var xMin, out var yMin, out _, out _))
+                EraserStroke?.Invoke(this, new EraserStrokeEventArgs(xMin, yMin, EraserRadius));
         }
+    }
+
+    private bool TryGetEraserBox(Avalonia.Point screenPos, int imageW, int imageH, out int xMin, out int yMin, out int xMax, out int yMax)
+    {
+        xMin = yMin = xMax = yMax = 0;
+        if (imageW <= 0 || imageH <= 0) return false;
+
+        var (wx, wy) = ScreenToImageFloat(screenPos, PanX, PanY, Zoom);
+        var cx = (int)Math.Floor(wx);
+        var cy = (int)Math.Floor(wy);
+        if (cx < 0 || cy < 0 || cx >= imageW || cy >= imageH) return false;
+
+        var size = Math.Max(1, EraserRadius);
+        var halfBefore = (size - 1) / 2;
+        var rawXMin = cx - halfBefore;
+        var rawYMin = cy - halfBefore;
+        xMin = Math.Clamp(rawXMin, 0, imageW);
+        yMin = Math.Clamp(rawYMin, 0, imageH);
+        xMax = Math.Clamp(rawXMin + size, 0, imageW);
+        yMax = Math.Clamp(rawYMin + size, 0, imageH);
+        return xMin < xMax && yMin < yMax;
     }
 
     private AxisAlignedBox BuildSelectionBoxInWorld(Avalonia.Point screenA, Avalonia.Point screenB, int imgW, int imgH)
@@ -1188,35 +1307,15 @@ public class EditorSurface : Control
         var (wx1, wy1) = ScreenToImageFloat(screenB, PanX, PanY, Zoom);
         if (SnapToGrid && SnapGridSize > 0)
         {
-            // Soglia di aggancio in world-pixel
             var worldThresh = SnapThreshold / Math.Max(Zoom, 0.0001);
-            var xLines = BuildXSnapLines();
-            var yLines = BuildYSnapLines();
-            wx0 = SnapCoordToLines(wx0, xLines, SnapGridSize, worldThresh);
-            wy0 = SnapCoordToLines(wy0, yLines, SnapGridSize, worldThresh);
-            wx1 = SnapCoordToLines(wx1, xLines, SnapGridSize, worldThresh);
-            wy1 = SnapCoordToLines(wy1, yLines, SnapGridSize, worldThresh);
+            wx0 = SnapCoordToLines(wx0, _cachedXSnapLines, SnapGridSize, worldThresh);
+            wy0 = SnapCoordToLines(wy0, _cachedYSnapLines, SnapGridSize, worldThresh);
+            wx1 = SnapCoordToLines(wx1, _cachedXSnapLines, SnapGridSize, worldThresh);
+            wy1 = SnapCoordToLines(wy1, _cachedYSnapLines, SnapGridSize, worldThresh);
         }
         return AxisAlignedBox.FromWorldCornersHalfOpen(wx0, wy0, wx1, wy1, imgW, imgH);
     }
 
-    /// <summary>Costruisce la lista di coordinate X di snap (bordi delle celle, se presenti).</summary>
-    private List<int> BuildXSnapLines()
-    {
-        if (_spriteCells.Count == 0) return [];
-        var set = new HashSet<int>();
-        foreach (var c in _spriteCells) { set.Add(c.BoundsInAtlas.MinX); set.Add(c.BoundsInAtlas.MaxX); }
-        return [.. set.OrderBy(x => x)];
-    }
-
-    /// <summary>Costruisce la lista di coordinate Y di snap (bordi delle celle, se presenti).</summary>
-    private List<int> BuildYSnapLines()
-    {
-        if (_spriteCells.Count == 0) return [];
-        var set = new HashSet<int>();
-        foreach (var c in _spriteCells) { set.Add(c.BoundsInAtlas.MinY); set.Add(c.BoundsInAtlas.MaxY); }
-        return [.. set.OrderBy(y => y)];
-    }
 
     /// <summary>
     /// Aggancia <paramref name="v"/> alla linea più vicina in <paramref name="lines"/>
@@ -1349,19 +1448,16 @@ public class EditorSurface : Control
         if (ScreenDistSq(screen, cs.MaxX, cs.MaxY) <= cornerHitSq) return SelectionAdjustGrip.Se;
         if (ScreenDistSq(screen, cs.MinX, cs.MaxY) <= cornerHitSq) return SelectionAdjustGrip.Sw;
 
-        var n0 = WorldToScreen(cs.MinX, cs.MinY);
-        var n1 = WorldToScreen(cs.MaxX, cs.MinY);
-        var s0 = WorldToScreen(cs.MinX, cs.MaxY);
-        var s1 = WorldToScreen(cs.MaxX, cs.MaxY);
-        var w0 = WorldToScreen(cs.MinX, cs.MinY);
-        var w1 = WorldToScreen(cs.MinX, cs.MaxY);
-        var e0 = WorldToScreen(cs.MaxX, cs.MinY);
-        var e1 = WorldToScreen(cs.MaxX, cs.MaxY);
+        // 4 corner points in screen space — reused for both edge segments
+        var tl = WorldToScreen(cs.MinX, cs.MinY);
+        var tr = WorldToScreen(cs.MaxX, cs.MinY);
+        var bl = WorldToScreen(cs.MinX, cs.MaxY);
+        var br = WorldToScreen(cs.MaxX, cs.MaxY);
 
-        if (PointSegmentDistSq(screen, n0, n1) <= edgeHitSq) return SelectionAdjustGrip.N;
-        if (PointSegmentDistSq(screen, s0, s1) <= edgeHitSq) return SelectionAdjustGrip.S;
-        if (PointSegmentDistSq(screen, w0, w1) <= edgeHitSq) return SelectionAdjustGrip.W;
-        if (PointSegmentDistSq(screen, e0, e1) <= edgeHitSq) return SelectionAdjustGrip.E;
+        if (PointSegmentDistSq(screen, tl, tr) <= edgeHitSq) return SelectionAdjustGrip.N;
+        if (PointSegmentDistSq(screen, bl, br) <= edgeHitSq) return SelectionAdjustGrip.S;
+        if (PointSegmentDistSq(screen, tl, bl) <= edgeHitSq) return SelectionAdjustGrip.W;
+        if (PointSegmentDistSq(screen, tr, br) <= edgeHitSq) return SelectionAdjustGrip.E;
 
         var (wx, wy) = ScreenToImageFloat(screen, PanX, PanY, Zoom);
         if (wx >= cs.MinX && wx < cs.MaxX && wy >= cs.MinY && wy < cs.MaxY)
@@ -1372,15 +1468,11 @@ public class EditorSurface : Control
 
     private (double sx, double sy) SnapWorldPoint(double wx, double wy)
     {
-        if (!SnapToGrid || SnapGridSize <= 0)
-            return (wx, wy);
-
+        if (!SnapToGrid || SnapGridSize <= 0) return (wx, wy);
+        EnsureSnapLineCache();
         var worldThresh = SnapThreshold / Math.Max(Zoom, 0.0001);
-        var xLines = BuildXSnapLines();
-        var yLines = BuildYSnapLines();
-        var sx = SnapCoordToLines(wx, xLines, SnapGridSize, worldThresh);
-        var sy = SnapCoordToLines(wy, yLines, SnapGridSize, worldThresh);
-        return (sx, sy);
+        return (SnapCoordToLines(wx, _cachedXSnapLines, SnapGridSize, worldThresh),
+                SnapCoordToLines(wy, _cachedYSnapLines, SnapGridSize, worldThresh));
     }
 
     // ─── Draw helpers ─────────────────────────────────────────────────────────
@@ -1390,73 +1482,47 @@ public class EditorSurface : Control
         var strokeT = 1.5 / Math.Max(zoom, 0.0001);
         for (var i = 0; i < cells.Count; i++)
         {
-            var c     = cells[i];
-            var color = CellPalette[i % CellPalette.Length];
-            ctx.FillRectangle(
-                new SolidColorBrush(Avalonia.Media.Color.FromArgb(30, color.R, color.G, color.B)),
-                new Rect(c.BoundsInAtlas.MinX, c.BoundsInAtlas.MinY, c.BoundsInAtlas.Width, c.BoundsInAtlas.Height));
-            ctx.DrawRectangle(
-                new Pen(new SolidColorBrush(color), strokeT),
-                new Rect(c.BoundsInAtlas.MinX, c.BoundsInAtlas.MinY, c.BoundsInAtlas.Width, c.BoundsInAtlas.Height));
+            var c   = cells[i];
+            var idx = i % CellPalette.Length;
+            var rect = new Rect(c.BoundsInAtlas.MinX, c.BoundsInAtlas.MinY, c.BoundsInAtlas.Width, c.BoundsInAtlas.Height);
+            ctx.FillRectangle(CellFillBrushes[idx], rect);
+            ctx.DrawRectangle(new Pen(CellStrokeBrushes[idx], strokeT), rect);
         }
     }
 
-    private static void DrawSliceGrid(DrawingContext ctx, int worldW, int worldH, int rows, int cols, double zoom)
+    private static void DrawSliceGrid(DrawingContext ctx, int worldW, int worldH, int rows, int cols, Pen pen)
     {
         var (cellW, cellH) = GridSlicer.ComputeCellSize(worldW, worldH, rows, cols);
-        if (cellW < 1 || cellH < 1)
-            return;
+        if (cellW < 1 || cellH < 1) return;
 
-        var t = 1.5 / Math.Max(zoom, 0.0001);
-        var pen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(220, 255, 180, 0)), t);
+        // SortedSet keeps values ordered — no OrderBy needed
+        var xs = new SortedSet<double> { 0, worldW };
+        for (var k = 1; k <= cols; k++) { var v = Math.Min(k * cellW, worldW); if (v >= 0 && v <= worldW) xs.Add(v); }
 
-        // Stessi bordi delle <see cref="SpriteCell"/> da GridSlicer (non worldW/cols in floating).
-        static void AppendBoundary(HashSet<double> set, double v, double max)
-        {
-            if (v >= 0 && v <= max)
-                set.Add(v);
-        }
+        var ys = new SortedSet<double> { 0, worldH };
+        for (var k = 1; k <= rows; k++) { var v = Math.Min(k * cellH, worldH); if (v >= 0 && v <= worldH) ys.Add(v); }
 
-        var xs = new HashSet<double> { 0, worldW };
-        for (var k = 1; k <= cols; k++)
-            AppendBoundary(xs, Math.Min(k * cellW, worldW), worldW);
-
-        var ys = new HashSet<double> { 0, worldH };
-        for (var k = 1; k <= rows; k++)
-            AppendBoundary(ys, Math.Min(k * cellH, worldH), worldH);
-
-        foreach (var x in xs.OrderBy(v => v))
+        foreach (var x in xs)
             ctx.DrawLine(pen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
-        foreach (var y in ys.OrderBy(v => v))
+        foreach (var y in ys)
             ctx.DrawLine(pen, new Avalonia.Point(0, y), new Avalonia.Point(worldW, y));
     }
 
-    private static void DrawFrameWorkbench(DrawingContext ctx, List<AxisAlignedBox> cells, int selectedIdx, double zoom)
+    private static void DrawFrameWorkbench(DrawingContext ctx, List<AxisAlignedBox> cells, int selectedIdx,
+        Pen penUnsel, Pen penSel, Pen penGuide, Pen penBaseline)
     {
-        var t = 1.5 / Math.Max(zoom, 0.0001);
-        var penUnselected = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(180, 90, 200, 255)), t);
-        var penSelected   = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 255, 200, 0)), t * 1.6);
-
         for (var i = 0; i < cells.Count; i++)
         {
-            var c = cells[i];
+            var c    = cells[i];
             var rect = new Rect(c.MinX, c.MinY, c.Width, c.Height);
-            ctx.DrawRectangle(i == selectedIdx ? penSelected : penUnselected, rect);
+            ctx.DrawRectangle(i == selectedIdx ? penSel : penUnsel, rect);
 
             if (i == selectedIdx)
             {
-                // crosshair: linee di centro X e Y + bordi (baseline = bottom)
-                var cx   = c.MinX + c.Width  / 2.0;
-                var cy   = c.MinY + c.Height / 2.0;
-                var penGuide  = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(140, 255, 200, 0)), t * 0.8)
-                { DashStyle = new DashStyle([3.0, 2.0], 0) };
-                var penBaseline = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(180, 0, 220, 140)), t * 0.8)
-                { DashStyle = new DashStyle([2.0, 2.0], 0) };
-
-                // centro V/H
+                var cx = c.MinX + c.Width  / 2.0;
+                var cy = c.MinY + c.Height / 2.0;
                 ctx.DrawLine(penGuide, new Avalonia.Point(cx, c.MinY), new Avalonia.Point(cx, c.MaxY));
                 ctx.DrawLine(penGuide, new Avalonia.Point(c.MinX, cy), new Avalonia.Point(c.MaxX, cy));
-                // baseline (bottom)
                 ctx.DrawLine(penBaseline, new Avalonia.Point(c.MinX, c.MaxY - 0.5), new Avalonia.Point(c.MaxX, c.MaxY - 0.5));
             }
         }
@@ -1486,13 +1552,9 @@ public class EditorSurface : Control
         }
     }
 
-    private static void DrawLightGrid(DrawingContext ctx, int worldW, int worldH, int step, double zoom)
+    private static void DrawLightGrid(DrawingContext ctx, int worldW, int worldH, int step, Pen pen)
     {
         if (step < 1) return;
-        var screenStep = step * zoom;
-        if (screenStep < 2) return; // troppo piccola per essere visibile, salta
-        var t   = 1.0 / Math.Max(zoom, 0.0001);
-        var pen = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(60, 255, 255, 255)), t);
         for (var x = 0; x <= worldW; x += step)
             ctx.DrawLine(pen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
         for (var y = 0; y <= worldH; y += step)
@@ -1504,70 +1566,49 @@ public class EditorSurface : Control
     /// Coordinate mondo (pixel immagine).
     /// </summary>
     private static void DrawAlignGrid(DrawingContext ctx, int worldW, int worldH,
-        int offsetX, int offsetY, int cellW, int cellH, int spacingX, int spacingY, double zoom)
+        int offsetX, int offsetY, int cellW, int cellH, int spacingX, int spacingY,
+        Pen penMajor, Pen penGutter)
     {
-        if (cellW < 1 || cellH < 1 || worldW < 1 || worldH < 1)
-            return;
-
+        if (cellW < 1 || cellH < 1 || worldW < 1 || worldH < 1) return;
         var periodX = cellW + spacingX;
         var periodY = cellH + spacingY;
-        if (periodX < 1 || periodY < 1)
-            return;
+        if (periodX < 1 || periodY < 1) return;
 
-        var t = 1.25 / Math.Max(zoom, 0.0001);
-        var penMajor = new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(210, 140, 200, 255)), t);
-        var penGutter = spacingX > 0 || spacingY > 0
-            ? new Pen(new SolidColorBrush(Avalonia.Media.Color.FromArgb(160, 255, 140, 200)), t * 0.85)
-            { DashStyle = new DashStyle([4.0, 3.0], 0) }
-            : penMajor;
-
-        static double SnapLine(double v) => Math.Floor(v) + 0.5;
-
-        void Vertical(double x)
-        {
-            if (x < 0 || x > worldW) return;
-            var sx = SnapLine(x);
-            ctx.DrawLine(penMajor, new Avalonia.Point(sx, 0), new Avalonia.Point(sx, worldH));
-        }
-
-        void VerticalGutter(double x)
-        {
-            if (x < 0 || x > worldW) return;
-            var sx = SnapLine(x);
-            ctx.DrawLine(penGutter, new Avalonia.Point(sx, 0), new Avalonia.Point(sx, worldH));
-        }
-
-        void Horizontal(double y)
-        {
-            if (y < 0 || y > worldH) return;
-            var sy = SnapLine(y);
-            ctx.DrawLine(penMajor, new Avalonia.Point(0, sy), new Avalonia.Point(worldW, sy));
-        }
-
-        void HorizontalGutter(double y)
-        {
-            if (y < 0 || y > worldH) return;
-            var sy = SnapLine(y);
-            ctx.DrawLine(penGutter, new Avalonia.Point(0, sy), new Avalonia.Point(worldW, sy));
-        }
+        var hasGutter = spacingX > 0 || spacingY > 0;
 
         for (var vx = (double)offsetX; vx < worldW + 1e-6; vx += periodX)
         {
-            Vertical(vx);
-            if (spacingX > 0)
+            if (vx >= 0 && vx <= worldW)
             {
-                var endX = vx + cellW;
-                VerticalGutter(endX);
+                var sx = Math.Floor(vx) + 0.5;
+                ctx.DrawLine(penMajor, new Avalonia.Point(sx, 0), new Avalonia.Point(sx, worldH));
+            }
+            if (hasGutter && spacingX > 0)
+            {
+                var ex = vx + cellW;
+                if (ex >= 0 && ex <= worldW)
+                {
+                    var sx = Math.Floor(ex) + 0.5;
+                    ctx.DrawLine(penGutter, new Avalonia.Point(sx, 0), new Avalonia.Point(sx, worldH));
+                }
             }
         }
 
         for (var vy = (double)offsetY; vy < worldH + 1e-6; vy += periodY)
         {
-            Horizontal(vy);
-            if (spacingY > 0)
+            if (vy >= 0 && vy <= worldH)
             {
-                var endY = vy + cellH;
-                HorizontalGutter(endY);
+                var sy = Math.Floor(vy) + 0.5;
+                ctx.DrawLine(penMajor, new Avalonia.Point(0, sy), new Avalonia.Point(worldW, sy));
+            }
+            if (hasGutter && spacingY > 0)
+            {
+                var ey = vy + cellH;
+                if (ey >= 0 && ey <= worldH)
+                {
+                    var sy = Math.Floor(ey) + 0.5;
+                    ctx.DrawLine(penGutter, new Avalonia.Point(0, sy), new Avalonia.Point(worldW, sy));
+                }
             }
         }
     }

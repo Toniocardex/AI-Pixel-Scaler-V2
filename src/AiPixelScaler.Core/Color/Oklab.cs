@@ -8,7 +8,7 @@ namespace AiPixelScaler.Core.Color;
 ///
 /// La distanza Euclidea in Oklab approssima ΔE percettivo:
 ///   ΔE_OK = √[(L1−L2)² + (a1−a2)² + (b1−b2)²]
-///   JND tipico ≈ 0.02 ; tolleranze pratiche per chroma/key: 0.03–0.10
+///   JND tipico ≈ 0.02 ; tolleranze pratiche per background/key: 0.03–0.10
 ///
 /// Pipeline:
 ///   sRGB(byte) → linear (LUT) → LMS (M1) → ³√LMS → Lab (M2)

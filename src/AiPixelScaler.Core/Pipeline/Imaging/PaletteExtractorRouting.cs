@@ -5,7 +5,7 @@ namespace AiPixelScaler.Core.Pipeline.Imaging;
 
 /// <summary>
 /// Routing centralizzato per estrazione palette tramite quantizzatori ImageSharp.
-/// Evita duplicazioni tra PixelArtPipeline, PixelArtProcessor e AdvancedPixelCleaner.
+/// Evita duplicazioni tra PixelArtPipeline e PixelArtProcessor.
 /// </summary>
 internal static class PaletteExtractorRouting
 {

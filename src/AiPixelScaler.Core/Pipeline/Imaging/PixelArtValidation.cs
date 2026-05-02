@@ -17,9 +17,9 @@ public static class PixelArtValidation
         bool RequirePowerOfTwoDimensions = false,
         bool RequireBinaryAlpha = false,
         bool IgnoreFullyTransparentInCount = true,
-        Rgba32? ExpectedChromaColor = null,
-        double? MaxChromaMismatchRatio = null,
-        double ChromaTolerance = 0);
+        Rgba32? ExpectedBackgroundColor = null,
+        double? MaxBackgroundMismatchRatio = null,
+        double BackgroundTolerance = 0);
 
     public sealed record Result(
         int UniqueColors,
@@ -116,18 +116,18 @@ public static class PixelArtValidation
             }
         }
 
-        if (options.ExpectedChromaColor is { } chroma && options.MaxChromaMismatchRatio is { } maxMismatch)
+        if (options.ExpectedBackgroundColor is { } background && options.MaxBackgroundMismatchRatio is { } maxMismatch)
         {
-            var mismatch = ComputeChromaMismatchRatio(image, chroma, Math.Max(0, options.ChromaTolerance));
+            var mismatch = ComputeBackgroundMismatchRatio(image, background, Math.Max(0, options.BackgroundTolerance));
             if (mismatch > maxMismatch)
             {
-                var message = $"Background non uniforme rispetto al chroma ({mismatch:P1} > {maxMismatch:P1}).";
+                var message = $"Sfondo non uniforme rispetto al colore atteso ({mismatch:P1} > {maxMismatch:P1}).";
                 issues.Add(message);
                 structured.Add(new Issue(
                     Severity.Warning,
-                    "CHROMA_MISMATCH",
+                    "BACKGROUND_MISMATCH",
                     message,
-                    "Esegui prima normalize/snap chroma con tolleranza adeguata."));
+                    "Esegui prima lo snap sfondo con tolleranza adeguata."));
             }
         }
 
@@ -136,7 +136,7 @@ public static class PixelArtValidation
 
     private static bool IsPowerOfTwo(int n) => n > 0 && (n & (n - 1)) == 0;
 
-    private static double ComputeChromaMismatchRatio(Image<Rgba32> image, Rgba32 key, double tolerance)
+    private static double ComputeBackgroundMismatchRatio(Image<Rgba32> image, Rgba32 key, double tolerance)
     {
         var tolSq = tolerance * tolerance;
         var totalOpaque = 0;
