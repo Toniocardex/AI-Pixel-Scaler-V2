@@ -10,22 +10,27 @@ namespace AiPixelScaler.Core.Pipeline.Imaging;
 /// flood fill non ricorsivo dai bordi immagine, vincolato da similarità colore
 /// (Oklab percettivo) e opzionalmente bloccato da bordi Sobel.
 ///
-/// Pipeline raccomandata:
-///   1. <see cref="SampleRegionColor"/> — campiona colore dominante nell'area cliccata
-///   2. <see cref="SnapKeyToBorderColor"/> — corregge il colore se Quantize lo ha rimappato
-///   3. <see cref="ApplyInPlace"/> — flood fill dal bordo con protezione Sobel
+/// Pipeline raccomandata (dal codice chiamante):
+///   1. <see cref="SampleRegionColor"/>      — colore dominante nell'area cliccata (5×5 default)
+///   2. <see cref="SnapKeyToBorderColor"/>   — corregge se Quantize ha rimappato i colori
+///   3. <see cref="ApplyInPlace"/>           — flood fill dal bordo con protezione Sobel
 ///   4. <see cref="AlphaThreshold.ApplyInPlace"/> — binarizza pixel semi-trasparenti residui (opzionale)
 ///   5. <see cref="Defringe.FromOpaqueNeighbors"/> — decontamina fringe colorati (opzionale)
+///
+/// Limitazioni by design (non bug):
+///   - Sfondo non connesso al perimetro non viene rimosso (protezione interni sprite).
+///   - Chiave colore singola: sfondi a gradiente o texture richiedono un algoritmo diverso.
+///   - Sobel protegge anche variazioni interne al background: trade-off per pixel art.
 /// </summary>
 public static class BackgroundIsolation
 {
     public sealed record Options(
         Rgba32 BackgroundColor,
         double ColorTolerance = 8,
-        double EdgeThreshold = 100,       // soglia Sobel: 100 ignora artefatti JPEG (<80), blocca bordi sprite (200-1440)
+        double EdgeThreshold = 100,       // Sobel: 100 supera artefatti JPEG (<80), blocca bordi sprite (200-1440)
         bool UseOklab = true,
         bool ProtectStrongEdges = true,
-        bool Use8Connectivity = true);    // include vicini diagonali → elimina angoli isolati
+        bool Use8Connectivity = true);    // vicini diagonali → elimina angoli isolati
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -36,21 +41,21 @@ public static class BackgroundIsolation
         if (w < 1 || h < 1) return 0;
 
         var pixels = ImageUtils.ToFlatArray(image);
-        var edge = options.ProtectStrongEdges
+        var edge   = options.ProtectStrongEdges
             ? BuildSobelEdgeMap(pixels, w, h, Math.Clamp(options.EdgeThreshold, 0, 4096))
             : new bool[w * h];
         var removed = new bool[w * h];
-        var q = new Queue<int>();
+        var q       = new Queue<int>();
 
-        var rgbTol = Math.Max(0, options.ColorTolerance);
-        var oklabKey = Oklab.FromSrgb(options.BackgroundColor);
-
-        // ── Calibrazione Oklab percettiva ──────────────────────────────────────
+        // ── Calibrazione tolleranza Oklab ─────────────────────────────────────
         // Campiona 8 direzioni nello spazio RGB alla distanza tolInt:
-        // 6 assi allineati (+/-R, +/-G, +/-B) + 2 diagonali principali.
-        // Questo copre i casi limite per colori saturi dove uno shift su un canale
-        // clipa a 0/255 e produce una distanza Oklab molto diversa dagli altri assi.
-        var tolInt = (int)Math.Round(Math.Max(0, rgbTol));
+        //   • 6 assi allineati (+/-R, +/-G, +/-B)
+        //   • 2 diagonali principali (+tolInt su tutti i canali, -tolInt su tutti)
+        // Necessario perché per colori saturi uno shift su un canale clipa a 0/255
+        // producendo distanze Oklab molto diverse dagli altri assi.
+        var rgbTol   = Math.Max(0, options.ColorTolerance);
+        var oklabKey = Oklab.FromSrgb(options.BackgroundColor);
+        var tolInt   = (int)Math.Round(rgbTol);
         var oklabTolSq = 0.0;
         if (tolInt > 0)
         {
@@ -58,45 +63,47 @@ public static class BackgroundIsolation
                 (int)options.BackgroundColor.R,
                 (int)options.BackgroundColor.G,
                 (int)options.BackgroundColor.B);
-
             // 6 assi
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr + tolInt, cg, cb);
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr - tolInt, cg, cb);
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr, cg + tolInt, cb);
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr, cg - tolInt, cb);
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr, cg, cb + tolInt);
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr, cg, cb - tolInt);
-            // 2 diagonali (cattura colori dove un asse clipa e un altro domina)
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr + tolInt, cg + tolInt, cb + tolInt);
-            oklabTolSq = MaxOklabDist(oklabKey, oklabTolSq, cr - tolInt, cg - tolInt, cb - tolInt);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr + tolInt, cg,          cb);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr - tolInt, cg,          cb);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg + tolInt, cb);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg - tolInt, cb);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg,          cb + tolInt);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg,          cb - tolInt);
+            // 2 diagonali
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr + tolInt, cg + tolInt, cb + tolInt);
+            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr - tolInt, cg - tolInt, cb - tolInt);
         }
-        // Fallback minimo per tol = 0 o tolInt = 0
-        if (oklabTolSq <= 0.0)
+        if (oklabTolSq <= 0.0)                              // tol=0: accetta solo colore esatto
             oklabTolSq = (rgbTol / 255.0) * (rgbTol / 255.0);
 
-        // ── Helpers locali ────────────────────────────────────────────────────
-        int I(int x, int y) => y * w + x;
+        var rgbTolSq = rgbTol * rgbTol;                     // usato solo in fallback non-Oklab
+        var bgR      = options.BackgroundColor.R;
+        var bgG      = options.BackgroundColor.G;
+        var bgB      = options.BackgroundColor.B;
 
+        // ── Helpers locali ────────────────────────────────────────────────────
+
+        // Nota: NON controlla p.A == 0 perché CanFlood lo verifica prima.
         bool MatchesBackground(int idx)
         {
             var p = pixels[idx];
-            if (p.A == 0) return true;
             if (options.UseOklab)
                 return (double)Oklab.DistanceSquared(oklabKey, Oklab.FromSrgb(p)) <= oklabTolSq;
 
-            var dr = p.R - options.BackgroundColor.R;
-            var dg = p.G - options.BackgroundColor.G;
-            var db = p.B - options.BackgroundColor.B;
-            return dr * dr + dg * dg + db * db <= rgbTol * rgbTol;
+            var dr = p.R - bgR;
+            var dg = p.G - bgG;
+            var db = p.B - bgB;
+            return dr * dr + dg * dg + db * db <= rgbTolSq;
         }
 
-        // Un pixel è attraversabile se:
-        //   a) già trasparente (run precedenti) → sempre passabile come corridoio
-        //   b) corrisponde al colore sfondo E non è protetto da bordo forte Sobel
+        // Pixel attraversabile se:
+        //   a) già trasparente (run precedenti) → corridoio passabile
+        //   b) corrisponde al colore sfondo E non è su bordo forte Sobel
         bool CanFlood(int idx)
         {
-            if (pixels[idx].A == 0) return true;         // trasparente → passabile
-            return !edge[idx] && MatchesBackground(idx); // corrispondenza colore + no bordo forte
+            if (pixels[idx].A == 0) return true;
+            return !edge[idx] && MatchesBackground(idx);
         }
 
         void Seed(int idx)
@@ -109,48 +116,50 @@ public static class BackgroundIsolation
         // ── Seeding perimetro ─────────────────────────────────────────────────
         for (var x = 0; x < w; x++)
         {
-            Seed(I(x, 0));
-            if (h > 1) Seed(I(x, h - 1));
+            Seed(x);                    // riga 0
+            if (h > 1) Seed((h-1)*w+x); // riga h-1
         }
         for (var y = 1; y < h - 1; y++)
         {
-            Seed(I(0, y));
-            if (w > 1) Seed(I(w - 1, y));
+            Seed(y*w);                  // colonna 0
+            if (w > 1) Seed(y*w+w-1);  // colonna w-1
         }
 
         // ── Propagazione ─────────────────────────────────────────────────────
-        void TryAdd(int x, int y)
+        void TryAdd(int nidx, bool inBounds)
         {
-            if ((uint)x >= (uint)w || (uint)y >= (uint)h) return;
-            var idx = I(x, y);
-            if (removed[idx] || !CanFlood(idx)) return;
-            removed[idx] = true;
-            q.Enqueue(idx);
+            if (!inBounds || removed[nidx] || !CanFlood(nidx)) return;
+            removed[nidx] = true;
+            q.Enqueue(nidx);
         }
 
         while (q.Count > 0)
         {
             var idx = q.Dequeue();
-            var px = idx % w;
-            var py = idx / w;
+            var py  = idx / w;
+            var px  = idx - py * w;     // idx % w senza secondo div
 
-            TryAdd(px - 1, py);
-            TryAdd(px + 1, py);
-            TryAdd(px, py - 1);
-            TryAdd(px, py + 1);
+            // 4 vicini cardinali
+            TryAdd(idx - 1,   px > 0);
+            TryAdd(idx + 1,   px < w - 1);
+            TryAdd(idx - w,   py > 0);
+            TryAdd(idx + w,   py < h - 1);
 
             if (options.Use8Connectivity)
             {
-                TryAdd(px - 1, py - 1);
-                TryAdd(px + 1, py - 1);
-                TryAdd(px - 1, py + 1);
-                TryAdd(px + 1, py + 1);
+                var notLeft  = px > 0;
+                var notRight = px < w - 1;
+                var notTop   = py > 0;
+                var notBot   = py < h - 1;
+                TryAdd(idx - w - 1, notTop  && notLeft);
+                TryAdd(idx - w + 1, notTop  && notRight);
+                TryAdd(idx + w - 1, notBot  && notLeft);
+                TryAdd(idx + w + 1, notBot  && notRight);
             }
         }
 
-        // ── Azzeramento pixel opachi rimossi ─────────────────────────────────
-        // Conta solo pixel originalmente opachi; quelli già trasparenti da run
-        // precedenti erano passabili come corridoi ma non vanno conteggiati.
+        // ── Azzeramento ───────────────────────────────────────────────────────
+        // Conta solo pixel OPACHI rimossi; quelli già trasparenti erano corridoi.
         var removedCount = 0;
         image.ProcessPixelRows(accessor =>
         {
@@ -159,7 +168,7 @@ public static class BackgroundIsolation
                 var row = accessor.GetRowSpan(y);
                 for (var x = 0; x < row.Length; x++)
                 {
-                    var idx = I(x, y);
+                    var idx = y * w + x;
                     if (!removed[idx] || pixels[idx].A == 0) continue;
                     row[x] = new Rgba32(row[x].R, row[x].G, row[x].B, 0);
                     removedCount++;
@@ -169,8 +178,9 @@ public static class BackgroundIsolation
         return removedCount;
     }
 
-    // ── Helper calibrazione ────────────────────────────────────────────────────
-    private static double MaxOklabDist(in Oklab key, double current, int r, int g, int b)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static double MaxOklabDistSq(in Oklab key, double current, int r, int g, int b)
     {
         var sample = Oklab.FromSrgb(new Rgba32(
             (byte)Math.Clamp(r, 0, 255),
@@ -183,47 +193,41 @@ public static class BackgroundIsolation
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Campiona il colore dominante in un'area quadrata di lato <c>2*radius+1</c>
-    /// centrata in (cx, cy).
-    /// Restituisce il colore più frequente tra i pixel OPACHI (alpha ≥ 128)
-    /// nell'area, oppure il pixel centrale se tutti i pixel sono trasparenti.
+    /// Campiona il colore dominante (mode) in un'area quadrata di lato <c>2*radius+1</c>
+    /// centrata in (cx, cy). Ignora pixel con alpha &lt; 128.
     ///
-    /// Usare questo metodo nella pipetta invece di leggere il singolo pixel:
-    /// elimina il problema di campionare accidentalmente pixel anti-aliased,
-    /// compressi o con colore leggermente deviante dall'area circostante.
+    /// Per immagini JPEG: tutti i 25 campioni potrebbero avere colori leggermente diversi
+    /// (no chiaro "modo"). In quel caso ritorna il campione più frequente — più robusto
+    /// di un singolo pixel ma non perfetto. Per pixel art lossless è ideale.
+    ///
+    /// Restituisce il pixel centrale se tutta l'area è trasparente.
     /// </summary>
     public static Rgba32 SampleRegionColor(Image<Rgba32> image, int cx, int cy, int radius = 2)
     {
         var w = image.Width;
         var h = image.Height;
-        if (w < 1 || h < 1)
-            return default;
+        if (w < 1 || h < 1) return default;
 
         var x0 = Math.Max(0, cx - radius);
         var x1 = Math.Min(w - 1, cx + radius);
         var y0 = Math.Max(0, cy - radius);
         var y1 = Math.Min(h - 1, cy + radius);
 
-        // Dictionary packed RGB → count
         var freq = new Dictionary<uint, int>((x1 - x0 + 1) * (y1 - y0 + 1));
 
         for (var y = y0; y <= y1; y++)
         for (var x = x0; x <= x1; x++)
         {
             var p = image[x, y];
-            if (p.A < 128) continue; // salta pixel trasparenti / semi-trasparenti
+            if (p.A < 128) continue;
             var packed = (uint)(p.R << 16 | p.G << 8 | p.B);
             freq.TryGetValue(packed, out var cnt);
             freq[packed] = cnt + 1;
         }
 
         if (freq.Count == 0)
-        {
-            // Tutta l'area è trasparente: ritorna il pixel centrale (anche se A=0)
             return image[Math.Clamp(cx, 0, w - 1), Math.Clamp(cy, 0, h - 1)];
-        }
 
-        // Trova il colore più frequente
         uint bestPacked = 0;
         var bestCount = 0;
         foreach (var (packed, cnt) in freq)
@@ -243,16 +247,18 @@ public static class BackgroundIsolation
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Corregge il colore chiave sfondo cercando il pixel opaco di bordo più vicino (distanza RGB²).
-    /// Utile dopo operazioni di quantizzazione palette: il colore campionato con la pipetta prima
-    /// del quantize potrebbe non esistere più nell'immagine rimappata.
+    /// Corregge il colore chiave sfondo cercando il pixel opaco di bordo più vicino
+    /// (distanza RGB²). Utile dopo Quantize: il colore campionato con la pipetta potrebbe
+    /// non esistere più nell'immagine rimappata.
     ///
-    /// Scansiona <paramref name="borderDepth"/> pixel di profondità dal perimetro
-    /// (default 3) per coprire i casi in cui il bordo esterno è già stato azzerato
-    /// da un run precedente di background removal.
+    /// Scansiona <paramref name="borderDepth"/> pixel di profondità dal perimetro (default 3)
+    /// per coprire i casi in cui il bordo esterno sia già stato azzerato da un run precedente.
     ///
-    /// Se nessun pixel opaco è entro <paramref name="maxRgbDistancePerChannel"/> unità per canale,
-    /// restituisce <paramref name="key"/> invariato.
+    /// Accede direttamente ai pixel di bordo con <c>image[x,y]</c> senza copiare l'intera
+    /// immagine — O(w+h) anziché O(w×h).
+    ///
+    /// Se nessun pixel opaco è entro <paramref name="maxRgbDistancePerChannel"/> unità per
+    /// canale, restituisce <paramref name="key"/> invariato.
     /// </summary>
     public static Rgba32 SnapKeyToBorderColor(
         Image<Rgba32> image,
@@ -264,16 +270,15 @@ public static class BackgroundIsolation
         var h = image.Height;
         if (w < 1 || h < 1) return key;
 
-        var pixels = ImageUtils.ToFlatArray(image);
+        // Accesso diretto image[x,y] — nessuna copia ToFlatArray, O(w+h) anziché O(w×h)
         var maxDistSq = maxRgbDistancePerChannel * maxRgbDistancePerChannel * 3.0;
         var bestDistSq = double.MaxValue;
         var best = key;
 
         void Check(int x, int y)
         {
-            if ((uint)x >= (uint)w || (uint)y >= (uint)h) return;
-            var p = pixels[y * w + x];
-            if (p.A == 0) return; // già trasparente: salta
+            var p = image[x, y];
+            if (p.A == 0) return;
             var dr = (double)(p.R - key.R);
             var dg = (double)(p.G - key.G);
             var db = (double)(p.B - key.B);
@@ -297,12 +302,15 @@ public static class BackgroundIsolation
 
     /// <summary>
     /// Uniforma tutti i pixel opachi il cui colore è entro <paramref name="tolerance"/>
-    /// unità RGB dal colore chiave al colore chiave stesso (distanza Euclidea sui 3 canali).
-    /// Utile per appiattire variazioni minime prima del flood fill.
+    /// unità RGB (Euclidea 3-canali) al colore chiave stesso.
+    ///
+    /// Usato da <see cref="PixelArtPipeline"/> e <see cref="SharedPaletteBuilder"/>
+    /// prima del flood fill per appiattire variazioni minime di compressione.
+    /// Non è dead code — non rimuovere.
     /// </summary>
     public static void SnapBackgroundRgbInPlace(Image<Rgba32> image, Rgba32 key, double tolerance)
     {
-        var tol = Math.Max(0, tolerance);
+        var tol   = Math.Max(0, tolerance);
         var tolSq = tol * tol;
         image.ProcessPixelRows(accessor =>
         {
@@ -327,9 +335,13 @@ public static class BackgroundIsolation
 
     /// <summary>
     /// Costruisce la mappa bordi Sobel (luma-based).
-    /// Pixel già trasparenti sono esclusi dalla mappa: impedisce che la frontiera
-    /// trasparente↔sprite generi false edges che bloccano il flood nelle esecuzioni
-    /// successive (quando parte del bordo immagine è già stata azzerata).
+    ///
+    /// Ottimizzazioni rispetto all'implementazione naïve:
+    ///   • Luma in <c>float[]</c> invece di <c>double[]</c>: metà memoria (16 MB vs 32 MB
+    ///     su immagini 2048×2048) senza perdita di precisione per il confronto soglia.
+    ///   • Confronto <c>gx²+gy² ≥ threshold²</c> senza <c>Math.Sqrt</c> nell'hot loop.
+    ///   • Pixel trasparenti esclusi dalla mappa: la frontiera trasparente↔opaco non
+    ///     genera false edges che bloccherebbero il flood nelle esecuzioni successive.
     /// </summary>
     private static bool[] BuildSobelEdgeMap(Rgba32[] pixels, int w, int h, double threshold)
     {
@@ -337,32 +349,41 @@ public static class BackgroundIsolation
         if (threshold <= 0 || w < 3 || h < 3)
             return edge;
 
-        var luma = new double[w * h];
+        // float[] dimezza la memoria rispetto a double[] con stesso risultato pratico
+        var luma = new float[w * h];
         for (var i = 0; i < pixels.Length; i++)
         {
             var p = pixels[i];
-            // Pixel trasparenti contribuiscono con luma=0; ma non sono marcati come edge.
-            luma[i] = p.A == 0 ? 0.0 : 0.299 * p.R + 0.587 * p.G + 0.114 * p.B;
+            luma[i] = p.A == 0
+                ? 0f
+                : (float)(0.299 * p.R + 0.587 * p.G + 0.114 * p.B);
         }
 
-        int I(int x, int y) => y * w + x;
+        // Quadrato della soglia: elimina Math.Sqrt nell'hot loop
+        var threshSq = (float)(threshold * threshold);
 
         for (var y = 1; y < h - 1; y++)
-        for (var x = 1; x < w - 1; x++)
         {
-            // I pixel già trasparenti non sono bordi sprite.
-            if (pixels[I(x, y)].A == 0) continue;
+            var row = y * w;
+            for (var x = 1; x < w - 1; x++)
+            {
+                var idx = row + x;
+                if (pixels[idx].A == 0) continue; // pixel già trasparente: non è un bordo sprite
 
-            var gx =
-                -luma[I(x - 1, y - 1)] + luma[I(x + 1, y - 1)]
-                - 2 * luma[I(x - 1, y)] + 2 * luma[I(x + 1, y)]
-                - luma[I(x - 1, y + 1)] + luma[I(x + 1, y + 1)];
+                // Indici dei vicini (precalcolati per evitare moltiplicazioni nel kernel)
+                var tl = idx - w - 1; var tc = idx - w; var tr = idx - w + 1;
+                var ml = idx     - 1;                   var mr = idx     + 1;
+                var bl = idx + w - 1; var bc = idx + w; var br = idx + w + 1;
 
-            var gy =
-                luma[I(x - 1, y - 1)] + 2 * luma[I(x, y - 1)] + luma[I(x + 1, y - 1)]
-                - luma[I(x - 1, y + 1)] - 2 * luma[I(x, y + 1)] - luma[I(x + 1, y + 1)];
+                var gx = -luma[tl] + luma[tr]
+                         - 2f * luma[ml] + 2f * luma[mr]
+                         - luma[bl] + luma[br];
 
-            edge[I(x, y)] = Math.Sqrt(gx * gx + gy * gy) >= threshold;
+                var gy = luma[tl]  + 2f * luma[tc]  + luma[tr]
+                        - luma[bl] - 2f * luma[bc]  - luma[br];
+
+                edge[idx] = gx * gx + gy * gy >= threshSq; // nessuna sqrt
+            }
         }
 
         return edge;
