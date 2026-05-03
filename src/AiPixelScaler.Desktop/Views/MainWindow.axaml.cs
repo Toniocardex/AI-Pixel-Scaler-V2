@@ -599,6 +599,9 @@ public partial class MainWindow : Window
                 ApplyAnimationStateToControls();
                 RunCenterInCells();
                 break;
+            case AnimationStudioAction.ImportFrames:
+                await ImportFramesIntoGridAsync();
+                break;
             case AnimationStudioAction.ImportFromVideo:
                 await ImportFramesFromVideoAsync();
                 break;
@@ -2149,6 +2152,85 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             SetStatus($"Errore apertura immagine: {ex.Message}");
+        }
+    }
+
+    private async Task ImportFramesIntoGridAsync()
+    {
+        if (_document is null)
+        {
+            SetStatus("Nessun documento aperto. Apri o crea un atlas prima di importare i frame.");
+            return;
+        }
+        if (_cells.Count == 0)
+        {
+            SetStatus("Nessun frame rilevato. Definisci prima una griglia o rileva gli sprite.");
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Seleziona frame PNG (verranno ordinati alfabeticamente)",
+            AllowMultiple = true,
+            FileTypeFilter = [new FilePickerFileType("Immagini PNG") { Patterns = ["*.png", "*.PNG"] }]
+        });
+        if (files.Count == 0) return;
+
+        var sorted = files.OrderBy(f => f.Name).Take(_cells.Count).ToList();
+
+        try
+        {
+            var atlas = new Image<Rgba32>(_document.Width, _document.Height, new Rgba32(0, 0, 0, 0));
+
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                var cell  = _cells[i].BoundsInAtlas;
+                var cellX = cell.MinX;
+                var cellY = cell.MinY;
+                var cellW = cell.Width;
+                var cellH = cell.Height;
+
+                await using var stream = await sorted[i].OpenReadAsync();
+                using var frame = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(stream);
+
+                var opaqueBox = CellCentering.FindOpaqueBox(frame);
+                int dx, dy;
+                if (opaqueBox is null)
+                {
+                    dx = (cellW - frame.Width)  / 2;
+                    dy = (cellH - frame.Height) / 2;
+                }
+                else
+                {
+                    var ob = opaqueBox.Value;
+                    dx = cellW / 2 - (ob.MinX + ob.Width  / 2);
+                    dy = cellH / 2 - (ob.MinY + ob.Height / 2);
+                }
+
+                atlas.Mutate(ctx => ctx.DrawImage(
+                    frame,
+                    new SixLabors.ImageSharp.Point(cellX + dx, cellY + dy),
+                    1f));
+            }
+
+            PushUndo();
+            _document?.Dispose();
+            _document = atlas;
+            _backup?.Dispose();
+            _backup = atlas.Clone();
+            // _cells rimane invariato — la griglia definita dall'utente è preservata
+            Editor.SpriteCells = _cells;
+            RefreshCellList();
+            RefreshView();
+            FitOpenedImageInViewport();
+            RefreshEmptyState();
+            _workspaceTabs.MarkActiveClean();
+            RefreshWorkspaceChrome();
+            SetStatus($"Importati {sorted.Count}/{_cells.Count} frame — centrati nelle celle della griglia.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Errore importazione frame: {ex.Message}");
         }
     }
 

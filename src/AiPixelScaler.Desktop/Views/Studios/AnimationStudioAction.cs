@@ -17,6 +17,7 @@ public enum AnimationStudioAction
     RunGlobalScan,
     RunBaselineAlignment,
     RunCenterInCells,
+    ImportFrames,           // importa PNG multipli nelle celle della griglia corrente
     ImportFromVideo,        // estrai frame PNG da video MP4 H.264 via FFmpeg
     ExportFramesZip,
 }

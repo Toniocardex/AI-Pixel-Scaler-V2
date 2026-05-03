@@ -26,6 +26,7 @@ public partial class AnimationStudioView : UserControl
         BtnAnimGlobalScan.Click       += (_, _) => Request(AnimationStudioAction.RunGlobalScan);
         BtnAnimBaselineAlign.Click    += (_, _) => Request(AnimationStudioAction.RunBaselineAlignment);
         BtnAnimCenterInCells.Click    += (_, _) => Request(AnimationStudioAction.RunCenterInCells);
+        BtnAnimImportFrames.Click     += (_, _) => Request(AnimationStudioAction.ImportFrames);
         BtnAnimImportVideo.Click      += (_, _) => Request(AnimationStudioAction.ImportFromVideo);
         BtnAnimExportZip.Click        += (_, _) => Request(AnimationStudioAction.ExportFramesZip);
 

@@ -176,6 +176,19 @@
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Export / Import"/>
+
+        <!-- Importa PNG nelle celle della griglia corrente -->
+        <TextBlock Classes="studio-hint"
+                   Text="Seleziona più PNG: vengono ordinati alfabeticamente e centrati nelle celle della griglia."/>
+        <Button x:Name="BtnAnimImportFrames" Classes="primary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Importa più file PNG e li centra nelle celle della griglia corrente (richiede griglia definita).">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
+            <TextBlock Text="Importa frame…"/>
+          </StackPanel>
+        </Button>
+
+        <!-- Da video e export -->
         <Grid ColumnDefinitions="*,4,*">
           <Button x:Name="BtnAnimImportVideo" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
                   ToolTip.Tip="Apri un video MP4 H.264 ed estrai i frame come PNG nella timeline di Animation Studio.">
