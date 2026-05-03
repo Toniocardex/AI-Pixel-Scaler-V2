@@ -148,9 +148,11 @@ public partial class MainWindow : Window
         LoadWelcomeDocument();
         StudioShell.IsVisible = false;
         StartPage.StudioSelected += (_, studio) => ActivateStudio(studio);
-        SpriteStudioPanel.ActionRequested   += OnSpriteStudioActionRequested;
-        TilesetStudioPanel.ActionRequested  += OnTilesetStudioActionRequested;
+        SpriteStudioPanel.ActionRequested    += OnSpriteStudioActionRequested;
+        TilesetStudioPanel.ActionRequested   += OnTilesetStudioActionRequested;
         AnimationStudioPanel.ActionRequested += OnAnimationStudioActionRequested;
+        TilesetStudioPanel.GridSection.ActionRequested   += OnGridSectionActionRequested;
+        AnimationStudioPanel.GridSection.ActionRequested += OnGridSectionActionRequested;
 
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
@@ -268,8 +270,7 @@ public partial class MainWindow : Window
         BtnStepSliceAllinea.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
         BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
         BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
-        BtnGoAllinea.Click += (_, _) => ActivateStudio(StudioKind.Animation);
-        BtnGoStilizza.Click += (_, _) => ActivateStudio(StudioKind.Tileset);
+        BtnGoAllinea.Click  += (_, _) => ActivateStudio(StudioKind.Animation);
         BtnGoTemplate.Click += (_, _) => ActivateStudio(StudioKind.Tileset);
         ChkExportCustomCellSize.IsCheckedChanged += (_, _) =>
         {
@@ -308,9 +309,17 @@ public partial class MainWindow : Window
             StudioKind.Tileset => 0,
             _ => MainTabs.SelectedIndex
         };
-        SpriteStudioPanel.IsVisible   = studio == StudioKind.Sprite;
-        TilesetStudioPanel.IsVisible  = studio == StudioKind.Tileset;
+        SpriteStudioPanel.IsVisible    = studio == StudioKind.Sprite;
+        TilesetStudioPanel.IsVisible   = studio == StudioKind.Tileset;
         AnimationStudioPanel.IsVisible = studio == StudioKind.Animation;
+
+        // Mantiene la griglia sincronizzata tra i due studio che la condividono
+        var gridState = GridStateFromTilesetState();
+        if (studio == StudioKind.Tileset)
+            TilesetStudioPanel.GridSection.SetGridState(gridState);
+        else if (studio == StudioKind.Animation)
+            AnimationStudioPanel.GridSection.SetGridState(gridState);
+
         SetStatus($"{studio switch
         {
             StudioKind.Sprite => "Sprite Studio",
@@ -506,17 +515,6 @@ public partial class MainWindow : Window
                 ApplyTilesetStateToControls();
                 RunPadToMultiple();
                 break;
-            case TilesetStudioAction.GenerateTemplate:
-                ApplyTilesetStateToControls();
-                RunGenerateTemplate();
-                break;
-            case TilesetStudioAction.ExportTemplatePng:
-                await ExportTemplateAsync();
-                break;
-            case TilesetStudioAction.ImportFrames:
-                ApplyTilesetStateToControls();
-                await RunImportFramesAsync();
-                break;
             case TilesetStudioAction.ExportTiledJson:
                 await ExportTiledMapJsonAsync();
                 break;
@@ -537,6 +535,68 @@ public partial class MainWindow : Window
 
     private void ApplyTilesetStateToControls() =>
         _tilesetState = TilesetStudioPanel.GetTilesetState();
+
+    // ── Grid Section (condivisa tra Tileset e Animation Studio) ──────────────
+
+    private async void OnGridSectionActionRequested(object? sender, GridSectionAction action)
+    {
+        try
+        {
+            if (sender is GridSectionView gs)
+                ApplyGridStateFromSection(gs);
+
+            switch (action)
+            {
+                case GridSectionAction.GenerateTemplate:
+                    RunGenerateTemplate();
+                    break;
+                case GridSectionAction.ExportTemplatePng:
+                    await ExportTemplateAsync();
+                    break;
+                case GridSectionAction.ImportFrames:
+                    await RunImportFramesAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ReportStudioActionFailure(ex, "Griglia", action);
+        }
+    }
+
+    private void ApplyGridStateFromSection(GridSectionView gs)
+    {
+        var g = gs.GetGridState();
+        _tilesetState = _tilesetState with
+        {
+            CellW        = g.CellW,
+            CellH        = g.CellH,
+            Cols         = g.Cols,
+            Rows         = g.Rows,
+            PivotIndex   = g.PivotIndex,
+            PivotCustomX = g.PivotCustomX,
+            PivotCustomY = g.PivotCustomY,
+            ShowBorder   = g.ShowBorder,
+            ShowPivot    = g.ShowPivot,
+            ShowBaseline = g.ShowBaseline,
+            ShowIndex    = g.ShowIndex,
+            ShowTint     = g.ShowTint,
+        };
+    }
+
+    private GridState GridStateFromTilesetState() => new(
+        CellW:        _tilesetState.CellW,
+        CellH:        _tilesetState.CellH,
+        Cols:         _tilesetState.Cols,
+        Rows:         _tilesetState.Rows,
+        PivotIndex:   _tilesetState.PivotIndex,
+        PivotCustomX: _tilesetState.PivotCustomX,
+        PivotCustomY: _tilesetState.PivotCustomY,
+        ShowBorder:   _tilesetState.ShowBorder,
+        ShowPivot:    _tilesetState.ShowPivot,
+        ShowBaseline: _tilesetState.ShowBaseline,
+        ShowIndex:    _tilesetState.ShowIndex,
+        ShowTint:     _tilesetState.ShowTint);
 
     // ── Animation Studio ─────────────────────────────────────────────────────
 
@@ -598,9 +658,6 @@ public partial class MainWindow : Window
             case AnimationStudioAction.RunCenterInCells:
                 ApplyAnimationStateToControls();
                 RunCenterInCells();
-                break;
-            case AnimationStudioAction.ImportFrames:
-                await ImportFramesIntoGridAsync();
                 break;
             case AnimationStudioAction.ImportFromVideo:
                 await ImportFramesFromVideoAsync();
@@ -2155,85 +2212,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task ImportFramesIntoGridAsync()
-    {
-        if (_document is null)
-        {
-            SetStatus("Nessun documento aperto. Apri o crea un atlas prima di importare i frame.");
-            return;
-        }
-        if (_cells.Count == 0)
-        {
-            SetStatus("Nessun frame rilevato. Definisci prima una griglia o rileva gli sprite.");
-            return;
-        }
-
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Seleziona frame PNG (verranno ordinati alfabeticamente)",
-            AllowMultiple = true,
-            FileTypeFilter = [new FilePickerFileType("Immagini PNG") { Patterns = ["*.png", "*.PNG"] }]
-        });
-        if (files.Count == 0) return;
-
-        var sorted = files.OrderBy(f => f.Name).Take(_cells.Count).ToList();
-
-        try
-        {
-            var atlas = new Image<Rgba32>(_document.Width, _document.Height, new Rgba32(0, 0, 0, 0));
-
-            for (var i = 0; i < sorted.Count; i++)
-            {
-                var cell  = _cells[i].BoundsInAtlas;
-                var cellX = cell.MinX;
-                var cellY = cell.MinY;
-                var cellW = cell.Width;
-                var cellH = cell.Height;
-
-                await using var stream = await sorted[i].OpenReadAsync();
-                using var frame = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(stream);
-
-                var opaqueBox = CellCentering.FindOpaqueBox(frame);
-                int dx, dy;
-                if (opaqueBox is null)
-                {
-                    dx = (cellW - frame.Width)  / 2;
-                    dy = (cellH - frame.Height) / 2;
-                }
-                else
-                {
-                    var ob = opaqueBox.Value;
-                    dx = cellW / 2 - (ob.MinX + ob.Width  / 2);
-                    dy = cellH / 2 - (ob.MinY + ob.Height / 2);
-                }
-
-                atlas.Mutate(ctx => ctx.DrawImage(
-                    frame,
-                    new SixLabors.ImageSharp.Point(cellX + dx, cellY + dy),
-                    1f));
-            }
-
-            PushUndo();
-            _document?.Dispose();
-            _document = atlas;
-            _backup?.Dispose();
-            _backup = atlas.Clone();
-            // _cells rimane invariato — la griglia definita dall'utente è preservata
-            Editor.SpriteCells = _cells;
-            RefreshCellList();
-            RefreshView();
-            FitOpenedImageInViewport();
-            RefreshEmptyState();
-            _workspaceTabs.MarkActiveClean();
-            RefreshWorkspaceChrome();
-            SetStatus($"Importati {sorted.Count}/{_cells.Count} frame — centrati nelle celle della griglia.");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Errore importazione frame: {ex.Message}");
-        }
-    }
-
     private async Task ImportFramesFromVideoAsync()
     {
         // 1. Individua FFmpeg
@@ -3541,7 +3519,7 @@ public partial class MainWindow : Window
 
     private Image<Rgba32>? _templateDocument;    private GridTemplateGenerator.Options BuildTemplateOptions()
     {
-        var preset = TilesetStudioPanel.GetPivotPreset();
+        var preset = PivotPresetFromIndex(_tilesetState.PivotIndex);
         var (ndcX, ndcY) = preset == GridTemplateGenerator.PivotPreset.Custom
             ? (_tilesetState.PivotCustomX, _tilesetState.PivotCustomY)
             : GridTemplateGenerator.PivotNdc(preset);
@@ -3563,6 +3541,20 @@ public partial class MainWindow : Window
             PivotNdcY        = ndcY,
         };
     }
+    private static GridTemplateGenerator.PivotPreset PivotPresetFromIndex(int index) => index switch
+    {
+        0 => GridTemplateGenerator.PivotPreset.TopLeft,
+        1 => GridTemplateGenerator.PivotPreset.TopCenter,
+        2 => GridTemplateGenerator.PivotPreset.TopRight,
+        3 => GridTemplateGenerator.PivotPreset.MidLeft,
+        4 => GridTemplateGenerator.PivotPreset.Center,
+        5 => GridTemplateGenerator.PivotPreset.MidRight,
+        6 => GridTemplateGenerator.PivotPreset.BottomLeft,
+        7 => GridTemplateGenerator.PivotPreset.BottomCenter,
+        8 => GridTemplateGenerator.PivotPreset.BottomRight,
+        _ => GridTemplateGenerator.PivotPreset.Custom
+    };
+
     private void RunGenerateTemplate()
     {
         try
@@ -3774,7 +3766,8 @@ public partial class MainWindow : Window
     {
         if (_importInProgress) { SetStatus("Importazione già in corso…"); return; }
         _importInProgress = true;
-        TilesetStudioPanel.SetImportEnabled(false);
+        TilesetStudioPanel.GridSection.SetImportEnabled(false);
+        AnimationStudioPanel.GridSection.SetImportEnabled(false);
         try
         {
             var cols  = Math.Max(1, InputParsing.ParseInt(_tilesetState.Cols, 4));
@@ -3847,8 +3840,8 @@ public partial class MainWindow : Window
             RefreshView();
             EmptyStateDim.IsVisible   = false;
             EmptyStatePanel.IsVisible = false;
-            SetStatus($"Importati {sorted.Count}/{total} frame — atlas {atlas.Width}×{atlas.Height} px. " +
-                      "Usa Tileset Studio per rifinire la griglia, poi Animation Studio per la preview.");
+            SetStatus($"Importati {sorted.Count}/{total} frame — atlas {atlas.Width}×{atlas.Height} px " +
+                      $"({cellW}×{cellH} px/cella).");
         }
         catch (Exception ex)
         {
@@ -3857,7 +3850,8 @@ public partial class MainWindow : Window
         finally
         {
             _importInProgress = false;
-            TilesetStudioPanel.SetImportEnabled(true);
+            TilesetStudioPanel.GridSection.SetImportEnabled(true);
+            AnimationStudioPanel.GridSection.SetImportEnabled(true);
         }
     }
 

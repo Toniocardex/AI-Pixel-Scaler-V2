@@ -420,6 +420,37 @@
             </Grid>
           </Border>
 
+          <!-- Selettore studio fisso (sempre visibile, fuori dallo scroll) -->
+          <Border DockPanel.Dock="Top" Background="#0e0e18" Padding="8,7"
+                  BorderThickness="0,0,0,1" BorderBrush="#1e1e2e">
+            <Grid ColumnDefinitions="*,5,*,5,*">
+              <Button Grid.Column="0" x:Name="BtnGoSprite"
+                      Classes="secondary" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Sprite Studio — pulizia, slicing, palette, export">
+                <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                  <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
+                  <TextBlock Text="Sprite" FontSize="11"/>
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="2" x:Name="BtnGoAllinea"
+                      Classes="secondary" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Animation Studio — frame, workbench, preview, pivot">
+                <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                  <Path Data="{StaticResource IconPlay}" Classes="action-icon"/>
+                  <TextBlock Text="Anim" FontSize="11"/>
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="4" x:Name="BtnGoTemplate"
+                      Classes="secondary" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Tileset Studio — palette, seamless, griglia, export Tiled">
+                <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                  <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
+                  <TextBlock Text="Tileset" FontSize="11"/>
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Border>
+
           <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel Margin="12,10" Spacing="6">
 
@@ -444,21 +475,6 @@
             <studios:TilesetStudioView x:Name="TilesetStudioPanel" IsVisible="False"/>
             <studios:AnimationStudioView x:Name="AnimationStudioPanel" IsVisible="False"/>
 
-            <TextBlock Text="Studio" Classes="fieldLabel" Margin="0,2,0,0"/>
-            <TextBlock Foreground="#5a5a6e" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,2"
-                       Text="Tutte le funzioni sono visibili: Sprite, Animation e Tileset raccolgono i comandi esistenti senza tab nascoste."/>
-            <Border Background="#0a0a14" BorderBrush="#1e1e2e" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,6">
-              <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,6,*">
-                  <Button Grid.Column="0" x:Name="BtnGoSprite" Content="Sprite Studio" Classes="primary"/>
-                  <Button Grid.Column="2" x:Name="BtnGoAllinea" Content="Animation Studio" Classes="secondary"/>
-                </Grid>
-                <Grid ColumnDefinitions="*,6,*">
-                  <Button Grid.Column="0" x:Name="BtnGoTemplate" Content="Tileset Studio" Classes="secondary"/>
-                  <Button Grid.Column="2" x:Name="BtnGoStilizza" Content="Stilizza" Classes="secondary"/>
-                </Grid>
-              </StackPanel>
-            </Border>
             <TabControl x:Name="MainTabs" Classes="sidebarTabs" SelectedIndex="0">
 
             <!-- Animation TabItem rimosso: funzioni migrate in AnimationStudioPanel -->

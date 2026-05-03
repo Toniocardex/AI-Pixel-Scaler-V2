@@ -61,7 +61,29 @@ La shell desktop sta migrando in modo progressivo verso tre aree operative:
 
 `SpriteStudioView` e' la prima view Studio introdotta: espone **Nuovo** (canvas vuoto, `NewCanvasDialog`) e **Apri** (import immagine), cleanup, ROI, slicing, floating paste, quantize, resize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni. Il blocco ROI nella view Sprite sincronizza lo stato della selezione corrente e richiama select all, clear, export ROI, crop e remove tramite il `SelectionController` gia' estratto. Il blocco Slicing sincronizza crop manuale, righe/colonne griglia, celle rilevate, export frame e stato atlas pulito con il backplane legacy e il `SlicingController`. Dopo la verifica end-to-end, i tab legacy `Slice` e `Selezione` sono stati rimossi e il loro stato e' gestito da `SpriteStudioView` e campi interni della shell. Il blocco Cleanup/Filtri espone preset, Rimozione sfondo, Edge Refinement, Denoise e Quantize nella view Sprite; prima dell'esecuzione sincronizza lo stato nel runtime e riusa la pipeline esistente. Il blocco trasformazioni/export espone resize nearest, mirror H/V, export PNG e JSON.
 
-`TilesetStudioView` e' la seconda view Studio migrata: espone palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled. Il tab legacy `Tileset` e' stato rimosso; `MainWindow` mantiene un `_tilesetState` come backplane temporaneo e gli handler esistenti leggono da quello stato invece che da controlli XAML legacy. Pivot template e preset di dimensione griglia sono gestiti direttamente dalla view Tileset.
+`TilesetStudioView` e' la seconda view Studio migrata: espone palette/stilizza, seamless/tile preview, pad-to-multiple, crop/POT, snap celle ed export Tiled. Il tab legacy `Tileset` e' stato rimosso; `MainWindow` mantiene un `_tilesetState` come backplane temporaneo. La griglia template, il pivot 3×3, i riferimenti visivi e l'import frame **non** sono piu' gestiti direttamente da TilesetStudioView: sono stati estratti in `GridSectionView` (vedi §4.6).
+
+### 4.6 GridSectionView — sezione griglia condivisa (2026-05-03)
+
+`GridSectionView` e' un `UserControl` autonomo che contiene le operazioni di griglia comuni a **Tileset Studio** e **Animation Studio**. Rimuove la duplicazione precedente in cui l'import frame era presente in entrambi i pannelli e la definizione griglia era accessibile solo dal Tileset.
+
+Funzioni ospitate:
+- Dimensioni cella (W × H) + preset rapidi (16/24/32/48/64/128/256 px)
+- Colonne × Righe + info label (N frame · W×H px)
+- Pivot Point 3×3 (RadioButton grid → 9 posizioni + custom X/Y)
+- Riferimenti visivi (bordi celle, croce pivot, baseline, indici, tinta alternata)
+- **[Genera griglia]** — crea atlas + celle via `GridTemplateGenerator`
+- **[Esporta guida PNG]** — salva la guida griglia su disco
+- **[Importa frame…]** — import multi-PNG centrati nelle celle (handler unificato `RunImportFramesAsync`)
+
+Architettura:
+- `GridSectionAction` enum: `GenerateTemplate`, `ExportTemplatePng`, `ImportFrames`
+- `GridState` record: campi grid (CellW, CellH, Cols, Rows, pivot, refs) — separato da `TilesetState`
+- `TilesetStudioView.GridSection` e `AnimationStudioView.GridSection` espongono la proprietà pubblica `GridSectionView GridSection => GridPanel`
+- `MainWindow` si iscrive a `TilesetStudioPanel.GridSection.ActionRequested` e `AnimationStudioPanel.GridSection.ActionRequested` con l'unico handler `OnGridSectionActionRequested`
+- Prima di agire, `ApplyGridStateFromSection(gs)` sincronizza i campi griglia di `_tilesetState` dalla GridSection che ha sparato l'evento
+- `ActivateStudio` popola la GridSection dello studio appena attivato da `_tilesetState` tramite `GridStateFromTilesetState()`, garantendo la coerenza bidirezionale
+- `BuildTemplateOptions()` non accede piu' a `TilesetStudioPanel.GetPivotPreset()`: usa il nuovo helper statico `PivotPresetFromIndex(_tilesetState.PivotIndex)`
 
 ### 4.2 Filtri Sprite Studio
 
