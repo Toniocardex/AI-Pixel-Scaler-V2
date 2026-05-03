@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studios="clr-namespace:AiPixelScaler.Desktop.Views.Studios"
              x:Class="AiPixelScaler.Desktop.Views.Studios.TilesetStudioView">
   <UserControl.Styles>
     <Style Selector="TextBlock.studio-title">
@@ -124,145 +125,10 @@
       </StackPanel>
     </Border>
 
-    <!-- 5. Griglia template -->
-    <Border Classes="studio-section">
-      <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="Griglia template"/>
+    <!-- 5. Griglia condivisa -->
+    <studios:GridSectionView x:Name="GridPanel"/>
 
-        <!-- Tile W x H -->
-        <Grid ColumnDefinitions="*,12,Auto,12,*">
-          <StackPanel Grid.Column="0" Spacing="2">
-            <TextBlock Classes="studio-hint" Text="Tile W (px)"/>
-            <NumericUpDown x:Name="TplTileCellW" Value="64" Minimum="4" Maximum="2048"
-                           Increment="8" FormatString="0"
-                           ToolTip.Tip="Larghezza di ogni cella in pixel"/>
-          </StackPanel>
-          <TextBlock Grid.Column="2" Text="×" VerticalAlignment="Bottom"
-                     Margin="0,0,0,6" Foreground="#5c5a70" FontSize="14"/>
-          <StackPanel Grid.Column="4" Spacing="2">
-            <TextBlock Classes="studio-hint" Text="Tile H (px)"/>
-            <NumericUpDown x:Name="TplTileCellH" Value="64" Minimum="4" Maximum="2048"
-                           Increment="8" FormatString="0"
-                           ToolTip.Tip="Altezza di ogni cella in pixel"/>
-          </StackPanel>
-        </Grid>
-
-        <!-- Preset size buttons -->
-        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
-          <Button x:Name="BtnTplPreset16"  Classes="secondary" Content="16×16"   Margin="0,0,4,4" Padding="6,2"/>
-          <Button x:Name="BtnTplPreset24"  Classes="secondary" Content="24×24"   Margin="0,0,4,4" Padding="6,2"/>
-          <Button x:Name="BtnTplPreset32"  Classes="secondary" Content="32×32"   Margin="0,0,4,4" Padding="6,2"/>
-          <Button x:Name="BtnTplPreset48"  Classes="secondary" Content="48×48"   Margin="0,0,4,4" Padding="6,2"/>
-          <Button x:Name="BtnTplPreset64"  Classes="primary"   Content="64×64"   Margin="0,0,4,4" Padding="6,2"/>
-          <Button x:Name="BtnTplPreset128" Classes="secondary" Content="128×128" Margin="0,0,4,4" Padding="6,2"/>
-          <Button x:Name="BtnTplPreset256" Classes="secondary" Content="256×256" Margin="0,0,4,4" Padding="6,2"/>
-        </WrapPanel>
-
-        <!-- Colonne x Righe -->
-        <Grid ColumnDefinitions="*,12,Auto,12,*">
-          <StackPanel Grid.Column="0" Spacing="2">
-            <TextBlock Classes="studio-hint" Text="Colonne"/>
-            <NumericUpDown x:Name="TplTileCols" Value="4" Minimum="1" Maximum="128"
-                           Increment="1" FormatString="0"/>
-          </StackPanel>
-          <TextBlock Grid.Column="2" Text="×" VerticalAlignment="Bottom"
-                     Margin="0,0,0,6" Foreground="#5c5a70" FontSize="14"/>
-          <StackPanel Grid.Column="4" Spacing="2">
-            <TextBlock Classes="studio-hint" Text="Righe"/>
-            <NumericUpDown x:Name="TplTileRows" Value="4" Minimum="1" Maximum="128"
-                           Increment="1" FormatString="0"/>
-          </StackPanel>
-        </Grid>
-
-        <TextBlock x:Name="TplTileInfoLabel" Classes="studio-hint"
-                   Text="16 frame · 256×256 px" Foreground="#7a78a0"/>
-
-        <!-- Pivot 3x3 -->
-        <TextBlock Classes="section-title" Text="Pivot Point" Margin="0,4,0,0"/>
-        <Grid ColumnDefinitions="Auto,12,*">
-          <Grid Grid.Column="0" RowDefinitions="28,28,28" ColumnDefinitions="28,28,28"
-                ToolTip.Tip="Seleziona la posizione del pivot in ogni cella">
-            <RadioButton x:Name="TplTilePivotTL" GroupName="TplTilePivot" Grid.Row="0" Grid.Column="0"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotTC" GroupName="TplTilePivot" Grid.Row="0" Grid.Column="1"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotTR" GroupName="TplTilePivot" Grid.Row="0" Grid.Column="2"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotML" GroupName="TplTilePivot" Grid.Row="1" Grid.Column="0"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotCC" GroupName="TplTilePivot" Grid.Row="1" Grid.Column="1"
-                         IsChecked="True"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotMR" GroupName="TplTilePivot" Grid.Row="1" Grid.Column="2"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotBL" GroupName="TplTilePivot" Grid.Row="2" Grid.Column="0"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotBC" GroupName="TplTilePivot" Grid.Row="2" Grid.Column="1"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <RadioButton x:Name="TplTilePivotBR" GroupName="TplTilePivot" Grid.Row="2" Grid.Column="2"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Grid>
-          <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center">
-            <TextBlock x:Name="TplTilePivotLabel" Text="Center" FontWeight="SemiBold" Foreground="#c8c0e0"/>
-            <TextBlock x:Name="TplTilePivotCoords" Text="x=0.50 · y=0.50" Classes="studio-hint" FontFamily="Consolas,Monospace"/>
-            <StackPanel Orientation="Horizontal" Spacing="6" x:Name="TplTileCustomXYPanel" IsVisible="False">
-              <NumericUpDown x:Name="TplTilePivotX" Value="0.5" Minimum="0" Maximum="1"
-                             Increment="0.05" FormatString="0.00" Width="72"
-                             ToolTip.Tip="Pivot X (0=sinistra, 1=destra)"/>
-              <NumericUpDown x:Name="TplTilePivotY" Value="0.5" Minimum="0" Maximum="1"
-                             Increment="0.05" FormatString="0.00" Width="72"
-                             ToolTip.Tip="Pivot Y (0=top, 1=bottom)"/>
-            </StackPanel>
-          </StackPanel>
-        </Grid>
-
-        <!-- Riferimenti -->
-        <TextBlock Classes="section-title" Text="Riferimenti (AI guide)" Margin="0,4,0,0"/>
-        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
-          <CheckBox x:Name="TplTileShowBorder"   IsChecked="True"  Content="Bordi celle"     Margin="0,0,12,4"/>
-          <CheckBox x:Name="TplTileShowPivot"    IsChecked="True"  Content="Pivot (croce)"   Margin="0,0,12,4"/>
-          <CheckBox x:Name="TplTileShowBaseline" IsChecked="True"  Content="Baseline"        Margin="0,0,12,4"/>
-          <CheckBox x:Name="TplTileShowIndex"    IsChecked="True"  Content="Indici"          Margin="0,0,12,4"/>
-          <CheckBox x:Name="TplTileShowTint"     IsChecked="False" Content="Tinta alternata" Margin="0,0,12,4"/>
-        </WrapPanel>
-
-        <!-- Azioni griglia -->
-        <Grid ColumnDefinitions="*,8,*">
-          <Button x:Name="BtnTilesetGenerateTemplate" Grid.Column="0" Classes="primary" HorizontalAlignment="Stretch"
-                  ToolTip.Tip="Visualizza la griglia nel canvas e la promuove a documento di lavoro">
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-              <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
-              <TextBlock Text="Genera griglia"/>
-            </StackPanel>
-          </Button>
-          <Button x:Name="BtnTilesetExportTemplate" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
-                  ToolTip.Tip="Salva la guida griglia come PNG separato su disco">
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-              <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-              <TextBlock Text="Esporta guida PNG"/>
-            </StackPanel>
-          </Button>
-        </Grid>
-      </StackPanel>
-    </Border>
-
-    <!-- 6. Composizione -->
-    <Border Classes="studio-section">
-      <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="Composizione"/>
-        <TextBlock Classes="studio-hint"
-                   Text="Seleziona più PNG (un file = un frame). Ordinati alfabeticamente, centrati nelle celle della griglia sopra."/>
-        <Button x:Name="BtnTilesetImportFrames" Classes="primary" HorizontalAlignment="Stretch"
-                ToolTip.Tip="Apre selettore multi-file PNG e compone la spritesheet centrata nella griglia corrente.">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
-            <TextBlock Text="Importa frame"/>
-          </StackPanel>
-        </Button>
-      </StackPanel>
-    </Border>
-
-    <!-- 7. Export e strumenti avanzati -->
+    <!-- 6. Export e strumenti avanzati -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Export"/>

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studios="clr-namespace:AiPixelScaler.Desktop.Views.Studios"
              x:Class="AiPixelScaler.Desktop.Views.Studios.AnimationStudioView">
   <UserControl.Styles>
     <Style Selector="TextBlock.studio-title">
@@ -61,7 +62,10 @@
       </StackPanel>
     </Border>
 
-    <!-- 2. Frame Workbench -->
+    <!-- 2. Griglia condivisa -->
+    <studios:GridSectionView x:Name="GridPanel"/>
+
+    <!-- 3. Frame Workbench -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Frame Workbench"/>
@@ -99,7 +103,7 @@
       </StackPanel>
     </Border>
 
-    <!-- 3. Azioni rapide -->
+    <!-- 4. Azioni rapide -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Azioni rapide (tutti i frame)"/>
@@ -133,7 +137,7 @@
       </StackPanel>
     </Border>
 
-    <!-- 4. Frame selezionato -->
+    <!-- 5. Frame selezionato -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Frame selezionato"/>
@@ -172,21 +176,10 @@
       </StackPanel>
     </Border>
 
-    <!-- 5. Strumenti avanzati -->
+    <!-- 6. Export / Import -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Export / Import"/>
-
-        <!-- Importa PNG nelle celle della griglia corrente -->
-        <TextBlock Classes="studio-hint"
-                   Text="Seleziona più PNG: vengono ordinati alfabeticamente e centrati nelle celle della griglia."/>
-        <Button x:Name="BtnAnimImportFrames" Classes="primary" HorizontalAlignment="Stretch"
-                ToolTip.Tip="Importa più file PNG e li centra nelle celle della griglia corrente (richiede griglia definita).">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
-            <TextBlock Text="Importa frame…"/>
-          </StackPanel>
-        </Button>
 
         <!-- Da video e export -->
         <Grid ColumnDefinitions="*,4,*">
