@@ -59,7 +59,7 @@ La shell desktop sta migrando in modo progressivo verso tre aree operative:
 
 `MainWindow` resta per ora la shell di compatibilita': gestisce toolbar, workspace condiviso, stato documento e routing tra Start Page e Studio attivo. La logica applicativa viene estratta gradualmente in controller dedicati sotto `AiPixelScaler.Desktop/Controllers`.
 
-`SpriteStudioView` e' la prima view Studio introdotta: espone import, cleanup, ROI, slicing, floating paste, quantize, resize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni. Il blocco ROI nella view Sprite sincronizza lo stato della selezione corrente e richiama select all, clear, export ROI, crop e remove tramite il `SelectionController` gia' estratto. Il blocco Slicing sincronizza crop manuale, righe/colonne griglia, celle rilevate, export frame e stato atlas pulito con il backplane legacy e il `SlicingController`. Dopo la verifica end-to-end, i tab legacy `Slice` e `Selezione` sono stati rimossi e il loro stato e' gestito da `SpriteStudioView` e campi interni della shell. Il blocco Cleanup/Filtri espone preset, Rimozione sfondo, Edge Refinement, Denoise e Quantize nella view Sprite; prima dell'esecuzione sincronizza lo stato nel runtime e riusa la pipeline esistente. Il blocco trasformazioni/export espone resize nearest, mirror H/V, export PNG e JSON.
+`SpriteStudioView` e' la prima view Studio introdotta: espone **Nuovo** (canvas vuoto, `NewCanvasDialog`) e **Apri** (import immagine), cleanup, ROI, slicing, floating paste, quantize, resize/mirror ed export come comandi visibili. In questa fase richiama ancora gli handler di `MainWindow`, cosi' la migrazione UI puo' procedere senza cambiare comportamento o nascondere funzioni. Il blocco ROI nella view Sprite sincronizza lo stato della selezione corrente e richiama select all, clear, export ROI, crop e remove tramite il `SelectionController` gia' estratto. Il blocco Slicing sincronizza crop manuale, righe/colonne griglia, celle rilevate, export frame e stato atlas pulito con il backplane legacy e il `SlicingController`. Dopo la verifica end-to-end, i tab legacy `Slice` e `Selezione` sono stati rimossi e il loro stato e' gestito da `SpriteStudioView` e campi interni della shell. Il blocco Cleanup/Filtri espone preset, Rimozione sfondo, Edge Refinement, Denoise e Quantize nella view Sprite; prima dell'esecuzione sincronizza lo stato nel runtime e riusa la pipeline esistente. Il blocco trasformazioni/export espone resize nearest, mirror H/V, export PNG e JSON.
 
 `TilesetStudioView` e' la seconda view Studio migrata: espone palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled. Il tab legacy `Tileset` e' stato rimosso; `MainWindow` mantiene un `_tilesetState` come backplane temporaneo e gli handler esistenti leggono da quello stato invece che da controlli XAML legacy. Pivot template e preset di dimensione griglia sono gestiti direttamente dalla view Tileset.
 
@@ -99,6 +99,26 @@ Architettura tecnica:
 Formati futuri (non in MVP): MOV, WebM, AVI.
 Fuori MVP: deduplica, scene detection, crop ROI, cleanup batch, export atlas diretto.
 Integrazione Sprite: solo destinazione futura secondaria per frame singolo da pulire/slicare.
+
+### 4.4 Sprite Studio: Nuovo canvas (`NewCanvasDialog` — 2026-05-03)
+
+Il pulsante **"Nuovo"** in Sprite Studio apre `NewCanvasDialog` per creare un foglio di lavoro vuoto.
+
+- Larghezza e altezza in pixel (1–8192, default 256×256).
+- Sfondo sceglibile tra: Trasparente, Bianco (`#FFFFFF`), Nero (`#000000`), Magenta (`#FF00FF`), Verde (`#00FF00`), Blu (`#0000FF`).
+- Il canvas viene aperto nello stesso flusso di `OpenImageAsync` (undo, workspace tab, fit viewport).
+
+### 4.5 EditorSurface: miglioramenti di visualizzazione (2026-05-03)
+
+**Bordo documento (`ShowDocumentBorder`):**
+Proprieta' `StyledProperty<bool>` con default `true`. Disegna un bordo arancione (`rgba(255,165,0,220)`, stesso colore di `SnapDotBrush`) attorno ai limiti esatti del documento dopo il rendering del bitmap. Indispensabile su canvas trasparenti dove i pixel non forniscono riferimento visivo. Il bordo scala con lo zoom (spessore `1.5 / zoom` px). Disattivato in modalita' workbench e tile preview (questi hanno gia' i propri overlay).
+
+**Griglia a doppio passaggio:**
+`DrawLightGrid` accetta ora un secondo parametro `Pen? darkPen`. In `Render`, la griglia viene tracciata con due pass sovrapposti:
+- `DarkGridBrush = rgba(0,0,0, 85)` — 33 % nero: visibile su sfondi chiari (bianco, verde, blu, magenta).
+- `LightGridBrush = rgba(255,255,255, 60)` — 24 % bianco: visibile su sfondi scuri (nero, checker).
+
+La combinazione garantisce visibilita' della griglia su qualsiasi colore di sfondo scelto nel `NewCanvasDialog`.
 
 ---
 
