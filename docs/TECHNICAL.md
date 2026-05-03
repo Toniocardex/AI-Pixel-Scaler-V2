@@ -89,10 +89,11 @@ Scope MVP implementato:
 
 Architettura tecnica:
 
-- `Services/FFmpegLocator.cs` — rileva ffmpeg/ffprobe nel PATH di sistema (`where`) o nel percorso configurato manualmente;
+- `Services/FFmpegLocator.cs` — rileva ffmpeg/ffprobe con strategia a tre passi: 1) PATH di sistema (`where`), 2) cartella di download automatico (`%LOCALAPPDATA%\AiPixelScaler\ffmpeg`), 3) percorso manuale salvato nelle preferenze;
+- `Services/FFmpegDownloader.cs` — scarica `ffmpeg-release-essentials.zip` da gyan.dev via `HttpClient` in streaming, estrae solo `ffmpeg.exe` e `ffprobe.exe` in `%LOCALAPPDATA%\AiPixelScaler\ffmpeg`; supporta `IProgress<(long, long?)>` e `CancellationToken`;
 - `Services/VideoFrameExtractor.cs` — wrapper `System.Diagnostics.Process`: `GetMetadataAsync` (ffprobe JSON) + `ExtractFramesAsync` (ffmpeg, FPS o every-N, cancellazione via `CancellationToken`);
 - `Services/UiPreferencesService.cs` — esteso con campo `FfmpegFolder` nel JSON `%LOCALAPPDATA%\AiPixelScaler\ui-preferences.json`;
-- `Views/FfmpegConfigDialog.cs` — dialog "FFmpeg non trovato" con browser cartella e validazione esistenza eseguibili;
+- `Views/FfmpegSetupDialog.cs` — dialog unificato "Configura FFmpeg": sezione download automatico con ProgressBar + annullamento, sezione percorso manuale con folder browser; sostituisce il precedente `FfmpegConfigDialog`;
 - `Views/VideoImportDialog.cs` — dialog import con stima frame live.
 
 Formati futuri (non in MVP): MOV, WebM, AVI.

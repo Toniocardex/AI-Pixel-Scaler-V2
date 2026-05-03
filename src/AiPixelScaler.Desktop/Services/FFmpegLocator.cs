@@ -13,6 +13,7 @@ internal static class FFmpegLocator
 {
     /// <summary>
     /// Prova a individuare ffmpeg e ffprobe.
+    /// Strategia: 1) PATH  2) cartella download automatico  3) cartella manuale.
     /// Restituisce <c>true</c> se entrambi gli eseguibili sono stati trovati.
     /// </summary>
     internal static bool TryLocate(
@@ -30,7 +31,18 @@ internal static class FFmpegLocator
             return true;
         }
 
-        // 2. Cerca nella cartella configurata manualmente
+        // 2. Cerca nella cartella di download automatico (%LOCALAPPDATA%\AiPixelScaler\ffmpeg)
+        var autoFolder = FFmpegDownloader.AutoInstallFolder;
+        var af1 = Path.Combine(autoFolder, "ffmpeg.exe");
+        var af2 = Path.Combine(autoFolder, "ffprobe.exe");
+        if (File.Exists(af1) && File.Exists(af2))
+        {
+            ffmpegPath  = af1;
+            ffprobePath = af2;
+            return true;
+        }
+
+        // 3. Cerca nella cartella configurata manualmente
         var folder = prefs.LoadFfmpegFolder();
         if (!string.IsNullOrWhiteSpace(folder))
         {

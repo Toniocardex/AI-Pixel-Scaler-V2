@@ -2157,7 +2157,7 @@ public partial class MainWindow : Window
         // 1. Individua FFmpeg
         if (!AiPixelScaler.Desktop.Services.FFmpegLocator.TryLocate(_uiPrefs, out var ffmpegPath, out var ffprobePath))
         {
-            var folder = await FfmpegConfigDialog.ShowAsync(this, _uiPrefs.LoadFfmpegFolder());
+            var folder = await FfmpegSetupDialog.ShowAsync(this, _uiPrefs.LoadFfmpegFolder());
             if (folder is null) return;
             _uiPrefs.SaveFfmpegFolder(folder);
             if (!AiPixelScaler.Desktop.Services.FFmpegLocator.TryLocate(_uiPrefs, out ffmpegPath, out ffprobePath))
