@@ -260,18 +260,40 @@
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="④ Denoise"/>
             <TextBlock Classes="studio-hint"
-                       Text="Rimuove rumore pixel-level integrato nella pipeline: isole opache minuscole e variazioni di colore localizzate."/>
+                       Text="Due filtri distinti: Island Cleanup rimuove blob opachi isolati, Majority Denoise rimappa pixel anomali via voto di maggioranza."/>
+
+            <!-- Island Cleanup -->
+            <TextBlock Classes="group-label" Text="ISLAND CLEANUP"/>
             <Grid ColumnDefinitions="*,6,48">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
-                         Text="Isole min (px)"
-                         ToolTip.Tip="Rimuove gruppi opachi connessi con area &lt; N px durante il cleanup pipeline. Default 2."/>
+                         Text="Blob min (px)"
+                         ToolTip.Tip="Rimuove componenti connesse opache con area strettamente minore di N px. Default 2 = elimina solo pixel singoli isolati. Aumenta con cautela: valori alti cancellano dettagli fini."/>
               <TextBox x:Name="TxtSpriteMinIsland" Grid.Column="2" Text="2"/>
             </Grid>
-            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Majority vote 3×3"
-                      ToolTip.Tip="Rimappa ogni pixel al colore più frequente nel vicinato 3×3 (majority vote). Riduce il rumore puntuale."/>
-            <Button x:Name="BtnSpriteDenoise" Classes="secondary" HorizontalAlignment="Stretch"
-                    Content="Applica denoise"
-                    ToolTip.Tip="Esegue la rimozione delle isole minime e il majority vote con i parametri impostati sopra."/>
+            <Button x:Name="BtnSpriteIslandCleanup" Classes="secondary" HorizontalAlignment="Stretch"
+                    Content="Island Cleanup"
+                    ToolTip.Tip="Rimuove blob opachi isolati con area &lt; 'Blob min'. Usa il valore minimo (2) per sicurezza: rimuove solo pixel singoli senza vicini opachi."/>
+
+            <Border Classes="h-sep"/>
+
+            <!-- Majority Denoise -->
+            <TextBlock Classes="group-label" Text="MAJORITY DENOISE"/>
+            <Grid ColumnDefinitions="*,6,48">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Vicini min uguali"
+                         ToolTip.Tip="Se un pixel ha meno di N vicini 8-connessi con lo stesso colore, viene sostituito con il colore più frequente intorno. Default 1 = rimuove solo pixel completamente isolati per colore. Aumenta per effetto più aggressivo."/>
+              <TextBox x:Name="TxtSpriteMajorityMinNeighbors" Grid.Column="2" Text="1"/>
+            </Grid>
+            <Button x:Name="BtnMajorityDenoise" Classes="secondary" HorizontalAlignment="Stretch"
+                    Content="Majority Denoise"
+                    ToolTip.Tip="Rimappa ogni pixel anomalo al colore più frequente nel vicinato 3×3. Soglia 1 = solo pixel senza alcun vicino del loro stesso colore."/>
+
+            <Border Classes="h-sep"/>
+
+            <!-- Pipeline: opzioni integrate nel cleanup automatico -->
+            <TextBlock Classes="group-label" Text="PIPELINE"/>
+            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Majority vote nella pipeline"
+                      ToolTip.Tip="Attiva il Majority Denoise durante il cleanup automatico (Run Cleanup / Pipeline). Usa 'Vicini min uguali' come soglia."/>
           </StackPanel>
         </Border>
 

@@ -59,7 +59,8 @@ public partial class SpriteStudioView : UserControl
                 BtnBgModeGlobal.IsChecked = true;
             }
         };
-        BtnSpriteDenoise.Click += (_, _) => Request(SpriteStudioAction.ApplyDenoise);
+        BtnSpriteIslandCleanup.Click += (_, _) => Request(SpriteStudioAction.ApplyIslandCleanup);
+        BtnMajorityDenoise.Click += (_, _) => Request(SpriteStudioAction.ApplyMajorityDenoise);
         BtnSpriteSelect.Click += (_, _) => Request(SpriteStudioAction.SelectArea);
         BtnSpriteSelectAll.Click += (_, _) => Request(SpriteStudioAction.SelectAll);
         BtnSpriteClearSelection.Click += (_, _) => Request(SpriteStudioAction.ClearSelection);
@@ -175,6 +176,7 @@ public partial class SpriteStudioView : UserControl
         TxtSpriteOutlineHex.Text ?? string.Empty,
         TxtSpriteMinIsland.Text ?? string.Empty,
         ChkSpriteMajorityDenoise.IsChecked == true,
+        TxtSpriteMajorityMinNeighbors.Text ?? string.Empty,
         ChkSpriteQuantize.IsChecked == true,
         TxtSpriteQuantizeColors.Text ?? string.Empty,
         CmbSpriteQuantizeMethod.SelectedIndex);
@@ -194,6 +196,7 @@ public partial class SpriteStudioView : UserControl
             TxtSpriteOutlineHex.Text = state.OutlineHex;
             TxtSpriteMinIsland.Text = state.MinIsland;
             ChkSpriteMajorityDenoise.IsChecked = state.EnableMajorityDenoise;
+            TxtSpriteMajorityMinNeighbors.Text = state.MajorityMinNeighbors;
             ChkSpriteQuantize.IsChecked = state.EnableQuantize;
             TxtSpriteQuantizeColors.Text = state.QuantizeColors;
             CmbSpriteQuantizeMethod.SelectedIndex = state.QuantizeMethodIndex;
@@ -277,6 +280,9 @@ public partial class SpriteStudioView : UserControl
     /// <summary>Dimensione minima cluster da mantenere per RemoveIsolatedIslands.</summary>
     public string AnomalyMinIslandText => TxtAnomalyMinIsland.Text ?? "4";
 
+    /// <summary>Soglia vicini identici per il Majority Denoise standalone.</summary>
+    public string MajorityMinNeighborsText => TxtSpriteMajorityMinNeighbors.Text ?? "1";
+
     /// <summary>Tolleranza RGB per RemoveColorOutliers.</summary>
     public string AnomalyOutlierTolText => TxtAnomalyOutlierTol.Text ?? "20";
 
@@ -319,6 +325,7 @@ public sealed record SpriteCleanupState(
     string OutlineHex,
     string MinIsland,
     bool EnableMajorityDenoise,
+    string MajorityMinNeighbors,
     bool EnableQuantize,
     string QuantizeColors,
     int QuantizeMethodIndex);

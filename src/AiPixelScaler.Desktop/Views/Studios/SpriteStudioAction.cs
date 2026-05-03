@@ -13,7 +13,8 @@ public enum SpriteStudioAction
     ApplyMedian,
     ApplyBackgroundIsolation,
     ApplyGlobalChromaKey,           // scansione globale: rimuove isole interne non connesse al bordo
-    ApplyDenoise,
+    ApplyIslandCleanup,             // rimuove blob opachi isolati < soglia px
+    ApplyMajorityDenoise,           // rimappa pixel anomali via majority vote 3×3
     MorphologyErode,                // morfologia: erode bordo opaco di 1px per iterazione
     MorphologyDilate,               // morfologia: dilata bordo opaco di 1px (edge padding)
     MorphologyOpen,                 // morfologia: erode poi dilata (rimuove protrusioni/pixel isolati)

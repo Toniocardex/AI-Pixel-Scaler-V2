@@ -23,7 +23,8 @@ public sealed class PipelineViewModel
         string OutlineHex,
         bool EnableAlphaThreshold,
         string AlphaThreshold,
-        string DefringeOpaque = "250");
+        string DefringeOpaque = "250",
+        string MajorityMinNeighbors = "1");
 
     private sealed record PipelineValidatedSettings(
         bool EnableBackgroundIsolation,
@@ -142,7 +143,8 @@ public sealed class PipelineViewModel
             OutlineHex: normalized.OutlineHex,
             EnableAlphaThreshold: normalized.AlphaThreshold.HasValue,
             AlphaThreshold: (normalized.AlphaThreshold ?? (byte)128).ToString(CultureInfo.InvariantCulture),
-            DefringeOpaque: "250");
+            DefringeOpaque: "250",
+            MajorityMinNeighbors: Math.Max(1, MajorityMinSameNeighbors).ToString(CultureInfo.InvariantCulture));
     }
 
     public bool TryBuildOptionsFromFormState(PipelineFormState formState, bool includeOutline, out PixelArtPipeline.Options options, out string error)
@@ -189,6 +191,7 @@ public sealed class PipelineViewModel
             _ => PixelArtProcessor.QuantizerKind.Wu,
         };
         EnableMajorityDenoise = majorityEnabled;
+        MajorityMinSameNeighbors = ParseIntInRange(formState.MajorityMinNeighbors, 1, 1, int.MaxValue);
         var defaultMinIsland = ActivePreset == PresetKind.Aggressive ? 3 : 2;
         IslandMinArea = majorityEnabled ? ParseIntInRange(formState.MinIsland, defaultMinIsland, 1, int.MaxValue) : null;
         EnableOutline = outlineEnabled;

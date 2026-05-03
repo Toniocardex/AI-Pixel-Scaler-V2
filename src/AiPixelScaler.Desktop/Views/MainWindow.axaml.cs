@@ -385,9 +385,12 @@ public partial class MainWindow : Window
             case SpriteStudioAction.ActivatePipetteForBackground:
                 ActivatePipette(0);
                 break;
-            case SpriteStudioAction.ApplyDenoise:
+            case SpriteStudioAction.ApplyIslandCleanup:
                 ApplySpriteCleanupStateToControls();
-                RunDenoise();
+                RunIslandCleanup();
+                break;
+            case SpriteStudioAction.ApplyMajorityDenoise:
+                RunMajorityDenoise();
                 break;
             case SpriteStudioAction.SelectArea:
                 if (!_toolbarSelectionModeEnabled)
@@ -621,6 +624,7 @@ public partial class MainWindow : Window
             OutlineHex = state.OutlineHex,
             EnableMajorityDenoise = state.EnableMajorityDenoise,
             MinIsland = state.MinIsland,
+            MajorityMinNeighbors = state.MajorityMinNeighbors,
             EnableQuantize = state.EnableQuantize,
             MaxColors = state.QuantizeColors,
             QuantizerIndex = state.QuantizeMethodIndex
@@ -640,6 +644,7 @@ public partial class MainWindow : Window
             OutlineHex: _pipelineFormState.OutlineHex,
             MinIsland: _pipelineFormState.MinIsland,
             EnableMajorityDenoise: _pipelineFormState.EnableMajorityDenoise,
+            MajorityMinNeighbors: _pipelineFormState.MajorityMinNeighbors,
             EnableQuantize: _pipelineFormState.EnableQuantize,
             QuantizeColors: _pipelineFormState.MaxColors,
             QuantizeMethodIndex: _pipelineFormState.QuantizerIndex));
@@ -2144,14 +2149,26 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RunDenoise()
+    private void RunIslandCleanup()
     {
         var minA = Math.Max(1, InputParsing.ParseInt(_pipelineFormState.MinIsland, 2));
         RunTransform(
             img => IslandDenoise.ApplyInPlace(img, new IslandDenoise.Options(1, minA)),
-            $"Pixel isolati rimossi (soglia: {minA} px).",
+            $"Island cleanup applicato (blob < {minA} px rimossi).",
             clearCells: true,
-            "Errore denoise");
+            "Errore island cleanup");
+        _cleanApplied = true;
+        UpdateWorkspaceGuidance();
+    }
+
+    private void RunMajorityDenoise()
+    {
+        var minNeighbors = Math.Max(1, InputParsing.ParseInt(SpriteStudioPanel.MajorityMinNeighborsText, 1));
+        RunTransform(
+            img => MajorityNeighborDenoise.ApplyInPlace(img, minNeighbors),
+            $"Majority denoise applicato (vicini min: {minNeighbors}).",
+            clearCells: true,
+            "Errore majority denoise");
         _cleanApplied = true;
         UpdateWorkspaceGuidance();
     }
