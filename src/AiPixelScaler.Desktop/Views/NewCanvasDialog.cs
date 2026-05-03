@@ -36,11 +36,11 @@ internal sealed class NewCanvasDialog : Window
         // --- Sfondo ---
         _cbBg = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0 };
         _cbBg.Items.Add(new ComboBoxItem { Content = "Trasparente" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Bianco           (#FFFFFF)" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Nero             (#000000)" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Chroma magenta   (#FF00FF)" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Chroma green screen (#00FF00)" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Chroma blue screen  (#0000FF)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Bianco  (#FFFFFF)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Nero    (#000000)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Magenta (#FF00FF)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Verde   (#00FF00)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Blu     (#0000FF)" });
         var rowBg = MakeRow("Sfondo", _cbBg);
 
         // --- Pulsanti ---

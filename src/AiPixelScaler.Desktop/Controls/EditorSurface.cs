@@ -186,7 +186,8 @@ public class EditorSurface : Control
     private static readonly SolidColorBrush SnapDotBrush        = new(Avalonia.Media.Color.FromArgb(220, 255, 165, 0));
     private static readonly SolidColorBrush SnapGuideBrush      = new(Avalonia.Media.Color.FromArgb(110, 255, 165, 0));
     private static readonly SolidColorBrush TilePreviewBrush    = new(Avalonia.Media.Color.FromArgb(180, 255, 200, 0));
-    private static readonly SolidColorBrush DocBorderBrush      = new(Avalonia.Media.Color.FromArgb(140, 175, 180, 205));
+    // Stesso arancione di SnapDotBrush: massimo contrasto su verde, magenta, blu, nero e checker.
+    private static readonly SolidColorBrush DocBorderBrush      = new(Avalonia.Media.Color.FromArgb(220, 255, 165, 0));
     private static readonly SolidColorBrush FloatingBrush       = new(Avalonia.Media.Color.FromArgb(255, 255, 220, 80));
     private static readonly SolidColorBrush EraserOutlineBrush  = new(Avalonia.Media.Color.FromArgb(220, 255, 80,  80));
 
@@ -746,7 +747,7 @@ public class EditorSurface : Control
         _eraserOutPen    = new Pen(EraserOutlineBrush, t5)
             { LineCap = PenLineCap.Square, LineJoin = PenLineJoin.Miter };
         _tilePreviewPen  = new Pen(TilePreviewBrush,  t5);
-        _docBorderPen    = new Pen(DocBorderBrush,    t);
+        _docBorderPen    = new Pen(DocBorderBrush,    t5);
         _floatingPen     = new Pen(FloatingBrush,     1.2 * t)
             { DashStyle = new DashStyle([3.0, 3.0], 0) };
         _selSnapGuidePen = new Pen(SnapGuideBrush,    0.8 * t);
