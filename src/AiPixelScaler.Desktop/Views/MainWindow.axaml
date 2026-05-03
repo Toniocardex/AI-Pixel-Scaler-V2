@@ -166,6 +166,10 @@
                       Header="Ritaglia a selezione"/>
             <MenuItem x:Name="MiToolbarRemoveSelectedArea"
                       Header="Rimuovi area selezionata (Canc)"/>
+            <Separator/>
+            <MenuItem x:Name="MiToolbarExportSelection"
+                      Header="Esporta selezione…"
+                      ToolTip.Tip="Esporta l'area selezionata come PNG separato"/>
             </MenuFlyout>
           </Button.Flyout>
         </Button>

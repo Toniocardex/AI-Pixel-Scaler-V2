@@ -174,6 +174,7 @@ public partial class MainWindow : Window
         MiToolbarSelectionMode.Click += (_, _) => ToggleToolbarSelectionMode();
         MiToolbarCropToSelection.Click += (_, _) => CropToSelection();
         MiToolbarRemoveSelectedArea.Click += (_, _) => RemoveSelectedArea();
+        MiToolbarExportSelection.Click += async (_, _) => await ExportSelectionAsync();
         MenuAnimPreview.Click += (_, _) => OpenAnimationPreview();
         EmptyStateOpen.Click += async (_, _) => await OpenImageAsync();
 
