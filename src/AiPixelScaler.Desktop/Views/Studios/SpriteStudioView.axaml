@@ -17,6 +17,12 @@
       <Setter Property="FontSize" Value="12"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
+    <Style Selector="TextBlock.group-label">
+      <Setter Property="Foreground" Value="#3d4666"/>
+      <Setter Property="FontSize" Value="9"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="LetterSpacing" Value="1.5"/>
+    </Style>
     <Style Selector="Border.studio-section">
       <Setter Property="Background" Value="#0a0c14"/>
       <Setter Property="BorderBrush" Value="#23283a"/>
@@ -25,77 +31,135 @@
       <Setter Property="Padding" Value="9"/>
       <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
+    <Style Selector="Border.h-sep">
+      <Setter Property="Height" Value="1"/>
+      <Setter Property="Background" Value="#1a2035"/>
+      <Setter Property="Margin" Value="0,4"/>
+    </Style>
+    <Style Selector="Border.sub-card">
+      <Setter Property="Background" Value="#090b12"/>
+      <Setter Property="BorderBrush" Value="#1d2333"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="7"/>
+    </Style>
   </UserControl.Styles>
 
   <StackPanel Spacing="0">
-    <Border Background="#111827" BorderBrush="#2d3652" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+
+    <!-- ═══ HEADER ═══════════════════════════════════════════════════════════ -->
+    <Border Background="#111827" BorderBrush="#2d3652" BorderThickness="1"
+            CornerRadius="6" Padding="10" Margin="0,0,0,8">
       <StackPanel Spacing="4">
         <TextBlock Classes="studio-title" Text="Sprite Studio"/>
         <TextBlock Classes="studio-hint"
-                   Text="Gestione frame statico: import, pulizia, ROI, slicing, palette e export sprite."/>
+                   Text="Pulizia sprite pixel art: import, rimozione sfondo, raffinamento, slicing e export."/>
       </StackPanel>
     </Border>
 
+    <!-- ═══ PIPELINE ══════════════════════════════════════════════════════════
+         Questa sezione contiene TUTTE le azioni eseguibili. I filtri nel blocco
+         sottostante configurano i parametri; qui si esegue.
+    ════════════════════════════════════════════════════════════════════════════ -->
     <Border Classes="studio-section">
-      <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="Flusso di lavoro"/>
+      <StackPanel Spacing="6">
+
         <Button x:Name="BtnSpriteOpen" Classes="primary" HorizontalAlignment="Stretch">
           <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
             <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
             <TextBlock Text="Apri immagine"/>
           </StackPanel>
         </Button>
-        <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteDefault" Grid.Column="0" Classes="secondary" Content="Default"/>
-          <Button x:Name="BtnSpriteCleanup" Grid.Column="2" Classes="secondary" Content="Cleanup"/>
-        </Grid>
-        <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteSafe" Grid.Column="0" Classes="secondary" Content="Sicuro"/>
-          <Button x:Name="BtnSpriteAggressive" Grid.Column="2" Classes="secondary" Content="Aggressivo"/>
-        </Grid>
-        <Button x:Name="BtnSpriteOneClick" Classes="secondary" HorizontalAlignment="Stretch">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
-            <TextBlock Text="One-click cleanup"/>
-          </StackPanel>
-        </Button>
-      </StackPanel>
-    </Border>
 
-    <Border Classes="studio-section">
-      <StackPanel Spacing="7">
+        <Border Classes="h-sep"/>
+
+        <!-- Preset parametri -->
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Grid.Column="0" Classes="section-title" Text="Filtri Sprite"/>
+          <TextBlock Grid.Column="0" Classes="group-label" VerticalAlignment="Center"
+                     Text="PRESET PARAMETRI"/>
           <Border x:Name="PresetBadgeBorder" Grid.Column="1"
                   Background="#1e2a1e" BorderBrush="#2d4a2d" BorderThickness="1"
                   CornerRadius="3" Padding="5,2" IsVisible="False">
             <TextBlock x:Name="TxtPresetBadge" FontSize="10" Foreground="#7ab87a" Text="Default"/>
           </Border>
         </Grid>
-        <TextBlock Classes="studio-hint" Text="Preset, cleanup e filtri dettagliati agiscono sugli stessi parametri della pipeline."/>
+        <TextBlock Classes="studio-hint"
+                   Text="Carica un set di parametri consigliato nel pannello Filtri, poi esegui."/>
+        <Grid ColumnDefinitions="*,4,*,4,*">
+          <Button x:Name="BtnSpriteDefault" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  Content="Default"
+                  ToolTip.Tip="Parametri bilanciati: punto di partenza consigliato per la maggior parte degli sprite."/>
+          <Button x:Name="BtnSpriteSafe" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  Content="Sicuro"
+                  ToolTip.Tip="Tolleranze basse: ideale per sprite con colori interni simili allo sfondo (rischio falsi positivi ridotto)."/>
+          <Button x:Name="BtnSpriteAggressive" Grid.Column="4" Classes="secondary" HorizontalAlignment="Stretch"
+                  Content="Aggressivo"
+                  ToolTip.Tip="Tolleranze alte: ideale per sfondi uniformi netti. Attenzione ai falsi positivi su colori simili allo sfondo."/>
+        </Grid>
+
+        <Border Classes="h-sep"/>
+
+        <!-- Esegui -->
+        <TextBlock Classes="group-label" Text="ESEGUI PIPELINE"/>
+        <Button x:Name="BtnSpriteOneClick" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Analizza l'immagine e applica in automatico quantize, rimozione sfondo e raffinamento senza interazione manuale.">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconWand}" Classes="action-icon"/>
+            <TextBlock Text="One-click AI cleanup"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnSpriteCleanup" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Esegue il cleanup rapido con i parametri attualmente impostati nel pannello Filtri (senza upscaling).">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconCheck}" Classes="action-icon"/>
+            <TextBlock Text="Quick cleanup"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnSpritePipelineApply" Classes="primary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Applica la pipeline completa con i filtri selezionati (include upscaling se abilitato nel pannello Pipeline principale).">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconCheck}" Classes="action-icon"/>
+            <TextBlock Text="Applica pipeline completa"/>
+          </StackPanel>
+        </Button>
+
+      </StackPanel>
+    </Border>
+
+    <!-- ═══ FILTRI SPRITE ═════════════════════════════════════════════════════
+         Configurazione parametri. Ordine: Quantize → Sfondo → Bordi → Denoise → Morfo.
+    ════════════════════════════════════════════════════════════════════════════ -->
+    <Border Classes="studio-section">
+      <StackPanel Spacing="7">
+        <TextBlock Classes="section-title" Text="Filtri sprite"/>
+        <TextBlock Classes="studio-hint"
+                   Text="Configura i parametri di ogni step, poi usa i pulsanti nella sezione Pipeline per eseguire."/>
 
         <!-- ① Quantize ─────────────────────────────────────────────────────── -->
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+        <Border Classes="sub-card">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="① Quantize — Prepara palette"/>
-            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Riduci i colori prima di rimuovere lo sfondo: unifica le variazioni cromatiche dell'AI in una palette pulita. Il colore chiave sfondo viene aggiornato automaticamente dopo l'applicazione."/>
-            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita Quantize nella pipeline"/>
-            <Grid ColumnDefinitions="*,6,74">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Colori max"/>
-              <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"/>
+            <TextBlock Classes="studio-hint"
+                       Text="Unifica le variazioni cromatiche AI in una palette pulita prima di rimuovere lo sfondo. Il colore chiave viene aggiornato automaticamente dopo l'applicazione."/>
+            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita nella pipeline"/>
+            <Grid ColumnDefinitions="*,6,48,8,*">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Colori max"/>
+              <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"
+                       ToolTip.Tip="Numero massimo di colori nella palette risultante [2–64]."/>
+              <ComboBox x:Name="CmbSpriteQuantizeMethod" Grid.Column="4" SelectedIndex="0"
+                        HorizontalAlignment="Stretch"
+                        ToolTip.Tip="Algoritmo di quantizzazione. Wu è più preciso; Octree è più veloce.">
+                <ComboBoxItem Content="Wu (ImageSharp)"/>
+                <ComboBoxItem Content="Octree"/>
+              </ComboBox>
             </Grid>
-            <ComboBox x:Name="CmbSpriteQuantizeMethod" SelectedIndex="0" HorizontalAlignment="Stretch">
-              <ComboBoxItem Content="Wu (ImageSharp)"/>
-              <ComboBoxItem Content="Octree"/>
-            </ComboBox>
             <Grid ColumnDefinitions="*,6,*">
               <Button x:Name="BtnSpriteQuantizeApply" Grid.Column="0" Classes="secondary"
-                      Content="Applica" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Applica la quantizzazione e aggiorna il colore sfondo alla voce più vicina nella palette."/>
+                      HorizontalAlignment="Stretch" Content="Applica"
+                      ToolTip.Tip="Quantizza l'immagine e aggiorna il colore sfondo alla voce più vicina nella nuova palette."/>
               <Button x:Name="BtnSpriteAnalyzePalette" Grid.Column="2" Classes="secondary"
-                      Content="Analizza" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Mostra i colori presenti nell'immagine senza modificarla. Clicca uno swatch per impostarlo come colore sfondo."/>
+                      HorizontalAlignment="Stretch" Content="Analizza palette"
+                      ToolTip.Tip="Mostra i colori presenti senza modificare l'immagine. Clicca uno swatch per impostarlo come colore sfondo."/>
             </Grid>
             <TextBlock x:Name="TxtPaletteInfo" Classes="studio-hint" IsVisible="False" TextWrapping="Wrap"/>
             <WrapPanel x:Name="PaletteSwatchPanel" IsVisible="False" Margin="0,2,0,0"/>
@@ -103,156 +167,188 @@
         </Border>
 
         <!-- ② Rimozione sfondo ───────────────────────────────────────────── -->
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+        <Border Classes="sub-card">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="② Rimozione sfondo"/>
 
-            <!-- Selettore modalità Flood / Globale -->
             <Grid ColumnDefinitions="*,4,*">
               <ToggleButton x:Name="BtnBgModeFlood" Grid.Column="0" IsChecked="True"
                             Classes="tool-toggle" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Flood fill border-seeded: rimuove solo lo sfondo connesso al perimetro esterno. Protegge i dettagli interni dello sprite. Usa ◉ sul pixel residuo per seedare anche da quel punto.">
+                            ToolTip.Tip="Flood fill border-seeded: rimuove solo lo sfondo connesso al perimetro. Usa ◉ sul pixel residuo come seed aggiuntivo.">
                 <TextBlock Text="⬡ Flood (bordo)" FontSize="11" HorizontalAlignment="Center"/>
               </ToggleButton>
               <ToggleButton x:Name="BtnBgModeGlobal" Grid.Column="2" IsChecked="False"
                             Classes="tool-toggle" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Global Chroma-Key: scansiona ogni pixel ignorando la contiguità spaziale. Rimuove anche isole interne non connesse al bordo. Attenzione: elimina TUTTO ciò che corrisponde al colore chiave — usare con tolleranza bassa dopo Quantize.">
+                            ToolTip.Tip="Global Chroma-Key: rimuove ogni pixel corrispondente al colore chiave, anche isole interne non connesse al bordo. Usare con tolleranza bassa (5–10) dopo Quantize.">
                 <TextBlock Text="◈ Globale" FontSize="11" HorizontalAlignment="Center"/>
               </ToggleButton>
             </Grid>
+            <TextBlock x:Name="TxtBgModeHint" Classes="studio-hint"
+                       Text="Flood fill dal bordo + punto ◉. Se rimangono residui interni: usa ◉ sul pixel residuo, poi 'Rimuovi sfondo'."/>
 
-            <TextBlock x:Name="TxtBgModeHint" Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Flood fill dal bordo + punto ◉. Se rimangono residui interni: usa ◉ direttamente sul pixel residuo poi 'Rimuovi sfondo'."/>
-
-            <Grid ColumnDefinitions="Auto,4,*,6,22,6,64">
+            <!-- Colore chiave + pipette + tolleranza -->
+            <Grid ColumnDefinitions="Auto,4,*,6,22,6,48">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Colore"/>
-              <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="2" Text="#00FF00" PlaceholderText="#RRGGBB"/>
+              <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="2"
+                       Text="#00FF00" PlaceholderText="#RRGGBB"
+                       ToolTip.Tip="Colore chiave da rimuovere in formato esadecimale (#RRGGBB)."/>
               <Button x:Name="BtnSpriteBgPipette" Grid.Column="4" Width="22" Height="22" Padding="0"
                       Content="◉" FontSize="11"
-                      ToolTip.Tip="Campiona colore sfondo dall'immagine (area 3×3 px, auto-disattiva dopo il pick)."/>
+                      ToolTip.Tip="Campiona il colore sfondo dall'immagine (area 3×3 px). Auto-disattiva dopo il pick. Il punto cliccato diventa seed aggiuntivo del flood."/>
               <TextBox x:Name="TxtSpriteBackgroundTol" Grid.Column="6" Text="10"
-                       ToolTip.Tip="Tolleranza colore [0-255]. Flood: 15-30 per JPEG. Globale: preferire 5-10 per evitare di rimuovere dettagli sprite."/>
+                       ToolTip.Tip="Tolleranza colore [0–255]. Flood: 15–30. Globale: 5–10 per evitare falsi positivi."/>
             </Grid>
-            <Grid x:Name="GridSobelControls" ColumnDefinitions="*,6,64">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Protezione bordi (Sobel)"
-                         ToolTip.Tip="Solo modalità Flood. Soglia Sobel [0-500]. 0 = disabilitata. Ignorata in modalità Globale."/>
+
+            <!-- Protezione bordi Sobel (solo Flood) -->
+            <Grid x:Name="GridSobelControls" ColumnDefinitions="*,6,48">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Protezione bordi (Sobel)"
+                         ToolTip.Tip="Solo modalità Flood. Soglia Sobel [0–500]: blocca il flood sui pixel di bordo rilevati. 0 = disabilitata."/>
               <TextBox x:Name="TxtSpriteBackgroundEdge" Grid.Column="2" Text="100"
-                       ToolTip.Tip="100 = default Flood. Ignorata in modalità Globale."/>
+                       ToolTip.Tip="Default 100. Aumenta per proteggere più bordi. Ignorata in modalità Globale."/>
             </Grid>
-            <CheckBox x:Name="ChkSpriteAlphaThreshold" Content="Binarizza alpha dopo rimozione"
-                      ToolTip.Tip="Azzera i pixel semi-trasparenti residui (alpha &lt; soglia) dopo la rimozione. Applicata in entrambe le modalità."/>
-            <TextBox x:Name="TxtSpriteAlphaThreshold" Text="128"
-                     ToolTip.Tip="Soglia alpha [1-254]. Pixel con alpha &lt; soglia → trasparenti; alpha ≥ soglia → opachi."/>
-            <Button x:Name="BtnSpriteBackgroundIsolation" Classes="secondary" Content="Rimuovi sfondo" HorizontalAlignment="Stretch"/>
+
+            <!-- Binarizza alpha -->
+            <Grid ColumnDefinitions="*,8,48">
+              <CheckBox x:Name="ChkSpriteAlphaThreshold" Grid.Column="0"
+                        Content="Binarizza alpha"
+                        ToolTip.Tip="Azzera i pixel semi-trasparenti residui (alpha &lt; soglia) dopo la rimozione. Utile per export su game engine."/>
+              <TextBox x:Name="TxtSpriteAlphaThreshold" Grid.Column="2" Text="128"
+                       ToolTip.Tip="Soglia [1–254]. Alpha &lt; soglia → trasparente; ≥ soglia → opaco."/>
+            </Grid>
+
+            <Button x:Name="BtnSpriteBackgroundIsolation" Classes="secondary"
+                    Content="Rimuovi sfondo" HorizontalAlignment="Stretch"/>
           </StackPanel>
         </Border>
 
         <!-- ③ Edge Refinement ───────────────────────────────────────────── -->
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+        <Border Classes="sub-card">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="③ Edge Refinement"/>
-            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Rimuove la frangia cromatica residua ai bordi del sprite (colore sfondo che filtra nei pixel semi-trasparenti)."/>
-            <Grid ColumnDefinitions="*,6,64">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Soglia opaco"
+            <TextBlock Classes="studio-hint"
+                       Text="Rimuove la frangia cromatica ai bordi, uniforma i pixel di contorno e aggiunge eventuale outline."/>
+
+            <!-- Defringe: soglia + pulsante inline -->
+            <Grid ColumnDefinitions="Auto,6,44,6,*">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Soglia opaco"
                          ToolTip.Tip="Alpha minima per considerare un pixel 'opaco' nel defringe. Default 250."/>
               <TextBox x:Name="TxtSpriteDefringeOpaque" Grid.Column="2" Text="250"/>
+              <Button x:Name="BtnSpriteDefringe" Grid.Column="4" Classes="secondary"
+                      Content="Defringe" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Rimuove la frangia cromatica residua ai bordi: sostituisce il colore sfondo che filtra nei pixel di contorno semi-trasparenti."/>
             </Grid>
-            <Button x:Name="BtnSpriteDefringe" Classes="secondary" Content="Applica defringe" HorizontalAlignment="Stretch"/>
-            <CheckBox x:Name="ChkSpriteOutline" Content="Contorno 1px"/>
-            <TextBox x:Name="TxtSpriteOutlineHex" Text="#000000"/>
+
+            <!-- Median filter -->
+            <Button x:Name="BtnSpriteMedian" Classes="secondary" HorizontalAlignment="Stretch"
+                    Content="Median filter"
+                    ToolTip.Tip="Applica un filtro mediano per uniformare piccole variazioni di colore ai pixel di bordo (utile dopo rimozione sfondo JPEG)."/>
+
+            <!-- Contorno 1px: checkbox + colore inline -->
+            <Grid ColumnDefinitions="Auto,8,*">
+              <CheckBox x:Name="ChkSpriteOutline" Grid.Column="0" Content="Contorno 1px"
+                        ToolTip.Tip="Aggiunge un bordo di 1px intorno allo sprite con il colore specificato. Applicato nella pipeline."/>
+              <TextBox x:Name="TxtSpriteOutlineHex" Grid.Column="2" Text="#000000"
+                       ToolTip.Tip="Colore del contorno in esadecimale (#RRGGBB)."/>
+            </Grid>
           </StackPanel>
         </Border>
 
         <!-- ④ Denoise ───────────────────────────────────────────────────── -->
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+        <Border Classes="sub-card">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="④ Denoise"/>
-            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Rimuove rumore pixel-level: isole opache minuscole e variazioni di colore nei pixel circostanti."/>
-            <Grid ColumnDefinitions="*,6,64">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Isole minime"
-                         ToolTip.Tip="Rimuovi gruppi di pixel opachi connessi con area inferiore a questo valore."/>
+            <TextBlock Classes="studio-hint"
+                       Text="Rimuove rumore pixel-level integrato nella pipeline: isole opache minuscole e variazioni di colore localizzate."/>
+            <Grid ColumnDefinitions="*,6,48">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Isole min (px)"
+                         ToolTip.Tip="Rimuove gruppi opachi connessi con area &lt; N px durante il cleanup pipeline. Default 2."/>
               <TextBox x:Name="TxtSpriteMinIsland" Grid.Column="2" Text="2"/>
             </Grid>
-            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Maggioranza 3x3"/>
-            <Grid ColumnDefinitions="*,6,*">
-              <Button x:Name="BtnSpriteMedian" Grid.Column="0" Classes="secondary" Content="Median"/>
-              <Button x:Name="BtnSpriteDenoise" Grid.Column="2" Classes="secondary" Content="Isole"/>
-            </Grid>
+            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Majority vote 3×3"
+                      ToolTip.Tip="Rimappa ogni pixel al colore più frequente nel vicinato 3×3 (majority vote). Riduce il rumore puntuale."/>
+            <Button x:Name="BtnSpriteDenoise" Classes="secondary" HorizontalAlignment="Stretch"
+                    Content="Applica denoise"
+                    ToolTip.Tip="Esegue la rimozione delle isole minime e il majority vote con i parametri impostati sopra."/>
           </StackPanel>
         </Border>
 
         <!-- ⑤ Morfologia & Anomalie ─────────────────────────────────────── -->
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+        <Border Classes="sub-card">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="⑤ Morfologia &amp; Anomalie"/>
-            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Post-processing finale sul canale alpha: affina la forma del sprite e rileva pixel anomali residui."/>
+            <TextBlock Classes="studio-hint"
+                       Text="Post-processing finale sul canale alpha: affina la sagoma e individua pixel anomali residui con algoritmi standalone."/>
 
-            <Grid ColumnDefinitions="*,6,48">
-              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Iterazioni"
-                         ToolTip.Tip="Numero di passaggi per le operazioni morfologiche. 1 = 1px per bordo."/>
+            <!-- Morfologia -->
+            <TextBlock Classes="group-label" Text="OPERAZIONI MORFOLOGICHE"/>
+            <Grid ColumnDefinitions="*,6,44">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Iterazioni"
+                         ToolTip.Tip="Numero di passaggi per Erodi/Dilata/Apri/Chiudi. 1 = modifica 1px di bordo per passaggio."/>
               <TextBox x:Name="TxtMorphIterations" Grid.Column="2" Text="1"/>
             </Grid>
             <Grid ColumnDefinitions="*,4,*,4,*,4,*">
-              <Button x:Name="BtnMorphErode" Grid.Column="0" Classes="secondary"
-                      Content="Erodi" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Erode: rimuove 1px di bordo opaco per iterazione. Elimina la frangia residua."/>
-              <Button x:Name="BtnMorphDilate" Grid.Column="2" Classes="secondary"
-                      Content="Dilata" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Dilate: espande il bordo opaco di 1px (edge padding per Unity/Godot)."/>
-              <Button x:Name="BtnMorphOpen" Grid.Column="4" Classes="secondary"
-                      Content="Apri" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Open = Erode + Dilate: rimuove protrusioni sottili e pixel isolati."/>
-              <Button x:Name="BtnMorphClose" Grid.Column="6" Classes="secondary"
-                      Content="Chiudi" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Close = Dilate + Erode: chiude buchi sottili all'interno dello sprite."/>
+              <Button x:Name="BtnMorphErode"  Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                      Content="Erodi"
+                      ToolTip.Tip="Erode il bordo opaco di 1px per iterazione. Elimina la frangia alfa residua dopo la rimozione sfondo."/>
+              <Button x:Name="BtnMorphDilate" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                      Content="Dilata"
+                      ToolTip.Tip="Espande il bordo opaco di 1px (edge padding). Utile per Unity/Godot: evita artefatti di filtering bilineare."/>
+              <Button x:Name="BtnMorphOpen"   Grid.Column="4" Classes="secondary" HorizontalAlignment="Stretch"
+                      Content="Apri"
+                      ToolTip.Tip="Erode + Dilata: rimuove protrusioni sottili e pixel isolati senza modificare la forma generale."/>
+              <Button x:Name="BtnMorphClose"  Grid.Column="6" Classes="secondary" HorizontalAlignment="Stretch"
+                      Content="Chiudi"
+                      ToolTip.Tip="Dilata + Erode: chiude buchi sottili e lacune nell'interno dello sprite."/>
             </Grid>
 
-            <TextBlock Classes="studio-hint" Text="Anomaly Detection" FontWeight="SemiBold" Margin="0,4,0,0"/>
-            <Grid ColumnDefinitions="*,6,48">
+            <Border Classes="h-sep"/>
+
+            <!-- Anomaly Detection -->
+            <TextBlock Classes="group-label" Text="ANOMALY DETECTION (BFS / OKLAB)"/>
+            <TextBlock Classes="studio-hint"
+                       Text="Algoritmi standalone indipendenti dalla pipeline: individuano e rimuovono pixel anomali tramite analisi di connettività e distanza cromatica."/>
+            <Grid ColumnDefinitions="*,6,44">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
-                         Text="Isole min (px)"
-                         ToolTip.Tip="Cluster opachi con meno di N pixel → rimossi. Default 4."/>
+                         Text="BFS isole min (px)"
+                         ToolTip.Tip="Cluster opachi (BFS 8-connettività) con meno di N pixel → rimossi. Diverso dal Denoise pipeline: usa BFS completo. Default 4."/>
               <TextBox x:Name="TxtAnomalyMinIsland" Grid.Column="2" Text="4"/>
             </Grid>
-            <Grid ColumnDefinitions="*,6,48">
+            <Grid ColumnDefinitions="*,6,44">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
-                         Text="Tol. outlier"
-                         ToolTip.Tip="Soglia RGB [0-255] per il color outlier. Pixel senza vicini simili → rimossi. Default 20."/>
+                         Text="Outlier tol. RGB"
+                         ToolTip.Tip="Soglia RGB [0–255]: pixel senza alcun vicino opaco con distanza Oklab entro la soglia → rimossi. Default 20."/>
               <TextBox x:Name="TxtAnomalyOutlierTol" Grid.Column="2" Text="20"/>
             </Grid>
             <Grid ColumnDefinitions="*,6,*">
-              <Button x:Name="BtnRemoveIslands" Grid.Column="0" Classes="secondary"
-                      Content="Isole" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Rimuove cluster opachi isolati (8-connectivity BFS) con meno di N pixel."/>
-              <Button x:Name="BtnRemoveOutliers" Grid.Column="2" Classes="secondary"
-                      Content="Outlier" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Rimuove pixel il cui colore Oklab è troppo distante da tutti i vicini opachi."/>
+              <Button x:Name="BtnRemoveIslands"  Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                      Content="Isole BFS"
+                      ToolTip.Tip="Rimuove cluster opachi isolati (BFS 8-connectivity) con meno di N pixel. Più preciso del Denoise pipeline per residui post-rimozione sfondo."/>
+              <Button x:Name="BtnRemoveOutliers" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                      Content="Outlier Oklab"
+                      ToolTip.Tip="Rimuove pixel il cui colore Oklab è troppo distante da tutti i vicini opachi (pixel 'fuori posto' in zone di colore uniforme)."/>
             </Grid>
           </StackPanel>
         </Border>
 
-        <Button x:Name="BtnSpritePipelineApply" Classes="primary" HorizontalAlignment="Stretch">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconCheck}" Classes="action-icon"/>
-            <TextBlock Text="Applica filtri selezionati"/>
-          </StackPanel>
-        </Button>
       </StackPanel>
     </Border>
 
+    <!-- ═══ SELEZIONE & ROI ══════════════════════════════════════════════════ -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="ROI e composizione"/>
-        <Button x:Name="BtnSpriteSelect" Classes="secondary" HorizontalAlignment="Stretch">
+        <TextBlock Classes="section-title" Text="Selezione &amp; ROI"/>
+        <Button x:Name="BtnSpriteSelect" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Attiva la modalità selezione: trascina sull'immagine per definire una regione di interesse.">
           <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
             <Path Data="{StaticResource IconCrop}" Classes="action-icon"/>
-            <TextBlock Text="Seleziona area"/>
+            <TextBlock Text="Modalità selezione"/>
           </StackPanel>
         </Button>
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+        <Border Classes="sub-card" Padding="6">
           <TextBlock x:Name="TxtSpriteSelectionInfo"
                      Foreground="#8790b6"
                      FontSize="10"
@@ -261,44 +357,52 @@
                      Text="Nessuna selezione.&#x0a;Trascina sull'immagine per iniziare."/>
         </Border>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteSelectAll" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch">
+          <Button x:Name="BtnSpriteSelectAll" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Seleziona l'intera immagine.">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconSelectAll}" Classes="action-icon"/>
               <TextBlock Text="Tutto"/>
             </StackPanel>
           </Button>
-          <Button x:Name="BtnSpriteClearSelection" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch">
+          <Button x:Name="BtnSpriteClearSelection" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Deseleziona e torna alla modalità di visualizzazione.">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconX}" Classes="action-icon"/>
-              <TextBlock Text="Clear"/>
+              <TextBlock Text="Deseleziona"/>
             </StackPanel>
           </Button>
         </Grid>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteExportSelection" Grid.Column="0" Classes="secondary" Content="Export ROI" IsEnabled="False"/>
-          <Button x:Name="BtnSpriteCrop" Grid.Column="2" Classes="secondary" Content="Ritaglia" IsEnabled="False"/>
+          <Button x:Name="BtnSpriteExportSelection" Grid.Column="0" Classes="secondary"
+                  HorizontalAlignment="Stretch" Content="Export ROI" IsEnabled="False"
+                  ToolTip.Tip="Esporta la regione selezionata come immagine separata."/>
+          <Button x:Name="BtnSpriteCrop" Grid.Column="2" Classes="secondary"
+                  HorizontalAlignment="Stretch" Content="Ritaglia" IsEnabled="False"
+                  ToolTip.Tip="Ritaglia il documento alla regione selezionata (non reversibile senza Undo)."/>
         </Grid>
-        <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteRemove" Grid.Column="0" Classes="secondary" Content="Rimuovi" IsEnabled="False"/>
-          <TextBlock Grid.Column="2" Classes="studio-hint" Text="Paste nel blocco Slicing"/>
-        </Grid>
+        <Button x:Name="BtnSpriteRemove" Classes="secondary" HorizontalAlignment="Stretch"
+                Content="Cancella selezione" IsEnabled="False"
+                ToolTip.Tip="Rende trasparente la regione selezionata (cancella i pixel nella ROI)."/>
       </StackPanel>
     </Border>
 
+    <!-- ═══ SLICING & FRAME ══════════════════════════════════════════════════ -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="Slicing"/>
+        <TextBlock Classes="section-title" Text="Slicing &amp; Frame"/>
         <CheckBox x:Name="ChkSpriteManualCrop"
-                  Content="Crop manuale: trascina sul canvas"
-                  ToolTip.Tip="Ritaglia subito il documento quando rilasci la selezione sul canvas."/>
+                  Content="Crop manuale (trascina sul canvas)"
+                  ToolTip.Tip="Ritaglia immediatamente il documento quando rilasci la selezione sul canvas."/>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteDetect" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch">
+          <Button x:Name="BtnSpriteDetect" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Rileva automaticamente i frame dello sprite analizzando le aree trasparenti.">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
-              <TextBlock Text="Rileva"/>
+              <TextBlock Text="Rileva sprite"/>
             </StackPanel>
           </Button>
-          <Button x:Name="BtnSpriteGridSlice" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch">
+          <Button x:Name="BtnSpriteGridSlice" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Divide l'immagine in una griglia uniforme con le righe e colonne specificate.">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconGrid}" Classes="action-icon"/>
               <TextBlock Text="Griglia"/>
@@ -315,35 +419,38 @@
             <TextBox x:Name="TxtSpriteCols" Text="2"/>
           </StackPanel>
         </Grid>
-        <TextBlock x:Name="TxtSpriteCellsSummary"
-                   Classes="studio-hint"
-                   Text="Nessun frame rilevato."/>
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="2">
+        <TextBlock x:Name="TxtSpriteCellsSummary" Classes="studio-hint" Text="Nessun frame rilevato."/>
+        <Border Classes="sub-card" Padding="2">
           <ListBox x:Name="SpriteCellList"
                    Height="82"
                    Background="Transparent"
                    FontSize="10"
                    Foreground="#8f96b8"/>
         </Border>
-        <Button x:Name="BtnSpriteSaveSelectedFrame"
-                Classes="secondary"
-                HorizontalAlignment="Stretch"
-                IsEnabled="False">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-            <TextBlock Text="Esporta frame selezionato"/>
-          </StackPanel>
-        </Button>
-        <Button x:Name="BtnSpriteExportFramesZip"
-                Classes="secondary"
-                HorizontalAlignment="Stretch"
-                IsEnabled="False">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-            <TextBlock Text="Esporta tutti in ZIP"/>
-          </StackPanel>
-        </Button>
-        <Button x:Name="BtnSpriteFloatingPaste" Classes="secondary" HorizontalAlignment="Stretch">
+        <Grid ColumnDefinitions="*,6,*">
+          <Button x:Name="BtnSpriteSaveSelectedFrame" Grid.Column="0"
+                  Classes="secondary" HorizontalAlignment="Stretch" IsEnabled="False"
+                  ToolTip.Tip="Esporta il frame selezionato nella lista come PNG.">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+              <TextBlock Text="Esporta frame"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnSpriteExportFramesZip" Grid.Column="2"
+                  Classes="secondary" HorizontalAlignment="Stretch" IsEnabled="False"
+                  ToolTip.Tip="Esporta tutti i frame rilevati in un archivio ZIP.">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+              <TextBlock Text="Esporta ZIP"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <Border Classes="h-sep"/>
+
+        <!-- Atlas pulito -->
+        <Button x:Name="BtnSpriteFloatingPaste" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Avvia la modalità Atlas: seleziona sprite da una sorgente e incollali in una destinazione pulita.">
           <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
             <Path Data="{StaticResource IconPaste}" Classes="action-icon"/>
             <TextBlock Text="Crea atlas pulito"/>
@@ -351,75 +458,88 @@
         </Button>
         <StackPanel x:Name="SpritePasteActiveBar" IsVisible="False" Spacing="5">
           <Grid ColumnDefinitions="*,6,*">
-            <ToggleButton x:Name="BtnSpritePasteDest" Grid.Column="0" Classes="tool-toggle" HorizontalAlignment="Stretch">
+            <ToggleButton x:Name="BtnSpritePasteDest" Grid.Column="0" Classes="tool-toggle"
+                          HorizontalAlignment="Stretch"
+                          ToolTip.Tip="Visualizza la destinazione atlas (canvas dove incollare).">
               <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                 <Path Data="{StaticResource IconTarget}" Classes="action-icon"/>
-                <TextBlock Text="Dest"/>
+                <TextBlock Text="Destinazione"/>
               </StackPanel>
             </ToggleButton>
-            <ToggleButton x:Name="BtnSpritePasteSrc" Grid.Column="2" Classes="tool-toggle" HorizontalAlignment="Stretch">
+            <ToggleButton x:Name="BtnSpritePasteSrc" Grid.Column="2" Classes="tool-toggle"
+                          HorizontalAlignment="Stretch"
+                          ToolTip.Tip="Visualizza la sorgente sprite da cui copiare.">
               <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
                 <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
-                <TextBlock Text="Src"/>
+                <TextBlock Text="Sorgente"/>
               </StackPanel>
             </ToggleButton>
           </Grid>
           <Button x:Name="BtnSpritePasteCopy" Classes="secondary" HorizontalAlignment="Stretch">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconCopy}" Classes="action-icon"/>
-              <TextBlock Text="Copia selezione sorgente"/>
+              <TextBlock Text="Copia selezione → atlas"/>
             </StackPanel>
           </Button>
           <TextBlock x:Name="TxtSpritePasteBufferStatus" Classes="studio-hint" Text="Buffer: vuoto"/>
-          <Button x:Name="BtnSpritePasteExit" Classes="secondary" Content="Esci atlas pulito" HorizontalAlignment="Stretch"/>
+          <Button x:Name="BtnSpritePasteExit" Classes="secondary"
+                  Content="Esci da atlas" HorizontalAlignment="Stretch"/>
         </StackPanel>
       </StackPanel>
     </Border>
 
+    <!-- ═══ TRASFORMAZIONI ═══════════════════════════════════════════════════ -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="Palette e trasformazioni"/>
+        <TextBlock Classes="section-title" Text="Trasformazioni"/>
         <Grid ColumnDefinitions="*,6,*">
-          <StackPanel Grid.Column="0" Spacing="3">
-            <TextBlock Classes="studio-hint" Text="Larghezza"/>
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Larghezza (px)"/>
             <TextBox x:Name="TxtSpriteResizeW" Text="64" PlaceholderText="px"/>
           </StackPanel>
-          <StackPanel Grid.Column="2" Spacing="3">
-            <TextBlock Classes="studio-hint" Text="Altezza"/>
+          <StackPanel Grid.Column="2" Spacing="2">
+            <TextBlock Classes="studio-hint" Text="Altezza (px)"/>
             <TextBox x:Name="TxtSpriteResizeH" Text="64" PlaceholderText="px"/>
           </StackPanel>
         </Grid>
-        <Button x:Name="BtnSpriteResizeNearest" Classes="secondary" HorizontalAlignment="Stretch">
+        <Button x:Name="BtnSpriteResizeNearest" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Ridimensiona con interpolazione Nearest Neighbor: preserva i bordi netti della pixel art.">
           <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
             <Path Data="{StaticResource IconCenter}" Classes="action-icon"/>
             <TextBlock Text="Ridimensiona nearest"/>
           </StackPanel>
         </Button>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteMirrorH" Grid.Column="0" Classes="secondary" Content="Mirror H"/>
-          <Button x:Name="BtnSpriteMirrorV" Grid.Column="2" Classes="secondary" Content="Mirror V"/>
+          <Button x:Name="BtnSpriteMirrorH" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  Content="↔ Mirror H" ToolTip.Tip="Specchia lo sprite orizzontalmente."/>
+          <Button x:Name="BtnSpriteMirrorV" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  Content="↕ Mirror V" ToolTip.Tip="Specchia lo sprite verticalmente."/>
         </Grid>
       </StackPanel>
     </Border>
 
+    <!-- ═══ EXPORT ══════════════════════════════════════════════════════════ -->
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Export sprite"/>
         <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteExportPng" Grid.Column="0" Classes="primary">
+          <Button x:Name="BtnSpriteExportPng" Grid.Column="0" Classes="primary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Esporta l'immagine corrente come PNG con trasparenza (canale alpha).">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
-              <TextBlock Text="PNG"/>
+              <TextBlock Text="Esporta PNG"/>
             </StackPanel>
           </Button>
-          <Button x:Name="BtnSpriteExportJson" Grid.Column="2" Classes="secondary">
+          <Button x:Name="BtnSpriteExportJson" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Esporta i metadati dello sprite (frame, palette, dimensioni) in formato JSON per il game engine.">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
               <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-              <TextBlock Text="JSON"/>
+              <TextBlock Text="Esporta JSON"/>
             </StackPanel>
           </Button>
         </Grid>
       </StackPanel>
     </Border>
+
   </StackPanel>
 </UserControl>
