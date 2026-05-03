@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
@@ -313,8 +314,10 @@ public partial class MainWindow : Window
 
     private async void OnSpriteStudioActionRequested(object? sender, SpriteStudioAction action)
     {
-        switch (action)
+        try
         {
+            switch (action)
+            {
             case SpriteStudioAction.OpenImage:
                 await OpenImageAsync();
                 break;
@@ -425,13 +428,20 @@ public partial class MainWindow : Window
             case SpriteStudioAction.ExportJson:
                 await ExportJsonAsync();
                 break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ReportStudioActionFailure(ex, "Sprite Studio", action);
         }
     }
 
     private async void OnTilesetStudioActionRequested(object? sender, TilesetStudioAction action)
     {
-        switch (action)
+        try
         {
+            switch (action)
+            {
             case TilesetStudioAction.OpenImage:
                 await OpenImageAsync();
                 break;
@@ -472,6 +482,11 @@ public partial class MainWindow : Window
             case TilesetStudioAction.SnapCellsToGrid:
                 RunSnapCellsToGrid();
                 break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ReportStudioActionFailure(ex, "Tileset Studio", action);
         }
     }
 
@@ -485,8 +500,10 @@ public partial class MainWindow : Window
 
     private async void OnAnimationStudioActionRequested(object? sender, AnimationStudioAction action)
     {
-        switch (action)
+        try
         {
+            switch (action)
+            {
             case AnimationStudioAction.OpenAnimationPreview:
                 OpenAnimationPreview();
                 break;
@@ -540,6 +557,11 @@ public partial class MainWindow : Window
             case AnimationStudioAction.ExportFramesZip:
                 await ExportFramesZipAsync();
                 break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ReportStudioActionFailure(ex, "Animation Studio", action);
         }
     }
 
@@ -1020,12 +1042,26 @@ public partial class MainWindow : Window
         {
             case 0:
                 _backgroundIsolationHex = hx;
+                // Non usare SyncSpriteCleanupStateFromControls(): sovrascriverebbe tolleranza/bordi
+                // letti dal pannello con copie (_*) possibilmente non aggiornate dopo edit solo UI.
+                {
+                    var ui = SpriteStudioPanel.GetCleanupState();
+                    SpriteStudioPanel.SetCleanupState(ui with { BackgroundHex = hx });
+                    _backgroundIsolationTolerance = ui.BackgroundTolerance;
+                    _backgroundIsolationEdgeThreshold = ui.BackgroundEdgeThreshold;
+                }
                 break;
             case 1:
                 _pipelineFormState = _pipelineFormState with { OutlineHex = hx };
+                {
+                    var ui = SpriteStudioPanel.GetCleanupState();
+                    SpriteStudioPanel.SetCleanupState(ui with { OutlineHex = hx });
+                    _backgroundIsolationHex = ui.BackgroundHex;
+                    _backgroundIsolationTolerance = ui.BackgroundTolerance;
+                    _backgroundIsolationEdgeThreshold = ui.BackgroundEdgeThreshold;
+                }
                 break;
         }
-        SyncSpriteCleanupStateFromControls();
         SetStatus($"Pipetta: {hx}  pixel ({e.X},{e.Y})  A={p.A}");
     }
 
@@ -1066,6 +1102,12 @@ public partial class MainWindow : Window
 
     private void SetStatus(string message) =>
         TxtStatus.Text = string.IsNullOrEmpty(message) ? "" : $"[{DateTime.Now:HH:mm:ss}] {message}";
+
+    private void ReportStudioActionFailure(Exception ex, string panelLabel, Enum action)
+    {
+        Trace.WriteLine($"[{panelLabel}] {action}: {ex}");
+        SetStatus($"{panelLabel}: errore ({action}) — {ex.Message}");
+    }
 
     private void LoadWelcomeDocument()
     {
@@ -1677,7 +1719,10 @@ public partial class MainWindow : Window
             if (snapped)
             {
                 _backgroundIsolationHex = RgbaToHex(snappedKey);
-                SyncSpriteCleanupStateFromControls(); // aggiorna il TextBox nel pannello
+                var ui = SpriteStudioPanel.GetCleanupState();
+                SpriteStudioPanel.SetCleanupState(ui with { BackgroundHex = _backgroundIsolationHex });
+                _backgroundIsolationTolerance = ui.BackgroundTolerance;
+                _backgroundIsolationEdgeThreshold = ui.BackgroundEdgeThreshold;
             }
 
             PushUndo();
