@@ -132,6 +132,9 @@
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="Quantize"/>
+            <TextBlock Classes="studio-hint"
+                       Text="⚠ Applica prima della rimozione sfondo: rimappa tutti i pixel alla palette ridotta e aggiorna automaticamente il colore chiave."
+                       TextWrapping="Wrap"/>
             <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita Quantize"/>
             <Grid ColumnDefinitions="*,6,74">
               <TextBlock Grid.Column="0" Classes="studio-hint" Text="Colori max"/>
@@ -141,7 +144,16 @@
               <ComboBoxItem Content="Wu (ImageSharp)"/>
               <ComboBoxItem Content="Octree"/>
             </ComboBox>
-            <Button x:Name="BtnSpriteQuantizeApply" Classes="secondary" Content="Applica Quantize" HorizontalAlignment="Stretch"/>
+            <Grid ColumnDefinitions="*,6,*">
+              <Button x:Name="BtnSpriteQuantizeApply" Grid.Column="0" Classes="secondary"
+                      Content="Applica" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Applica la quantizzazione e aggiorna il colore sfondo alla voce più vicina nella palette."/>
+              <Button x:Name="BtnSpriteAnalyzePalette" Grid.Column="2" Classes="secondary"
+                      Content="Analizza" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Mostra i colori presenti nell'immagine senza modificarla. Clicca uno swatch per impostarlo come colore sfondo."/>
+            </Grid>
+            <TextBlock x:Name="TxtPaletteInfo" Classes="studio-hint" IsVisible="False" TextWrapping="Wrap"/>
+            <WrapPanel x:Name="PaletteSwatchPanel" IsVisible="False" Margin="0,2,0,0"/>
           </StackPanel>
         </Border>
 

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiPixelScaler.Desktop.Views.Studios;
 
@@ -45,6 +48,7 @@ public partial class SpriteStudioView : UserControl
         BtnSpritePasteCopy.Click += (_, _) => Request(SpriteStudioAction.CopyPasteSelection);
         BtnSpritePasteExit.Click += (_, _) => Request(SpriteStudioAction.ExitFloatingPaste);
         BtnSpriteQuantizeApply.Click += (_, _) => Request(SpriteStudioAction.ApplyQuantize);
+        BtnSpriteAnalyzePalette.Click += (_, _) => Request(SpriteStudioAction.AnalyzePalette);
         BtnSpriteResizeNearest.Click += (_, _) => Request(SpriteStudioAction.ResizeNearest);
         BtnSpriteMirrorH.Click += (_, _) => Request(SpriteStudioAction.MirrorHorizontal);
         BtnSpriteMirrorV.Click += (_, _) => Request(SpriteStudioAction.MirrorVertical);
@@ -176,6 +180,56 @@ public partial class SpriteStudioView : UserControl
             TxtPresetBadge.Text = presetName;
             PresetBadgeBorder.IsVisible = true;
         }
+    }
+
+    /// <summary>
+    /// Popola il pannello swatch con i colori della palette.
+    /// Ogni swatch è cliccabile: imposta il testo del TextBox sfondo e spara <see cref="SpriteStudioAction.PaletteColorPickedAsBackground"/>.
+    /// Passa lista vuota per nascondere il pannello.
+    /// </summary>
+    public void SetPalette(IReadOnlyList<Rgba32> palette)
+    {
+        PaletteSwatchPanel.Children.Clear();
+
+        if (palette.Count == 0)
+        {
+            TxtPaletteInfo.IsVisible = false;
+            PaletteSwatchPanel.IsVisible = false;
+            return;
+        }
+
+        var cap = Math.Min(palette.Count, 256);
+        var extra = palette.Count > 256 ? $" (visualizzati {cap})" : string.Empty;
+        TxtPaletteInfo.Text = $"{palette.Count} colori{extra} — clicca per impostare come sfondo";
+        TxtPaletteInfo.IsVisible = true;
+
+        for (var i = 0; i < cap; i++)
+        {
+            var c = palette[i];
+            var hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+
+            var border = new Border
+            {
+                Width = 16,
+                Height = 16,
+                Margin = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(2),
+                Background = new SolidColorBrush(new Avalonia.Media.Color(255, c.R, c.G, c.B)),
+                Cursor = new Cursor(StandardCursorType.Hand),
+            };
+            ToolTip.SetTip(border, hex);
+
+            var capturedHex = hex;
+            border.PointerPressed += (_, _) =>
+            {
+                TxtSpriteBackgroundHex.Text = capturedHex;
+                Request(SpriteStudioAction.PaletteColorPickedAsBackground);
+            };
+
+            PaletteSwatchPanel.Children.Add(border);
+        }
+
+        PaletteSwatchPanel.IsVisible = true;
     }
 
     private void Request(SpriteStudioAction action) => ActionRequested?.Invoke(this, action);

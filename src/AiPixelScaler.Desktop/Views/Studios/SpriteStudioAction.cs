@@ -30,6 +30,8 @@ public enum SpriteStudioAction
     CopyPasteSelection,
     ExitFloatingPaste,
     ApplyQuantize,
+    AnalyzePalette,             // mostra colori unici dell'immagine senza quantizzare
+    PaletteColorPickedAsBackground, // swatch cliccato → aggiorna il colore sfondo
     MirrorHorizontal,
     MirrorVertical,
     ResizeNearest,

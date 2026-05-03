@@ -413,6 +413,14 @@ public partial class MainWindow : Window
             case SpriteStudioAction.ApplyQuantize:
                 RunSpriteQuantize();
                 break;
+            case SpriteStudioAction.AnalyzePalette:
+                RunAnalyzePalette();
+                break;
+            case SpriteStudioAction.PaletteColorPickedAsBackground:
+                // Il TextBox è già aggiornato dallo swatch click; sincronizza solo il campo interno.
+                _backgroundIsolationHex = SpriteStudioPanel.GetCleanupState().BackgroundHex;
+                SetStatus($"Colore sfondo impostato dalla palette: {_backgroundIsolationHex}");
+                break;
             case SpriteStudioAction.MirrorHorizontal:
                 RunMirror(horizontal: true);
                 break;
@@ -2401,16 +2409,64 @@ public partial class MainWindow : Window
             if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
             PushUndo();
             PaletteMapper.ApplyInPlace(_document, palette, PaletteMapper.DitherMode.None);
+
+            // Dopo la rimappatura tutti i pixel appartengono alla palette.
+            // Aggiorna il colore chiave sfondo all'entrata più vicina in RGB²:
+            // così la rimozione sfondo successiva trova esattamente il pixel giusto.
+            if (InputParsing.TryParseHexRgb(_backgroundIsolationHex, out var bgKey))
+            {
+                var nearest = palette.MinBy(c => ColorDistSq(c, bgKey));
+                var newHex = $"#{nearest.R:X2}{nearest.G:X2}{nearest.B:X2}";
+                _backgroundIsolationHex = newHex;
+                var ui = SpriteStudioPanel.GetCleanupState();
+                SpriteStudioPanel.SetCleanupState(ui with { BackgroundHex = newHex });
+            }
+
+            // Mostra swatch palette nel pannello
+            SpriteStudioPanel.SetPalette(palette);
+
             _cleanApplied = true;
             RefreshView();
             UpdateWorkspaceGuidance();
             var method = _pipelineFormState.QuantizerIndex == 1 ? "Octree" : "Wu";
-            SetStatus($"Quantize applicato: {palette.Count} colori ({method}).");
+            SetStatus($"Quantize applicato: {palette.Count} colori ({method}). Colore sfondo aggiornato alla voce più vicina.");
         }
         catch (Exception ex)
         {
             SetStatus($"Errore quantize: {ex.Message}");
         }
+    }
+
+    private void RunAnalyzePalette()
+    {
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        try
+        {
+            ApplySpriteCleanupStateToControls();
+            var n = Math.Clamp(InputParsing.ParseInt(_pipelineFormState.MaxColors, 16), 2, 256);
+            var palette = _pipelineFormState.QuantizerIndex switch
+            {
+                1 => PaletteExtractorAlgorithms.ExtractOctree(_document, n),
+                _ => PaletteExtractorAlgorithms.ExtractWu(_document, n),
+            };
+            if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
+            SpriteStudioPanel.SetPalette(palette);
+            var method = _pipelineFormState.QuantizerIndex == 1 ? "Octree" : "Wu";
+            SetStatus($"Palette analizzata: {palette.Count} colori ({method}). Immagine non modificata. Clicca uno swatch per impostarlo come colore sfondo.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Errore analisi palette: {ex.Message}");
+        }
+    }
+
+    /// <summary>Distanza al quadrato tra due colori RGB (nessuna sqrt — solo per confronto).</summary>
+    private static int ColorDistSq(Rgba32 a, Rgba32 b)
+    {
+        int dr = a.R - b.R;
+        int dg = a.G - b.G;
+        int db = a.B - b.B;
+        return dr * dr + dg * dg + db * db;
     }
 
     private void RunMakeTileable()
