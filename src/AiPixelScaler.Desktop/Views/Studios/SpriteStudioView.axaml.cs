@@ -25,7 +25,40 @@ public partial class SpriteStudioView : UserControl
         BtnSpritePipelineApply.Click += (_, _) => Request(SpriteStudioAction.ApplyPipeline);
         BtnSpriteDefringe.Click += (_, _) => Request(SpriteStudioAction.ApplyDefringe);
         BtnSpriteMedian.Click += (_, _) => Request(SpriteStudioAction.ApplyMedian);
-        BtnSpriteBackgroundIsolation.Click += (_, _) => Request(SpriteStudioAction.ApplyBackgroundIsolation);
+        BtnSpriteBackgroundIsolation.Click += (_, _) =>
+        {
+            var action = BtnBgModeGlobal.IsChecked == true
+                ? SpriteStudioAction.ApplyGlobalChromaKey
+                : SpriteStudioAction.ApplyBackgroundIsolation;
+            Request(action);
+        };
+
+        // Toggle modalità: esclusione mutua + aggiornamento hint + visibilità Sobel
+        BtnBgModeFlood.IsCheckedChanged += (_, _) =>
+        {
+            if (BtnBgModeFlood.IsChecked == true)
+            {
+                BtnBgModeGlobal.IsChecked = false;
+                UpdateBgModeHint();
+            }
+            else if (BtnBgModeGlobal.IsChecked != true)
+            {
+                // Impedisce di deselezionare entrambi
+                BtnBgModeFlood.IsChecked = true;
+            }
+        };
+        BtnBgModeGlobal.IsCheckedChanged += (_, _) =>
+        {
+            if (BtnBgModeGlobal.IsChecked == true)
+            {
+                BtnBgModeFlood.IsChecked = false;
+                UpdateBgModeHint();
+            }
+            else if (BtnBgModeFlood.IsChecked != true)
+            {
+                BtnBgModeGlobal.IsChecked = true;
+            }
+        };
         BtnSpriteDenoise.Click += (_, _) => Request(SpriteStudioAction.ApplyDenoise);
         BtnSpriteSelect.Click += (_, _) => Request(SpriteStudioAction.SelectArea);
         BtnSpriteSelectAll.Click += (_, _) => Request(SpriteStudioAction.SelectAll);
@@ -230,6 +263,31 @@ public partial class SpriteStudioView : UserControl
         }
 
         PaletteSwatchPanel.IsVisible = true;
+    }
+
+    /// <summary>
+    /// True se la modalità selezionata è Global Chroma-Key, false se Flood (bordo).
+    /// </summary>
+    public bool IsGlobalChromaKeyMode => BtnBgModeGlobal.IsChecked == true;
+
+    private void UpdateBgModeHint()
+    {
+        if (BtnBgModeGlobal.IsChecked == true)
+        {
+            TxtBgModeHint.Text =
+                "Global Chroma-Key: rimuove ogni pixel che corrisponde al colore chiave, " +
+                "anche isole interne non connesse al bordo. " +
+                "Usa tolleranza bassa (5-10) e applica dopo Quantize per evitare falsi positivi. " +
+                "Soglia Sobel ignorata.";
+            GridSobelControls.Opacity = 0.4;
+        }
+        else
+        {
+            TxtBgModeHint.Text =
+                "Flood fill dal bordo + punto ◉. " +
+                "Se rimangono residui interni: usa ◉ direttamente sul pixel residuo poi 'Rimuovi sfondo'.";
+            GridSobelControls.Opacity = 1.0;
+        }
     }
 
     private void Request(SpriteStudioAction action) => ActionRequested?.Invoke(this, action);

@@ -360,6 +360,10 @@ public partial class MainWindow : Window
                 ApplySpriteCleanupStateToControls();
                 RunBackgroundIsolation();
                 break;
+            case SpriteStudioAction.ApplyGlobalChromaKey:
+                ApplySpriteCleanupStateToControls();
+                RunGlobalChromaKey();
+                break;
             case SpriteStudioAction.ActivatePipetteForBackground:
                 ActivatePipette(0);
                 break;
@@ -1835,6 +1839,54 @@ public partial class MainWindow : Window
             }
         }
         catch (Exception ex) { SetStatus($"Errore rimozione sfondo: {ex.Message}"); }
+    }
+
+    private void RunGlobalChromaKey()
+    {
+        if (!InputParsing.TryParseHexRgb(_backgroundIsolationHex, out var key))
+        {
+            SetStatus("Global Chroma-Key: colore sfondo non valido. Usa ◉ per campionare dall'immagine.");
+            return;
+        }
+        var tol = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationTolerance, 10));
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        try
+        {
+            PushUndo();
+            var removed = GlobalChromaKey.ApplyInPlace(_document, key, tol);
+
+            // ── Alpha binarization post-rimozione (opzionale, stessa logica del flood) ──
+            var alphaApplied = false;
+            if (_pipelineFormState.EnableAlphaThreshold && removed > 0)
+            {
+                var alphaThr = (byte)Math.Clamp(InputParsing.ParseInt(_pipelineFormState.AlphaThreshold, 128), 1, 254);
+                AlphaThreshold.ApplyInPlace(_document, alphaThr);
+                alphaApplied = true;
+            }
+
+            ClearSliceGrid(); _cells.Clear(); ClearSpriteCellList();
+            RefreshView();
+
+            var alphaNote = alphaApplied ? " + alpha binarizzata" : string.Empty;
+
+            if (removed > 0)
+            {
+                SetStatus($"Global Chroma-Key: {removed:N0} px rimossi — colore {RgbaToHex(key)}, tol {tol}{alphaNote}.");
+                _cleanApplied = true;
+                ResetPresetOnManualPipelineEdit();
+                UpdateWorkspaceGuidance();
+            }
+            else
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"Global Chroma-Key: nessun pixel rimosso — colore {RgbaToHex(key)}, tol {tol}. ");
+                if (tol < 5)
+                    sb.Append("Prova ad aumentare la tolleranza (5-15). ");
+                sb.Append("Usa ◉ per campionare il colore esatto dal pixel da rimuovere.");
+                SetStatus(sb.ToString().TrimEnd());
+            }
+        }
+        catch (Exception ex) { SetStatus($"Errore Global Chroma-Key: {ex.Message}"); }
     }
 
     private async Task ExportTiledMapJsonAsync()

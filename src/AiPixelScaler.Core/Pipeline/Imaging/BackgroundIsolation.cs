@@ -49,34 +49,10 @@ public static class BackgroundIsolation
         var q       = new Queue<int>();
 
         // ── Calibrazione tolleranza Oklab ─────────────────────────────────────
-        // Campiona 8 direzioni nello spazio RGB alla distanza tolInt:
-        //   • 6 assi allineati (+/-R, +/-G, +/-B)
-        //   • 2 diagonali principali (+tolInt su tutti i canali, -tolInt su tutti)
-        // Necessario perché per colori saturi uno shift su un canale clipa a 0/255
-        // producendo distanze Oklab molto diverse dagli altri assi.
-        var rgbTol   = Math.Max(0, options.ColorTolerance);
-        var oklabKey = Oklab.FromSrgb(options.BackgroundColor);
-        var tolInt   = (int)Math.Round(rgbTol);
-        var oklabTolSq = 0.0;
-        if (tolInt > 0)
-        {
-            var (cr, cg, cb) = (
-                (int)options.BackgroundColor.R,
-                (int)options.BackgroundColor.G,
-                (int)options.BackgroundColor.B);
-            // 6 assi
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr + tolInt, cg,          cb);
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr - tolInt, cg,          cb);
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg + tolInt, cb);
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg - tolInt, cb);
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg,          cb + tolInt);
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr,          cg,          cb - tolInt);
-            // 2 diagonali
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr + tolInt, cg + tolInt, cb + tolInt);
-            oklabTolSq = MaxOklabDistSq(oklabKey, oklabTolSq, cr - tolInt, cg - tolInt, cb - tolInt);
-        }
-        if (oklabTolSq <= 0.0)                              // tol=0: accetta solo colore esatto
-            oklabTolSq = (rgbTol / 255.0) * (rgbTol / 255.0);
+        // Delegata a CalibrateOklabToleranceSq (condivisa con GlobalChromaKey).
+        var rgbTol     = Math.Max(0, options.ColorTolerance);
+        var oklabKey   = Oklab.FromSrgb(options.BackgroundColor);
+        var oklabTolSq = CalibrateOklabToleranceSq(options.BackgroundColor, rgbTol);
 
         var rgbTolSq = rgbTol * rgbTol;                     // usato solo in fallback non-Oklab
         var bgR      = options.BackgroundColor.R;
@@ -173,7 +149,10 @@ public static class BackgroundIsolation
         }
 
         // ── Azzeramento ───────────────────────────────────────────────────────
-        // Conta solo pixel OPACHI rimossi; quelli già trasparenti erano corridoi.
+        // RGBA(0,0,0,0) — non solo A=0.
+        // I game engine (Unity, Godot) campionano i pixel vicini con bilinear filtering:
+        // se il pixel rimosso mantiene i canali RGB colorati, appare un alone (alpha bleeding)
+        // attorno allo sprite. Azzerare tutto previene questo artefatto.
         var removedCount = 0;
         image.ProcessPixelRows(accessor =>
         {
@@ -184,7 +163,7 @@ public static class BackgroundIsolation
                 {
                     var idx = y * w + x;
                     if (!removed[idx] || pixels[idx].A == 0) continue;
-                    row[x] = new Rgba32(row[x].R, row[x].G, row[x].B, 0);
+                    row[x] = new Rgba32(0, 0, 0, 0); // RGB azzerati: nessun alpha bleeding
                     removedCount++;
                 }
             }
@@ -193,6 +172,39 @@ public static class BackgroundIsolation
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Calibra la soglia di tolleranza Oklab² a partire da una tolleranza RGB lineare.
+    ///
+    /// Campiona 8 direzioni nello spazio RGB alla distanza <paramref name="rgbTolerance"/>:
+    ///   • 6 assi allineati (+/-R, +/-G, +/-B)
+    ///   • 2 diagonali principali (+tol su tutti i canali, -tol su tutti)
+    /// Il massimo delle distanze Oklab² ottenute diventa la soglia effettiva.
+    ///
+    /// Necessario perché per colori saturi uno shift su un canale può clipparsi a 0/255
+    /// producendo distanze Oklab molto diverse dagli altri assi.
+    ///
+    /// Condiviso con <see cref="GlobalChromaKey"/> per garantire coerenza tra le due modalità.
+    /// </summary>
+    public static double CalibrateOklabToleranceSq(Rgba32 key, double rgbTolerance)
+    {
+        var oklabKey = Oklab.FromSrgb(key);
+        var tolInt   = (int)Math.Round(Math.Max(0, rgbTolerance));
+        if (tolInt == 0)
+            return (rgbTolerance / 255.0) * (rgbTolerance / 255.0);
+
+        var (cr, cg, cb) = ((int)key.R, (int)key.G, (int)key.B);
+        var sq = 0.0;
+        sq = MaxOklabDistSq(oklabKey, sq, cr + tolInt, cg,          cb         );
+        sq = MaxOklabDistSq(oklabKey, sq, cr - tolInt, cg,          cb         );
+        sq = MaxOklabDistSq(oklabKey, sq, cr,          cg + tolInt, cb         );
+        sq = MaxOklabDistSq(oklabKey, sq, cr,          cg - tolInt, cb         );
+        sq = MaxOklabDistSq(oklabKey, sq, cr,          cg,          cb + tolInt);
+        sq = MaxOklabDistSq(oklabKey, sq, cr,          cg,          cb - tolInt);
+        sq = MaxOklabDistSq(oklabKey, sq, cr + tolInt, cg + tolInt, cb + tolInt);
+        sq = MaxOklabDistSq(oklabKey, sq, cr - tolInt, cg - tolInt, cb - tolInt);
+        return sq;
+    }
 
     private static double MaxOklabDistSq(in Oklab key, double current, int r, int g, int b)
     {

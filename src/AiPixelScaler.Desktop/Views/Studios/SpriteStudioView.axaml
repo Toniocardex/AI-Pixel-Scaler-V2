@@ -77,24 +77,42 @@
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="Rimozione sfondo"/>
-            <TextBlock Classes="studio-hint" Text="Flood fill dal bordo + punto ◉. Usa ◉ per campionare il colore (3×3 px); se ci sono residui interni clicca ◉ direttamente sul pixel residuo poi premi 'Rimuovi sfondo' — il flood seminerà anche da quel punto."/>
+
+            <!-- Selettore modalità Flood / Globale -->
+            <Grid ColumnDefinitions="*,4,*">
+              <ToggleButton x:Name="BtnBgModeFlood" Grid.Column="0" IsChecked="True"
+                            Classes="tool-toggle" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Flood fill border-seeded: rimuove solo lo sfondo connesso al perimetro esterno. Protegge i dettagli interni dello sprite. Usa ◉ sul pixel residuo per seedare anche da quel punto.">
+                <TextBlock Text="⬡ Flood (bordo)" FontSize="11" HorizontalAlignment="Center"/>
+              </ToggleButton>
+              <ToggleButton x:Name="BtnBgModeGlobal" Grid.Column="2" IsChecked="False"
+                            Classes="tool-toggle" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Global Chroma-Key: scansiona ogni pixel ignorando la contiguità spaziale. Rimuove anche isole interne non connesse al bordo. Attenzione: elimina TUTTO ciò che corrisponde al colore chiave — usare con tolleranza bassa dopo Quantize.">
+                <TextBlock Text="◈ Globale" FontSize="11" HorizontalAlignment="Center"/>
+              </ToggleButton>
+            </Grid>
+
+            <!-- Hint contestuale (aggiornato da codice in base alla modalità) -->
+            <TextBlock x:Name="TxtBgModeHint" Classes="studio-hint" TextWrapping="Wrap"
+                       Text="Flood fill dal bordo + punto ◉. Se rimangono residui interni: usa ◉ direttamente sul pixel residuo poi 'Rimuovi sfondo'."/>
+
             <Grid ColumnDefinitions="Auto,4,*,6,22,6,64">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Colore"/>
               <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="2" Text="#00FF00" PlaceholderText="#RRGGBB"/>
               <Button x:Name="BtnSpriteBgPipette" Grid.Column="4" Width="22" Height="22" Padding="0"
                       Content="◉" FontSize="11"
-                      ToolTip.Tip="Campiona colore sfondo dall'immagine (area 5×5 px, auto-disattiva dopo il pick). Poi premi 'Rimuovi sfondo'."/>
+                      ToolTip.Tip="Campiona colore sfondo dall'immagine (area 3×3 px, auto-disattiva dopo il pick)."/>
               <TextBox x:Name="TxtSpriteBackgroundTol" Grid.Column="6" Text="10"
-                       ToolTip.Tip="Tolleranza colore [0-255]. Aumenta se lo sfondo non è completamente uniforme (es. JPEG: 15-30)."/>
+                       ToolTip.Tip="Tolleranza colore [0-255]. Flood: 15-30 per JPEG. Globale: preferire 5-10 per evitare di rimuovere dettagli sprite."/>
             </Grid>
-            <Grid ColumnDefinitions="*,6,64">
+            <Grid x:Name="GridSobelControls" ColumnDefinitions="*,6,64">
               <TextBlock Grid.Column="0" Classes="studio-hint" Text="Protezione bordi (Sobel)"
-                         ToolTip.Tip="Soglia Sobel [0-500]. Valori più bassi = protezione meno aggressiva. 0 = disabilitata. Default 100 ignora artefatti JPEG ma blocca bordi sprite."/>
+                         ToolTip.Tip="Solo modalità Flood. Soglia Sobel [0-500]. 0 = disabilitata. Ignorata in modalità Globale."/>
               <TextBox x:Name="TxtSpriteBackgroundEdge" Grid.Column="2" Text="100"
-                       ToolTip.Tip="100 = default. Prova 50 o 0 se il flood si blocca su sfondo uniforme."/>
+                       ToolTip.Tip="100 = default Flood. Ignorata in modalità Globale."/>
             </Grid>
             <CheckBox x:Name="ChkSpriteAlphaThreshold" Content="Binarizza alpha dopo rimozione"
-                      ToolTip.Tip="Azzera i pixel semi-trasparenti residui (alpha &lt; soglia) dopo il flood fill. Utile per immagini già con canale alpha parziale."/>
+                      ToolTip.Tip="Azzera i pixel semi-trasparenti residui (alpha &lt; soglia) dopo la rimozione. Applicata in entrambe le modalità."/>
             <TextBox x:Name="TxtSpriteAlphaThreshold" Text="128"
                      ToolTip.Tip="Soglia alpha [1-254]. Pixel con alpha &lt; soglia → trasparenti; alpha ≥ soglia → opachi."/>
             <Button x:Name="BtnSpriteBackgroundIsolation" Classes="secondary" Content="Rimuovi sfondo" HorizontalAlignment="Stretch"/>

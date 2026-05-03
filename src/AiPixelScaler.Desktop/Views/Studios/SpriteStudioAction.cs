@@ -12,6 +12,7 @@ public enum SpriteStudioAction
     ApplyDefringe,
     ApplyMedian,
     ApplyBackgroundIsolation,
+    ApplyGlobalChromaKey,           // scansione globale: rimuove isole interne non connesse al bordo
     ApplyDenoise,
     SelectArea,
     SelectAll,
