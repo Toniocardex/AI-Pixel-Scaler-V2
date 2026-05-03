@@ -478,7 +478,7 @@ public partial class MainWindow : Window
                 RunNearestResize();
                 break;
             case SpriteStudioAction.ExportPng:
-                await ExportPngAsync();
+                await ExportSpriteSheetDirectAsync();
                 break;
             case SpriteStudioAction.ExportJson:
                 await ExportJsonAsync();
@@ -2952,6 +2952,23 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Salva _document direttamente come PNG (nessun re-packing).
+    /// Chiamato dal pulsante "Esporta sprite sheet" in Sprite Studio.
+    /// </summary>
+    private async Task ExportSpriteSheetDirectAsync()
+    {
+        await ExportController.ExportSpriteSheetAsync(
+            _document,
+            ChkExportAtlasIndexedPng.IsChecked == true,
+            StorageProvider,
+            SetStatus);
+    }
+
+    /// <summary>
+    /// Rimonta l'atlas dalle celle (re-packing) ed esporta il risultato.
+    /// Usato dal flusso workflow guidato (step Esporta).
+    /// </summary>
     private async Task ExportPngAsync()
     {
         await ExportController.ExportPngAsync(

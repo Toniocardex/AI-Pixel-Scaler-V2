@@ -18,6 +18,47 @@ namespace AiPixelScaler.Desktop.Controllers;
 
 internal static class ExportController
 {
+    /// <summary>
+    /// Salva <paramref name="document"/> direttamente come PNG, senza rimontare / riimpacchettare
+    /// le celle. È il comportamento atteso del pulsante "Esporta sprite sheet".
+    /// </summary>
+    public static async Task ExportSpriteSheetAsync(
+        Image<Rgba32>? document,
+        bool indexedPng,
+        IStorageProvider storageProvider,
+        Action<string> setStatus)
+    {
+        if (document is null) return;
+        try
+        {
+            var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Salva sprite sheet PNG",
+                DefaultExtension = "png",
+                FileTypeChoices = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
+                SuggestedFileName = "spritesheet.png"
+            });
+            if (file is null) return;
+
+            await using var s = await file.OpenWriteAsync();
+            if (indexedPng)
+                IndexedPngExporter.SaveWithWuQuantize(document, s);
+            else
+                document.Save(s, new PngEncoder());
+
+            var mode = indexedPng ? " (palette 8-bit)" : "";
+            setStatus($"Sprite sheet salvato{mode} ({document.Width}×{document.Height} px).");
+        }
+        catch (Exception ex)
+        {
+            setStatus($"Errore export sprite sheet: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Rimonta l'atlas dalle celle (compatto o uniforme) ed esporta il risultato come PNG.
+    /// Usato internamente dai flussi che richiedono il re-packing (es. step workflow Esporta).
+    /// </summary>
     public static async Task ExportPngAsync(
         Image<Rgba32>? document,
         IReadOnlyList<SpriteCell> cells,
