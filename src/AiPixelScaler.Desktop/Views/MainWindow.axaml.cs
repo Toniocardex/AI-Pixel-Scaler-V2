@@ -68,7 +68,8 @@ public partial class MainWindow : Window
         OutlineHex: "#000000",
         EnableAlphaThreshold: true,
         AlphaThreshold: "128",
-        DefringeOpaque: "250");
+        DefringeOpaque: "250",
+        MajorityMinNeighbors: "1");
     private string _backgroundIsolationHex = "#00FF00";
     private string _backgroundIsolationTolerance = "10";
     private string _backgroundIsolationEdgeThreshold = "100"; // soglia Sobel: 100 ignora artefatti JPEG (<80), blocca bordi sprite (200+)
