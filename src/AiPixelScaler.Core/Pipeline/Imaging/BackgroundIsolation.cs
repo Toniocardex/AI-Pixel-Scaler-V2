@@ -294,7 +294,7 @@ public static class BackgroundIsolation
     {
         var w = image.Width;
         var h = image.Height;
-        if (w < 1 || h < 1) return key;
+        if (w < 1 || h < 1 || maxRgbDistancePerChannel < 0) return key;
 
         // Accesso diretto image[x,y] — nessuna copia ToFlatArray, O(w+h) anziché O(w×h)
         var maxDistSq = maxRgbDistancePerChannel * maxRgbDistancePerChannel * 3.0;
