@@ -74,9 +74,38 @@
         </Grid>
         <TextBlock Classes="studio-hint" Text="Preset, cleanup e filtri dettagliati agiscono sugli stessi parametri della pipeline."/>
 
+        <!-- ① Quantize ─────────────────────────────────────────────────────── -->
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
-            <TextBlock Classes="section-title" Text="Rimozione sfondo"/>
+            <TextBlock Classes="section-title" Text="① Quantize — Prepara palette"/>
+            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
+                       Text="Riduci i colori prima di rimuovere lo sfondo: unifica le variazioni cromatiche dell'AI in una palette pulita. Il colore chiave sfondo viene aggiornato automaticamente dopo l'applicazione."/>
+            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita Quantize nella pipeline"/>
+            <Grid ColumnDefinitions="*,6,74">
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Colori max"/>
+              <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"/>
+            </Grid>
+            <ComboBox x:Name="CmbSpriteQuantizeMethod" SelectedIndex="0" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="Wu (ImageSharp)"/>
+              <ComboBoxItem Content="Octree"/>
+            </ComboBox>
+            <Grid ColumnDefinitions="*,6,*">
+              <Button x:Name="BtnSpriteQuantizeApply" Grid.Column="0" Classes="secondary"
+                      Content="Applica" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Applica la quantizzazione e aggiorna il colore sfondo alla voce più vicina nella palette."/>
+              <Button x:Name="BtnSpriteAnalyzePalette" Grid.Column="2" Classes="secondary"
+                      Content="Analizza" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Mostra i colori presenti nell'immagine senza modificarla. Clicca uno swatch per impostarlo come colore sfondo."/>
+            </Grid>
+            <TextBlock x:Name="TxtPaletteInfo" Classes="studio-hint" IsVisible="False" TextWrapping="Wrap"/>
+            <WrapPanel x:Name="PaletteSwatchPanel" IsVisible="False" Margin="0,2,0,0"/>
+          </StackPanel>
+        </Border>
+
+        <!-- ② Rimozione sfondo ───────────────────────────────────────────── -->
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <StackPanel Spacing="5">
+            <TextBlock Classes="section-title" Text="② Rimozione sfondo"/>
 
             <!-- Selettore modalità Flood / Globale -->
             <Grid ColumnDefinitions="*,4,*">
@@ -92,7 +121,6 @@
               </ToggleButton>
             </Grid>
 
-            <!-- Hint contestuale (aggiornato da codice in base alla modalità) -->
             <TextBlock x:Name="TxtBgModeHint" Classes="studio-hint" TextWrapping="Wrap"
                        Text="Flood fill dal bordo + punto ◉. Se rimangono residui interni: usa ◉ direttamente sul pixel residuo poi 'Rimuovi sfondo'."/>
 
@@ -119,11 +147,15 @@
           </StackPanel>
         </Border>
 
+        <!-- ③ Edge Refinement ───────────────────────────────────────────── -->
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
-            <TextBlock Classes="section-title" Text="Edge Refinement"/>
+            <TextBlock Classes="section-title" Text="③ Edge Refinement"/>
+            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
+                       Text="Rimuove la frangia cromatica residua ai bordi del sprite (colore sfondo che filtra nei pixel semi-trasparenti)."/>
             <Grid ColumnDefinitions="*,6,64">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Soglia opaco"/>
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Soglia opaco"
+                         ToolTip.Tip="Alpha minima per considerare un pixel 'opaco' nel defringe. Default 250."/>
               <TextBox x:Name="TxtSpriteDefringeOpaque" Grid.Column="2" Text="250"/>
             </Grid>
             <Button x:Name="BtnSpriteDefringe" Classes="secondary" Content="Applica defringe" HorizontalAlignment="Stretch"/>
@@ -132,11 +164,15 @@
           </StackPanel>
         </Border>
 
+        <!-- ④ Denoise ───────────────────────────────────────────────────── -->
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
-            <TextBlock Classes="section-title" Text="Denoise"/>
+            <TextBlock Classes="section-title" Text="④ Denoise"/>
+            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
+                       Text="Rimuove rumore pixel-level: isole opache minuscole e variazioni di colore nei pixel circostanti."/>
             <Grid ColumnDefinitions="*,6,64">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Isole minime"/>
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Isole minime"
+                         ToolTip.Tip="Rimuovi gruppi di pixel opachi connessi con area inferiore a questo valore."/>
               <TextBox x:Name="TxtSpriteMinIsland" Grid.Column="2" Text="2"/>
             </Grid>
             <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Maggioranza 3x3"/>
@@ -147,89 +183,54 @@
           </StackPanel>
         </Border>
 
+        <!-- ⑤ Morfologia & Anomalie ─────────────────────────────────────── -->
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
-            <TextBlock Classes="section-title" Text="Morfologia &amp; Anomalie"/>
+            <TextBlock Classes="section-title" Text="⑤ Morfologia &amp; Anomalie"/>
             <TextBlock Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Post-processing sul canale alpha. Applicare dopo rimozione sfondo."/>
+                       Text="Post-processing finale sul canale alpha: affina la forma del sprite e rileva pixel anomali residui."/>
 
-            <!-- Iterazioni -->
             <Grid ColumnDefinitions="*,6,48">
-              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Iterazioni"/>
-              <TextBox x:Name="TxtMorphIterations" Grid.Column="2" Text="1"
-                       ToolTip.Tip="Numero di volte che l'operazione morfologica viene ripetuta. 1 = 1px per bordo."/>
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Iterazioni"
+                         ToolTip.Tip="Numero di passaggi per le operazioni morfologiche. 1 = 1px per bordo."/>
+              <TextBox x:Name="TxtMorphIterations" Grid.Column="2" Text="1"/>
             </Grid>
-
-            <!-- Pulsanti morfologici -->
             <Grid ColumnDefinitions="*,4,*,4,*,4,*">
               <Button x:Name="BtnMorphErode" Grid.Column="0" Classes="secondary"
                       Content="Erodi" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Erode: rimuove 1px di bordo opaco per iterazione. Utile per eliminare la frangia residua dopo rimozione sfondo."/>
+                      ToolTip.Tip="Erode: rimuove 1px di bordo opaco per iterazione. Elimina la frangia residua."/>
               <Button x:Name="BtnMorphDilate" Grid.Column="2" Classes="secondary"
                       Content="Dilata" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Dilate: espande il bordo opaco di 1px per iterazione (edge padding). Previene artefatti nel bilinear filtering di Unity/Godot."/>
+                      ToolTip.Tip="Dilate: espande il bordo opaco di 1px (edge padding per Unity/Godot)."/>
               <Button x:Name="BtnMorphOpen" Grid.Column="4" Classes="secondary"
                       Content="Apri" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Open = Erode + Dilate: rimuove protrusioni sottili e pixel opachi isolati senza ridurre la forma complessiva."/>
+                      ToolTip.Tip="Open = Erode + Dilate: rimuove protrusioni sottili e pixel isolati."/>
               <Button x:Name="BtnMorphClose" Grid.Column="6" Classes="secondary"
                       Content="Chiudi" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Close = Dilate + Erode: chiude buchi sottili all'interno dello sprite senza espandere il bordo esterno."/>
+                      ToolTip.Tip="Close = Dilate + Erode: chiude buchi sottili all'interno dello sprite."/>
             </Grid>
 
-            <!-- Anomaly detection -->
-            <TextBlock Classes="section-title" Text="Anomaly Detection" Margin="0,5,0,0"/>
-            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
-                       Text="Rileva e rimuove pixel che non appartengono allo sprite per colore o isolamento."/>
+            <TextBlock Classes="studio-hint" Text="Anomaly Detection" FontWeight="SemiBold" Margin="0,4,0,0"/>
             <Grid ColumnDefinitions="*,6,48">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
                          Text="Isole min (px)"
-                         ToolTip.Tip="Rimuovi isole: dimensione minima (esclusa) di un cluster opaco per essere mantenuto. Cluster &lt; N px → rimossi."/>
-              <TextBox x:Name="TxtAnomalyMinIsland" Grid.Column="2" Text="4"
-                       ToolTip.Tip="Default 4: rimuove cluster 1-3px. Aumenta per rimuovere residui più grandi."/>
+                         ToolTip.Tip="Cluster opachi con meno di N pixel → rimossi. Default 4."/>
+              <TextBox x:Name="TxtAnomalyMinIsland" Grid.Column="2" Text="4"/>
             </Grid>
             <Grid ColumnDefinitions="*,6,48">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
                          Text="Tol. outlier"
-                         ToolTip.Tip="Color outlier: soglia RGB [0-255] sotto la quale un pixel è 'simile' al vicino. Pixel senza vicini simili → rimossi."/>
-              <TextBox x:Name="TxtAnomalyOutlierTol" Grid.Column="2" Text="20"
-                       ToolTip.Tip="Default 20. Abbassa a 10-15 per pixel art quantizzata; alza a 30-40 per immagini AI non quantizzate."/>
+                         ToolTip.Tip="Soglia RGB [0-255] per il color outlier. Pixel senza vicini simili → rimossi. Default 20."/>
+              <TextBox x:Name="TxtAnomalyOutlierTol" Grid.Column="2" Text="20"/>
             </Grid>
             <Grid ColumnDefinitions="*,6,*">
               <Button x:Name="BtnRemoveIslands" Grid.Column="0" Classes="secondary"
                       Content="Isole" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Rimuove componenti connesse di pixel opachi con meno di N pixel (8-connectivity BFS)."/>
+                      ToolTip.Tip="Rimuove cluster opachi isolati (8-connectivity BFS) con meno di N pixel."/>
               <Button x:Name="BtnRemoveOutliers" Grid.Column="2" Classes="secondary"
                       Content="Outlier" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Rimuove pixel opachi il cui colore Oklab è troppo distante da tutti i vicini opachi. Individua pixel 'fuori posto' senza dipendere dalla dimensione del cluster."/>
+                      ToolTip.Tip="Rimuove pixel il cui colore Oklab è troppo distante da tutti i vicini opachi."/>
             </Grid>
-          </StackPanel>
-        </Border>
-
-        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
-          <StackPanel Spacing="5">
-            <TextBlock Classes="section-title" Text="Quantize"/>
-            <TextBlock Classes="studio-hint"
-                       Text="⚠ Applica prima della rimozione sfondo: rimappa tutti i pixel alla palette ridotta e aggiorna automaticamente il colore chiave."
-                       TextWrapping="Wrap"/>
-            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita Quantize"/>
-            <Grid ColumnDefinitions="*,6,74">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Colori max"/>
-              <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"/>
-            </Grid>
-            <ComboBox x:Name="CmbSpriteQuantizeMethod" SelectedIndex="0" HorizontalAlignment="Stretch">
-              <ComboBoxItem Content="Wu (ImageSharp)"/>
-              <ComboBoxItem Content="Octree"/>
-            </ComboBox>
-            <Grid ColumnDefinitions="*,6,*">
-              <Button x:Name="BtnSpriteQuantizeApply" Grid.Column="0" Classes="secondary"
-                      Content="Applica" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Applica la quantizzazione e aggiorna il colore sfondo alla voce più vicina nella palette."/>
-              <Button x:Name="BtnSpriteAnalyzePalette" Grid.Column="2" Classes="secondary"
-                      Content="Analizza" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Mostra i colori presenti nell'immagine senza modificarla. Clicca uno swatch per impostarlo come colore sfondo."/>
-            </Grid>
-            <TextBlock x:Name="TxtPaletteInfo" Classes="studio-hint" IsVisible="False" TextWrapping="Wrap"/>
-            <WrapPanel x:Name="PaletteSwatchPanel" IsVisible="False" Margin="0,2,0,0"/>
           </StackPanel>
         </Border>
 
