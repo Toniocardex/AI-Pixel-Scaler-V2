@@ -27,10 +27,11 @@ public static class BackgroundIsolation
     public sealed record Options(
         Rgba32 BackgroundColor,
         double ColorTolerance = 8,
-        double EdgeThreshold = 100,       // Sobel: 100 supera artefatti JPEG (<80), blocca bordi sprite (200-1440)
+        double EdgeThreshold = 100,                              // Sobel: 100 supera artefatti JPEG (<80), blocca bordi sprite (200-1440)
         bool UseOklab = true,
         bool ProtectStrongEdges = true,
-        bool Use8Connectivity = true);    // vicini diagonali → elimina angoli isolati
+        bool Use8Connectivity = true,                           // vicini diagonali → elimina angoli isolati
+        IReadOnlyList<(int X, int Y)>? AdditionalSeeds = null); // seed extra (es. punto cliccato con pipetta)
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,19 @@ public static class BackgroundIsolation
         {
             Seed(y*w);                  // colonna 0
             if (w > 1) Seed(y*w+w-1);  // colonna w-1
+        }
+
+        // ── Seeding aggiuntivo (punti espliciti, es. ultima pick contagocce) ─
+        // Permette di raggiungere pixel residui interni non connessi al bordo.
+        // Un seed su un pixel già trasparente è no-op (CanFlood → true ma rimossa=skip).
+        if (options.AdditionalSeeds is { Count: > 0 })
+        {
+            foreach (var (sx, sy) in options.AdditionalSeeds)
+            {
+                // Bound check con cast a uint: elimina due confronti (x<0 implicito)
+                if ((uint)sx < (uint)w && (uint)sy < (uint)h)
+                    Seed(sy * w + sx);
+            }
         }
 
         // ── Propagazione ─────────────────────────────────────────────────────

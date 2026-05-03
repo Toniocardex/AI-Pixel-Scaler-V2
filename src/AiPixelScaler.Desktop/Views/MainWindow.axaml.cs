@@ -72,6 +72,13 @@ public partial class MainWindow : Window
     private string _backgroundIsolationHex = "#00FF00";
     private string _backgroundIsolationTolerance = "10";
     private string _backgroundIsolationEdgeThreshold = "100"; // soglia Sobel: 100 ignora artefatti JPEG (<80), blocca bordi sprite (200+)
+    /// <summary>
+    /// Coordinata immagine dell'ultima pick con la pipetta sfondo.
+    /// Se impostata, viene passata come seed aggiuntivo al prossimo <see cref="RunBackgroundIsolation"/>
+    /// così il flood raggiunge anche pixel residui non connessi al bordo.
+    /// Viene azzerata dopo ogni utilizzo (one-shot).
+    /// </summary>
+    private (int X, int Y)? _lastPipettePoint;
     private string _quickColorsAfterText = "-";
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
@@ -1045,17 +1052,22 @@ public partial class MainWindow : Window
     {
         if (_document is null) return;
 
-        // Campiona il colore dominante in un'area 5×5 attorno al punto cliccato
-        // (raggio 2 = 5×5 px). Questo elimina il problema di campionare pixel
-        // anti-aliased, compressi o con colore deviante rispetto all'area circostante.
+        // Campiona il colore dominante in un'area 3×3 attorno al punto cliccato
+        // (raggio 1 = 3×3 px). Più preciso di 5×5 per residui da 1-2px: un'area
+        // troppo grande campiona i pixel sprite circostanti, restituendo il colore
+        // sbagliato. 3×3 mantiene robustezza anti-noise pur rimanendo preciso.
         // Pixel trasparenti / semi-trasparenti (alpha < 128) vengono ignorati.
-        var sampled = BackgroundIsolation.SampleRegionColor(_document, e.X, e.Y, radius: 2);
+        var sampled = BackgroundIsolation.SampleRegionColor(_document, e.X, e.Y, radius: 1);
         var hx = RgbaToHex(sampled);
 
         switch (CmbPipetteTarget.SelectedIndex)
         {
             case 0:
                 _backgroundIsolationHex = hx;
+                // Salva il punto esatto del click: verrà usato come seed aggiuntivo
+                // dal prossimo RunBackgroundIsolation per raggiungere pixel residui
+                // interni non connessi al bordo (one-shot, azzerato dopo l'uso).
+                _lastPipettePoint = (e.X, e.Y);
                 // Non usare SyncSpriteCleanupStateFromControls(): sovrascriverebbe tolleranza/bordi
                 // letti dal pannello con copie (_*) possibilmente non aggiornate dopo edit solo UI.
                 {
@@ -1761,16 +1773,25 @@ public partial class MainWindow : Window
                 _backgroundIsolationEdgeThreshold = ui.BackgroundEdgeThreshold;
             }
 
+            // Seed extra dall'ultima pick pipetta (one-shot): permette al flood di
+            // raggiungere pixel residui interni non connessi al bordo dell'immagine.
+            var extraSeed = _lastPipettePoint;
+            _lastPipettePoint = null;
+            var additionalSeeds = extraSeed.HasValue
+                ? (IReadOnlyList<(int X, int Y)>)[extraSeed.Value]
+                : null;
+
             PushUndo();
             var removed = BackgroundIsolation.ApplyInPlace(
                 _document,
                 new BackgroundIsolation.Options(
-                    BackgroundColor:  snappedKey,
-                    ColorTolerance:   tol,
-                    EdgeThreshold:    edge,
-                    UseOklab:         true,
+                    BackgroundColor:    snappedKey,
+                    ColorTolerance:     tol,
+                    EdgeThreshold:      edge,
+                    UseOklab:           true,
                     ProtectStrongEdges: true,
-                    Use8Connectivity: true));
+                    Use8Connectivity:   true,
+                    AdditionalSeeds:    additionalSeeds));
 
             // ── Alpha binarization post-flood (opzionale) ──────────────────────
             // Se "Binarizza alpha" è attiva nel pannello, azzera i pixel semi-trasparenti
@@ -1786,12 +1807,13 @@ public partial class MainWindow : Window
             ClearSliceGrid(); _cells.Clear(); ClearSpriteCellList();
             RefreshView();
 
-            var snapNote  = snapped     ? $" [colore auto-corretto da {RgbaToHex(key)}]"  : string.Empty;
-            var alphaNote = alphaApplied ? " + alpha binarizzata"                          : string.Empty;
+            var snapNote  = snapped          ? $" [colore auto-corretto da {RgbaToHex(key)}]"  : string.Empty;
+            var alphaNote = alphaApplied     ? " + alpha binarizzata"                          : string.Empty;
+            var seedNote  = extraSeed.HasValue ? $" [seed ◉ {extraSeed.Value.X},{extraSeed.Value.Y}]" : string.Empty;
 
             if (removed > 0)
             {
-                SetStatus($"Sfondo rimosso: {removed:N0} px — colore {RgbaToHex(snappedKey)}, tol {tol}, bordi {edge}{snapNote}{alphaNote}.");
+                SetStatus($"Sfondo rimosso: {removed:N0} px — colore {RgbaToHex(snappedKey)}, tol {tol}, bordi {edge}{snapNote}{alphaNote}{seedNote}.");
                 _cleanApplied = true;
                 ResetPresetOnManualPipelineEdit();
                 UpdateWorkspaceGuidance();
@@ -1805,8 +1827,11 @@ public partial class MainWindow : Window
                     hints.Append("Aumenta tolleranza (prova 15-30). ");
                 if (edge > 80)
                     hints.Append("Riduci protezione bordi (prova 50-0) se il flood è bloccato su sfondo uniforme. ");
-                hints.Append("Usa ◉ per campionare il colore esatto dallo sfondo, poi riprova.");
-                SetStatus(hints.ToString());
+                if (extraSeed.HasValue)
+                    hints.Append($"Il punto ◉ ({extraSeed.Value.X},{extraSeed.Value.Y}) è stato usato come seed ma nessun pixel corrispondente trovato lì — ricontrolla colore/tolleranza. ");
+                else
+                    hints.Append("Se i residui non sono connessi al bordo: usa ◉ direttamente SUL pixel residuo, poi 'Rimuovi sfondo' seminerà anche da quel punto. ");
+                SetStatus(hints.ToString().TrimEnd());
             }
         }
         catch (Exception ex) { SetStatus($"Errore rimozione sfondo: {ex.Message}"); }

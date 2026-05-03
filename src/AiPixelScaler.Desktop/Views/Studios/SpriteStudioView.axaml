@@ -77,7 +77,7 @@
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="Rimozione sfondo"/>
-            <TextBlock Classes="studio-hint" Text="Flood fill dal bordo: rimuove lo sfondo connesso all'esterno senza toccare l'interno. Usa ◉ per campionare il colore (5×5 px)."/>
+            <TextBlock Classes="studio-hint" Text="Flood fill dal bordo + punto ◉. Usa ◉ per campionare il colore (3×3 px); se ci sono residui interni clicca ◉ direttamente sul pixel residuo poi premi 'Rimuovi sfondo' — il flood seminerà anche da quel punto."/>
             <Grid ColumnDefinitions="Auto,4,*,6,22,6,64">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Colore"/>
               <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="2" Text="#00FF00" PlaceholderText="#RRGGBB"/>
