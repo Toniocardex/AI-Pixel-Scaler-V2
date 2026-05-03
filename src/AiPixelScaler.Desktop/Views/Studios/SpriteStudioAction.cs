@@ -2,6 +2,7 @@ namespace AiPixelScaler.Desktop.Views.Studios;
 
 public enum SpriteStudioAction
 {
+    CreateBlankCanvas,          // crea un nuovo canvas vuoto con dimensioni personalizzate
     OpenImage,
     ApplyDefaultPreset,
     ApplySafePreset,

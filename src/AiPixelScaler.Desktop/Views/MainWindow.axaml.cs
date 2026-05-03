@@ -89,6 +89,7 @@ public partial class MainWindow : Window
     private readonly DelegateCommand _applyAggressivePresetCommand;
     private readonly DelegateCommand _applyPipelineCommand;
     private readonly WorkspaceTabsController _workspaceTabs = new();
+    private readonly AiPixelScaler.Desktop.Services.UiPreferencesService _uiPrefs = new();
     private bool _workspaceTabSwitching;
     private bool _workspaceScrollBarSync;
     private bool _workspaceZoomSliderSync;
@@ -326,6 +327,9 @@ public partial class MainWindow : Window
         {
             switch (action)
             {
+            case SpriteStudioAction.CreateBlankCanvas:
+                await CreateBlankCanvasAsync();
+                break;
             case SpriteStudioAction.OpenImage:
                 await OpenImageAsync();
                 break;
@@ -594,6 +598,9 @@ public partial class MainWindow : Window
             case AnimationStudioAction.RunCenterInCells:
                 ApplyAnimationStateToControls();
                 RunCenterInCells();
+                break;
+            case AnimationStudioAction.ImportFromVideo:
+                await ImportFramesFromVideoAsync();
                 break;
             case AnimationStudioAction.ExportFramesZip:
                 await ExportFramesZipAsync();
@@ -2143,6 +2150,182 @@ public partial class MainWindow : Window
         {
             SetStatus($"Errore apertura immagine: {ex.Message}");
         }
+    }
+
+    private async Task ImportFramesFromVideoAsync()
+    {
+        // 1. Individua FFmpeg
+        if (!AiPixelScaler.Desktop.Services.FFmpegLocator.TryLocate(_uiPrefs, out var ffmpegPath, out var ffprobePath))
+        {
+            var folder = await FfmpegConfigDialog.ShowAsync(this, _uiPrefs.LoadFfmpegFolder());
+            if (folder is null) return;
+            _uiPrefs.SaveFfmpegFolder(folder);
+            if (!AiPixelScaler.Desktop.Services.FFmpegLocator.TryLocate(_uiPrefs, out ffmpegPath, out ffprobePath))
+            {
+                SetStatus("FFmpeg non trovato anche dopo la configurazione. Verifica la cartella.");
+                return;
+            }
+        }
+
+        // 2. Apri il dialogo di import
+        var result = await VideoImportDialog.ShowAsync(this, ffmpegPath, ffprobePath);
+        if (result is null) return;
+
+        // 3. Crea cartella temporanea
+        var tempDir = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            "AiPixelScaler_Vid_" + Guid.NewGuid().ToString("N")[..8]);
+        System.IO.Directory.CreateDirectory(tempDir);
+
+        SetStatus("Estrazione frame in corso…");
+        try
+        {
+            // 4. Estrai frame
+            var opts = new AiPixelScaler.Desktop.Services.ExtractOptions(
+                result.FilePath,
+                result.StartSec,
+                result.EndSec,
+                result.UseFpsTarget,
+                result.FpsOrEveryN);
+
+            var n = await AiPixelScaler.Desktop.Services.VideoFrameExtractor.ExtractFramesAsync(
+                ffmpegPath, opts, tempDir);
+
+            if (n == 0)
+            {
+                SetStatus("Nessun frame estratto. Verifica il range e i parametri.");
+                return;
+            }
+
+            // 5. Carica PNG e costruisce atlas
+            var files = System.IO.Directory.GetFiles(tempDir, "*.png");
+            System.Array.Sort(files, System.StringComparer.OrdinalIgnoreCase);
+
+            int cellW, cellH;
+            using (var first = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(files[0]))
+            {
+                cellW = first.Width;
+                cellH = first.Height;
+            }
+
+            var cols  = (int)Math.Ceiling(Math.Sqrt(n));
+            var rows  = (int)Math.Ceiling((double)n / cols);
+            var atlas = new Image<Rgba32>(cols * cellW, rows * cellH, new Rgba32(0, 0, 0, 0));
+            var cells = new List<SpriteCell>(n);
+
+            for (var i = 0; i < files.Length; i++)
+            {
+                var col   = i % cols;
+                var row   = i / cols;
+                var cellX = col * cellW;
+                var cellY = row * cellH;
+
+                using var frame = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(files[i]);
+                atlas.Mutate(ctx => ctx.DrawImage(
+                    frame,
+                    new SixLabors.ImageSharp.Point(cellX, cellY),
+                    1f));
+                cells.Add(new SpriteCell(
+                    $"frame_{i:000}",
+                    new AiPixelScaler.Core.Geometry.AxisAlignedBox(cellX, cellY, cellX + cellW, cellY + cellH)));
+            }
+
+            // 6. Imposta come documento corrente
+            PushUndo();
+            _document?.Dispose();
+            _document = atlas;
+            _backup?.Dispose();
+            _backup = atlas.Clone();
+            _cells  = cells;
+            ClearSliceGrid();
+            Editor.SpriteCells = _cells;
+            RefreshCellList();
+            RefreshView();
+            FitOpenedImageInViewport();
+            RefreshEmptyState();
+            _workspaceTabs.MarkActiveClean();
+            RefreshWorkspaceChrome();
+            SetStatus($"Importati {n} frame da video — atlas {atlas.Width}×{atlas.Height} px " +
+                      $"({cellW}×{cellH} px/cella). Usa Animation Studio per la preview.");
+        }
+        catch (OperationCanceledException)
+        {
+            SetStatus("Estrazione video annullata.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Errore estrazione video: {ex.Message}");
+        }
+        finally
+        {
+            try { System.IO.Directory.Delete(tempDir, recursive: true); } catch { }
+        }
+    }
+
+    private async Task CreateBlankCanvasAsync()
+    {
+        var result = await NewCanvasDialog.ShowAsync(this);
+        if (result is null)
+            return;
+
+        // Costruisce il colore di sfondo (trasparente se BackgroundHex è null)
+        Rgba32 bgColor;
+        if (result.BackgroundHex is not null &&
+            SixLabors.ImageSharp.Color.TryParseHex(result.BackgroundHex, out var parsed))
+        {
+            bgColor = parsed.ToPixel<Rgba32>();
+            bgColor.A = 255;
+        }
+        else
+        {
+            bgColor = new Rgba32(0, 0, 0, 0); // trasparente
+        }
+
+        var blank = new Image<Rgba32>(result.Width, result.Height, bgColor);
+        var title = $"Nuovo {result.Width}×{result.Height}";
+
+        if (IsActiveWorkspaceOccupied())
+        {
+            SaveCurrentWorkspaceState();
+            var state = CreateWorkspaceStateFromImage(blank, title);
+            blank.Dispose();
+            _workspaceTabs.AddAndActivate(state);
+            SwitchToWorkspace(_workspaceTabs.ActiveIndex);
+            ResetTransientStateForNewOpenedProject();
+            MainTabs.SelectedIndex = 0;
+            EnterSelectionCanvas(IsRoiSelectionModeRequested());
+            UpdateSelectionInfo();
+            RefreshView();
+            FitOpenedImageInViewport();
+            _workspaceTabs.MarkActiveClean();
+            RefreshWorkspaceChrome();
+            SetStatus($"Canvas vuoto creato in nuovo workspace ({title}): {result.Width}×{result.Height} px.");
+            return;
+        }
+
+        _document?.Dispose();
+        _document = blank;
+        _backup?.Dispose();
+        _backup = _document.Clone();
+        _cells.Clear();
+        ClearSliceGrid();
+        ResetTransientStateForNewOpenedProject();
+        ClearSpriteCellList();
+        AnimationStudioPanel.SetGlobalScanResult("— Esegui prima la rilevazione sprite");
+        _hasUserFile = false;
+        _cleanApplied = false;
+        RefreshEmptyState();
+        ClearUndoStack();
+        _activeSelectionBox = null;
+        Editor.SetCommittedSelection(null);
+        MainTabs.SelectedIndex = 0;
+        EnterSelectionCanvas(IsRoiSelectionModeRequested());
+        UpdateSelectionInfo();
+        RefreshView();
+        FitOpenedImageInViewport();
+        _workspaceTabs.MarkActiveClean();
+        RefreshWorkspaceChrome();
+        SetStatus($"Canvas vuoto creato: {result.Width}×{result.Height} px. Importa sprite con «Apri» o l'atlas.");
     }
 
     private void RunIslandCleanup()

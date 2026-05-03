@@ -16,6 +16,7 @@ public partial class SpriteStudioView : UserControl
     {
         InitializeComponent();
 
+        BtnSpriteNew.Click  += (_, _) => Request(SpriteStudioAction.CreateBlankCanvas);
         BtnSpriteOpen.Click += (_, _) => Request(SpriteStudioAction.OpenImage);
         BtnSpriteDefault.Click += (_, _) => Request(SpriteStudioAction.ApplyDefaultPreset);
         BtnSpriteSafe.Click += (_, _) => Request(SpriteStudioAction.ApplySafePreset);

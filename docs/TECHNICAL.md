@@ -54,7 +54,7 @@ L’elaborazione pixel avviene **nel processo .NET** (nessun WebView). ImageShar
 La shell desktop sta migrando in modo progressivo verso tre aree operative:
 
 - **Sprite Studio:** sprite statici, cleanup, ROI, slicing, palette/quantize, export sprite.
-- **Animation Studio:** frame multipli, preview animazione, timeline, pivot, baseline, anti-jitter e roadmap `Video Frame Extractor`.
+- **Animation Studio:** frame multipli, preview animazione, timeline, pivot, baseline, anti-jitter e `Video Frame Extractor` (implementato).
 - **Tileset Studio:** griglie, crop-to-grid, template, seamless/tile preview ed export Tiled.
 
 `MainWindow` resta per ora la shell di compatibilita': gestisce toolbar, workspace condiviso, stato documento e routing tra Start Page e Studio attivo. La logica applicativa viene estratta gradualmente in controller dedicati sotto `AiPixelScaler.Desktop/Controllers`.
@@ -74,20 +74,30 @@ Il pannello di pulizia Sprite distingue i filtri reali dai preset:
 - **Denoise:** raggruppa median, isole minime e denoise a maggioranza 3x3.
 - **Quantize:** filtro autonomo con colori massimi e metodo (`Wu`, `Octree`); non viene attivato automaticamente dai preset.
 
-### 4.3 Roadmap Animation Studio: Video Frame Extractor
+### 4.3 Animation Studio: Video Frame Extractor (MVP implementato — 2026-05-03)
 
-`Video Frame Extractor` e' una funzione pianificata per `Animation Studio`, non per il flusso di cleanup Sprite. Il primo MVP deve aprire un video MP4 H.264, leggere i metadati principali, permettere la scelta di range temporale e densita' di estrazione, salvare frame PNG e importarli nel frame workbench/timeline esistente.
+`Video Frame Extractor` e' disponibile in `Animation Studio` tramite il pulsante **"Da video…"** nel pannello Export / Import.
 
-Scope MVP:
+Scope MVP implementato:
 
-- input MP4 H.264 tramite dialog dedicato;
-- metadati base: durata, FPS sorgente e dimensioni;
-- range start/end;
-- estrazione per FPS target o ogni N frame;
-- output PNG;
-- import automatico nella timeline/frame workbench di `Animation Studio`.
+- input MP4 H.264 tramite dialog dedicato (`VideoImportDialog`);
+- metadati base letti via ffprobe (durata, FPS sorgente, dimensioni) mostrati nel dialog;
+- range start/end configurabile (fine vuota = intero video);
+- estrazione per FPS target o ogni N frame (filtro ffmpeg `fps=` oppure `select`);
+- output PNG in cartella temporanea (`%TEMP%\AiPixelScaler_Vid_XXXXXXXX`), cartella rimossa automaticamente al termine;
+- import automatico nella timeline come atlas (griglia √n×√n celle, ID `frame_000…`).
 
-La strategia tecnica consigliata e' FFmpeg rilevabile/configurabile, con supporto iniziale limitato a MP4 H.264. Altri formati come MOV, WebM o AVI saranno estensioni future abilitate dal backend, non parte del primo MVP. `Sprite Studio` resta una possibile destinazione futura per estrarre un frame singolo o una sequenza breve da pulire/slicare, ma non e' il proprietario primario della feature. Il primo MVP non include deduplica, scene detection, crop ROI, cleanup batch o export atlas diretto.
+Architettura tecnica:
+
+- `Services/FFmpegLocator.cs` — rileva ffmpeg/ffprobe nel PATH di sistema (`where`) o nel percorso configurato manualmente;
+- `Services/VideoFrameExtractor.cs` — wrapper `System.Diagnostics.Process`: `GetMetadataAsync` (ffprobe JSON) + `ExtractFramesAsync` (ffmpeg, FPS o every-N, cancellazione via `CancellationToken`);
+- `Services/UiPreferencesService.cs` — esteso con campo `FfmpegFolder` nel JSON `%LOCALAPPDATA%\AiPixelScaler\ui-preferences.json`;
+- `Views/FfmpegConfigDialog.cs` — dialog "FFmpeg non trovato" con browser cartella e validazione esistenza eseguibili;
+- `Views/VideoImportDialog.cs` — dialog import con stima frame live.
+
+Formati futuri (non in MVP): MOV, WebM, AVI.
+Fuori MVP: deduplica, scene detection, crop ROI, cleanup batch, export atlas diretto.
+Integrazione Sprite: solo destinazione futura secondaria per frame singolo da pulire/slicare.
 
 ---
 

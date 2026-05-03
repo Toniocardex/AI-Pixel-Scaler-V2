@@ -74,12 +74,22 @@
     <Border Classes="studio-section">
       <StackPanel Spacing="6">
 
-        <Button x:Name="BtnSpriteOpen" Classes="primary" HorizontalAlignment="Stretch">
-          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
-            <TextBlock Text="Apri immagine"/>
-          </StackPanel>
-        </Button>
+        <Grid ColumnDefinitions="*,4,*">
+          <Button x:Name="BtnSpriteNew" Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Crea un nuovo canvas vuoto con dimensioni personalizzate (sfondo trasparente o colorato).">
+            <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconPlus}" Classes="action-icon"/>
+              <TextBlock Text="Nuovo"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnSpriteOpen" Grid.Column="2" Classes="primary" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Apri un'immagine esistente dal disco (PNG, WebP, JPG, BMP, GIF).">
+            <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+              <Path Data="{StaticResource IconFolderOpen}" Classes="action-icon"/>
+              <TextBlock Text="Apri"/>
+            </StackPanel>
+          </Button>
+        </Grid>
 
         <Border Classes="h-sep"/>
 

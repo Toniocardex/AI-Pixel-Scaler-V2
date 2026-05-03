@@ -4,7 +4,7 @@ Stato: audit approvato come guida di refactor; implementazione progressiva in co
 
 Regola: nessuna rimozione e' stata applicata. Le decisioni `remove` o `merge` sono solo candidate e richiedono conferma.
 
-Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). **Tileset Studio chiuso al 100%** (2026-05-02). **Animation Studio chiuso al 100%** (2026-05-02). Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. `TilesetStudioView` espone palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled. `AnimationStudioView` espone preview animazione, sandbox, frame workbench (entra/applica/annulla), azioni rapide allineamento, frame selezionato, normalizzazione globale, centra nelle celle, pivot engine e export ZIP frame. I tab legacy `Sprite`, `Slice`, `Selezione`, `Tileset` e `Animation` sono stati rimossi; ogni Studio ha un pannello dedicato attivato da `ActivateStudio(StudioKind)`. **Prossimo studio: Animation Studio da validare + eventuale refactor `TilesetStudioController`.**
+Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). **Tileset Studio chiuso al 100%** (2026-05-02). **Animation Studio chiuso al 100%** (2026-05-02). **Video Frame Extractor MVP implementato** (2026-05-03): pulsante «Da video…» in Animation Studio, FFmpegLocator + VideoFrameExtractor + FfmpegConfigDialog + VideoImportDialog, UiPreferencesService esteso con FfmpegFolder. Start Page e routing shell sono stati introdotti. `SpriteStudioView` copre import, cleanup, ROI, slicing, atlas pulito, resize/mirror ed export PNG/JSON. `TilesetStudioView` espone palette/stilizza, seamless/tile preview, pad-to-multiple, griglia template, import frame, crop/POT, snap celle ed export Tiled. `AnimationStudioView` espone preview animazione, sandbox, frame workbench (entra/applica/annulla), azioni rapide allineamento, frame selezionato, normalizzazione globale, centra nelle celle, pivot engine e export ZIP frame. I tab legacy `Sprite`, `Slice`, `Selezione`, `Tileset` e `Animation` sono stati rimossi; ogni Studio ha un pannello dedicato attivato da `ActivateStudio(StudioKind)`. **Prossimo studio: Animation Studio da validare + eventuale refactor `TilesetStudioController`.**
 
 | Funzione | UI attuale | Handler / modulo | Dipendenze principali | Studio destinazione | Decisione proposta | Motivazione |
 |---|---|---|---|---|---|---|
@@ -42,7 +42,7 @@ Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). **T
 | Pivot sliders export | AnimationStudioView | `SliderAnimPivotX/Y`, `_animationState` | export metadata/layout | Animation | moved | Pivot animazione e metadata. |
 | Preview animazione | AnimationStudioView | `OpenAnimationPreview` | `_cells`, current atlas | Animation | moved | Azione primaria Animation Studio. |
 | Sandbox fisica | AnimationStudioView | `OpenSandbox` | current animation/game preview | Animation | moved | Laboratorio dentro Animation Studio. |
-| Estrai frame da video | Non presente, roadmap | nuovo `VideoFrameExtractor` / import Animation futuro | MP4 H.264 input, FFmpeg rilevabile/configurabile, output PNG, timeline frame workbench | Animation | keep/new | MVP pianificato: apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, estrai PNG e importa nella timeline. Sprite puo' ricevere frame singoli/sequenze brevi solo come destinazione futura secondaria. |
+| Estrai frame da video | **Implementato** (2026-05-03) — pulsante «Da video…» in Animation Studio | `FFmpegLocator`, `VideoFrameExtractor`, `FfmpegConfigDialog`, `VideoImportDialog` | MP4 H.264, FFmpeg rilevabile/configurabile, output PNG temp, atlas timeline | Animation | **done** | MVP: apri MP4 H.264, metadati da ffprobe, range start/end, FPS target o every-N, estrai PNG in temp, import come atlas nella timeline. FFmpeg cercato nel PATH poi in cartella configurata manualmente (salvata in ui-preferences.json). |
 | Palette/stilizza | TilesetStudioView | `RunPaletteReduce`, `_tilesetState` | Wu/presets/dither | Tileset | moved | `Stilizza` e' confluito in Tileset Studio; Sprite mantiene solo `Quantize` autonomo nel pannello filtri. |
 | Mirror H/V | SpriteStudioView | `RunMirror` | document transform | Sprite | moved | Trasformazione sprite; duplicato rimosso dal blocco Tileset/Stilizza. |
 | Tileable seamless | TilesetStudioView | `RunMakeTileable`, `_tilesetState` | `SeamlessEdge`, blend | Tileset | moved | Appartiene al Tileset Studio. |
@@ -80,18 +80,20 @@ Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). **T
 | Slicing Sprite Studio + tab Slice legacy | migrated + legacy removed | Il pannello Sprite mostra e controlla crop manuale, rileva sprite, griglia, frame list, export frame e atlas pulito; il tab legacy `Slice` e i suoi controlli XAML/code-behind sono stati rimossi. |
 | Cleanup Sprite Studio + pipeline legacy | migrated + legacy removed | Il pannello Sprite mostra e controlla preset, Rimozione sfondo, Edge Refinement, Denoise e Quantize; lo stato pipeline e' in memoria, non in controlli XAML legacy. |
 | Trasformazioni/export Sprite + tab legacy Stilizza/Export | Sprite closed | Il pannello Sprite espone resize nearest, mirror H/V, export PNG e JSON. `Stilizza` passa a Tileset Studio; export ZIP/Tiled restano rispettivamente Animation/Tileset. |
-| Video Frame Extractor | roadmap Animation Studio | Nuova funzione, non duplicato di import frame: estrae PNG da video e poi li consegna al flusso frame esistente. |
+| Video Frame Extractor | **done** — Animation Studio (2026-05-03) | MVP implementato: FFmpegLocator + VideoFrameExtractor + dialog config + dialog import. Non duplicato di import frame: estrae PNG da video e li consegna al flusso frame esistente. |
 
-## Roadmap Video Frame Extractor
+## Video Frame Extractor — MVP implementato (2026-05-03)
 
-| Ambito | Decisione |
+| Ambito | Stato |
 |---|---|
-| Studio proprietario | `Animation Studio`. |
-| Scope MVP | Apri MP4 H.264, metadati base, range start/end, FPS target o every-N-frame, output PNG, import nel frame workbench/timeline. |
-| Backend consigliato | FFmpeg rilevabile/configurabile. |
-| Formati futuri | MOV, WebM e AVI solo dopo l'MVP MP4 H.264. |
+| Studio proprietario | `Animation Studio` — pulsante «Da video…» in sezione Export/Import. |
+| Scope MVP | ✅ Apri MP4 H.264, metadati da ffprobe (durata/FPS/res), range start/end, FPS target o every-N, PNG in temp, atlas nella timeline. |
+| Backend | ✅ `FFmpegLocator`: cerca nel PATH di sistema (`where`) poi in cartella configurata (`ui-preferences.json`). `FfmpegConfigDialog` per configurazione manuale. |
+| Formati futuri | MOV, WebM, AVI — non in MVP. |
 | Fuori MVP | Deduplica, scene detection, crop ROI, cleanup batch, export atlas diretto. |
 | Integrazione Sprite | Solo destinazione futura per frame singolo o sequenza breve da pulire/slicare. |
+| Nuovi file | `Services/FFmpegLocator.cs`, `Services/VideoFrameExtractor.cs`, `Views/FfmpegConfigDialog.cs`, `Views/VideoImportDialog.cs` |
+| File modificati | `Services/UiPreferencesService.cs` (+FfmpegFolder), `Studios/AnimationStudioAction.cs` (+ImportFromVideo), `AnimationStudioView.axaml/.cs`, `MainWindow.axaml.cs` |
 
 ## Default filtri Sprite Studio
 

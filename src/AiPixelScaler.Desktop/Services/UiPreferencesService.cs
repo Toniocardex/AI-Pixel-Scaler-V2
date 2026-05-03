@@ -6,7 +6,9 @@ namespace AiPixelScaler.Desktop.Services;
 
 internal sealed class UiPreferencesService
 {
-    private sealed record UiPreferences(bool ShowAdvancedTabs = false);
+    private sealed record UiPreferences(
+        bool    ShowAdvancedTabs = false,
+        string? FfmpegFolder     = null);
 
     private readonly string _path;
 
@@ -17,27 +19,41 @@ internal sealed class UiPreferencesService
         _path = Path.Combine(root, "ui-preferences.json");
     }
 
-    internal bool TryLoadShowAdvancedTabs(out bool showAdvanced)
+    // ── Lettura / scrittura avanzate ─────────────────────────────────────────
+
+    private UiPreferences Load()
     {
-        showAdvanced = false;
         try
         {
-            if (!File.Exists(_path)) return false;
+            if (!File.Exists(_path)) return new UiPreferences();
             var json = File.ReadAllText(_path);
-            var model = JsonSerializer.Deserialize<UiPreferences>(json);
-            if (model is null) return false;
-            showAdvanced = model.ShowAdvancedTabs;
-            return true;
+            return JsonSerializer.Deserialize<UiPreferences>(json) ?? new UiPreferences();
         }
-        catch
-        {
-            return false;
-        }
+        catch { return new UiPreferences(); }
+    }
+
+    private void Save(UiPreferences prefs)
+    {
+        var json = JsonSerializer.Serialize(prefs, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(_path, json);
+    }
+
+    // ── API pubblica ─────────────────────────────────────────────────────────
+
+    internal bool TryLoadShowAdvancedTabs(out bool showAdvanced)
+    {
+        var p = Load();
+        showAdvanced = p.ShowAdvancedTabs;
+        return File.Exists(_path);
     }
 
     internal void SaveShowAdvancedTabs(bool showAdvanced)
-    {
-        var json = JsonSerializer.Serialize(new UiPreferences(showAdvanced), new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(_path, json);
-    }
+        => Save(Load() with { ShowAdvancedTabs = showAdvanced });
+
+    /// <summary>Restituisce la cartella FFmpeg configurata manualmente, oppure <c>null</c>.</summary>
+    internal string? LoadFfmpegFolder() => Load().FfmpegFolder;
+
+    /// <summary>Salva la cartella FFmpeg nelle preferenze utente.</summary>
+    internal void SaveFfmpegFolder(string folder)
+        => Save(Load() with { FfmpegFolder = folder });
 }
