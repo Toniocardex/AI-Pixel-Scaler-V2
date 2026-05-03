@@ -264,12 +264,7 @@ public partial class MainWindow : Window
 
         MainTabs.SelectionChanged += OnMainTabChanged;
         InitAlignGridPanel();
-        BtnWorkflowPrimaryAction.Click += async (_, _) => await RunWorkspaceGuideActionAsync();
-        BtnWorkflowNextStep.Click += async (_, _) => await AdvanceWorkflowStepAsync();
-        BtnStepImporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Importa);
-        BtnStepPulisci.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Pulisci);
-        BtnStepSliceAllinea.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.SliceAllinea);
-        BtnStepEsporta.Click += (_, _) => ExecuteSelectStepCommand(WorkflowShellViewModel.WorkflowStep.Esporta);
+        // Workflow step UI rimosso — handler non più necessari
         BtnGoSprite.Click += (_, _) => ActivateStudio(StudioKind.Sprite);
         BtnGoAllinea.Click  += (_, _) => ActivateStudio(StudioKind.Animation);
         BtnGoTemplate.Click += (_, _) => ActivateStudio(StudioKind.Tileset);
@@ -2508,33 +2503,12 @@ public partial class MainWindow : Window
 
     private void UpdateWorkflowShell()
     {
-        BtnStepImporta.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Importa;
-        BtnStepPulisci.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Pulisci;
-        BtnStepSliceAllinea.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.SliceAllinea;
-        BtnStepEsporta.IsChecked = _workflowShell.ActiveStep == WorkflowShellViewModel.WorkflowStep.Esporta;
-
-        TxtWorkflowStepSummary.Text = _workflowShell.ActiveStep switch
-        {
-            WorkflowShellViewModel.WorkflowStep.Importa => $"{_workflowShell.StepSummary} · Apri un file PNG da elaborare.",
-            WorkflowShellViewModel.WorkflowStep.Pulisci => $"{_workflowShell.StepSummary} · Applica un preset o workflow rapido.",
-            WorkflowShellViewModel.WorkflowStep.SliceAllinea => $"{_workflowShell.StepSummary} · Rileva/sistema le celle sprite.",
-            WorkflowShellViewModel.WorkflowStep.Esporta => $"{_workflowShell.StepSummary} · Esporta atlas PNG/JSON.",
-            _ => _workflowShell.StepSummary
-        };
-        BtnWorkflowPrimaryAction.Content = _workflowShell.PrimaryActionLabel;
-        UpdateWorkflowStepStates();
+        // Workflow step UI rimosso — nessun aggiornamento visivo necessario
     }
 
     private void UpdateWorkflowStepStates()
     {
-        var hasDoc = _document is not null;
-        var cleanDone = hasDoc && _cleanApplied;
-        var hasCells = _cells.Count > 0;
-
-        TxtStepImportaState.Text = hasDoc ? "✔ completato" : "● richiesto";
-        TxtStepPulisciState.Text = !hasDoc ? "🔒 bloccato" : (cleanDone ? "✔ completato" : "● richiesto");
-        TxtStepSliceState.Text = !cleanDone ? "🔒 bloccato" : (hasCells ? "✔ completato" : "● richiesto");
-        TxtStepEsportaState.Text = !hasCells ? "🔒 bloccato" : "● pronto";
+        // Workflow step UI rimosso — nessun aggiornamento visivo necessario
     }
 
     private void SetWorkspaceBadge(string text, string bgHex, string borderHex, string fgHex) { }

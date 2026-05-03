@@ -302,11 +302,10 @@
       </DockPanel>
     </Border>
 
-    <!-- ..- WORKFLOW ACTION BAR (task-first CTA) ........................- -->
-    <Border DockPanel.Dock="Bottom" Background="#10101a" Padding="10,6"
-            BorderThickness="0,1,0,0" BorderBrush="#1e1e2e">
-      <Grid ColumnDefinitions="*,Auto,8,Auto">
-        <TextBlock x:Name="TxtWorkflowStepSummary"
+    <!-- WORKFLOW ACTION BAR RIMOSSA -->
+    <Border IsVisible="False" Height="0">
+      <Grid>
+        <TextBlock x:Name="TxtWorkflowStepSummary" IsVisible="False"
                    VerticalAlignment="Center"
                    Foreground="#b5b4ca"
                    FontSize="11"
@@ -330,33 +329,10 @@
     </Border>
 
     <!-- ..- CORPO PRINCIPALE ............................................ -->
-    <Grid x:Name="MainBodyGrid" ColumnDefinitions="84,*,4,320">
-
-      <!-- ..- LEFT RAIL (workflow task-first) ..........................- -->
-      <Border Grid.Column="0" Background="#0c0c14" BorderBrush="#1e1e2e" BorderThickness="0,0,1,0">
-        <StackPanel Margin="8,10" Spacing="8">
-          <TextBlock Text="Workflow" Foreground="#7f7f98" FontSize="10" HorizontalAlignment="Center"/>
-          <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepImporta" Classes="tool-toggle" Content="1 � Importa"/>
-            <TextBlock x:Name="TxtStepImportaState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
-          </StackPanel>
-          <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepPulisci" Classes="tool-toggle" Content="2 � Pulisci"/>
-            <TextBlock x:Name="TxtStepPulisciState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
-          </StackPanel>
-          <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepSliceAllinea" Classes="tool-toggle" Content="3 � Slice"/>
-            <TextBlock x:Name="TxtStepSliceState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
-          </StackPanel>
-          <StackPanel Spacing="2">
-            <ToggleButton x:Name="BtnStepEsporta" Classes="tool-toggle" Content="4 � Esporta"/>
-            <TextBlock x:Name="TxtStepEsportaState" Text="? in attesa" Foreground="#7d7d96" FontSize="9" Margin="4,0,0,0"/>
-          </StackPanel>
-        </StackPanel>
-      </Border>
+    <Grid x:Name="MainBodyGrid" ColumnDefinitions="*,4,350">
 
       <!-- ..- CANVAS + overlay stato vuoto + scroll workspace ............- -->
-      <Grid Grid.Column="1" Background="#0a0a0e"
+      <Grid Grid.Column="0" Background="#0a0a0e"
             RowDefinitions="*,Auto" ColumnDefinitions="*,Auto">
         <Grid Grid.Row="0" Grid.Column="0">
           <ctrl:EditorSurface x:Name="Editor" ClipToBounds="True" Zoom="1"
@@ -405,10 +381,10 @@
       </Grid>
 
       <!-- ..- SPLITTER ..................................................- -->
-      <GridSplitter x:Name="PanelSplitter" Grid.Column="2" Background="#1a1a26" ResizeDirection="Columns"/>
+      <GridSplitter x:Name="PanelSplitter" Grid.Column="1" Background="#1a1a26" ResizeDirection="Columns"/>
 
       <!-- ..- PANNELLO DESTRO ............................................- -->
-      <Border Grid.Column="3" Background="#0f0f18" x:Name="RightPanel">
+      <Border Grid.Column="2" Background="#0f0f18" x:Name="RightPanel">
         <DockPanel>
 
           <!-- Header fisso con titolo + bottone comprimi -->
@@ -456,7 +432,7 @@
           </Border>
 
           <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel Margin="12,10" Spacing="6">
+          <StackPanel Margin="8,10" Spacing="6">
 
             <!-- CONTAGOCCE hint bar (visibile solo quando attivo) -->
             <Border x:Name="PipetteHintBar" IsVisible="False"
@@ -486,19 +462,22 @@
               <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="6" Margin="2,4,2,6">
 
-                <Grid ColumnDefinitions="*,8,*">
-                  <Button x:Name="BtnExportPng" Grid.Column="0" HorizontalAlignment="Stretch"
-                          Classes="primary"
-                          ToolTip.Tip="Esporta tutti gli sprite in un unico file PNG">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
-                      <TextBlock Text="Esporta atlas PNG" VerticalAlignment="Center"/>
-                    </StackPanel>
-                  </Button>
-                  <Button x:Name="BtnExportJson" Grid.Column="2" HorizontalAlignment="Stretch"
-                          Classes="secondary" Content="{}&#123;&#125;  Esporta JSON"
-                          ToolTip.Tip="Esporta le coordinate e i pivot degli sprite in formato JSON"/>
-                </Grid>
+                <Button x:Name="BtnExportPng" HorizontalAlignment="Stretch"
+                        Classes="primary"
+                        ToolTip.Tip="Esporta tutti gli sprite in un unico file PNG">
+                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                    <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
+                    <TextBlock Text="Esporta atlas PNG"/>
+                  </StackPanel>
+                </Button>
+                <Button x:Name="BtnExportJson" HorizontalAlignment="Stretch"
+                        Classes="secondary"
+                        ToolTip.Tip="Esporta le coordinate e i pivot degli sprite in formato JSON">
+                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                    <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+                    <TextBlock Text="Esporta JSON"/>
+                  </StackPanel>
+                </Button>
                 <CheckBox x:Name="ChkExportAtlasIndexedPng" Content="Atlas PNG a palette 8-bit (file pi� compatto)"
                           ToolTip.Tip="Salva come PNG indicizzato (PLTE); quantizzazione Wu automatica se non hai gi� ridotto la palette."/>
                 <CheckBox x:Name="ChkExportKeepCellSize" Content="Mantieni dimensione cella (atlas non compatto)"

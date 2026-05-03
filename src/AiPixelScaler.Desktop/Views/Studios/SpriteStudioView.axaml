@@ -574,22 +574,20 @@
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
         <TextBlock Classes="section-title" Text="Export sprite"/>
-        <Grid ColumnDefinitions="*,6,*">
-          <Button x:Name="BtnSpriteExportPng" Grid.Column="0" Classes="primary" HorizontalAlignment="Stretch"
-                  ToolTip.Tip="Salva l'intera sprite sheet lavorata come PNG (nessun re-packing, documento così com'è).">
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-              <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
-              <TextBlock Text="Esporta sprite sheet"/>
-            </StackPanel>
-          </Button>
-          <Button x:Name="BtnSpriteExportJson" Grid.Column="2" Classes="secondary" HorizontalAlignment="Stretch"
-                  ToolTip.Tip="Esporta i metadati dello sprite (frame, palette, dimensioni) in formato JSON per il game engine.">
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-              <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
-              <TextBlock Text="Esporta JSON"/>
-            </StackPanel>
-          </Button>
-        </Grid>
+        <Button x:Name="BtnSpriteExportPng" Classes="primary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Salva l'intera sprite sheet lavorata come PNG (nessun re-packing, documento così com'è).">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconImage}" Classes="action-icon"/>
+            <TextBlock Text="Esporta sprite sheet"/>
+          </StackPanel>
+        </Button>
+        <Button x:Name="BtnSpriteExportJson" Classes="secondary" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Esporta i metadati dello sprite (frame, palette, dimensioni) in formato JSON per il game engine.">
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconSave}" Classes="action-icon"/>
+            <TextBlock Text="Esporta JSON"/>
+          </StackPanel>
+        </Button>
       </StackPanel>
     </Border>
 
