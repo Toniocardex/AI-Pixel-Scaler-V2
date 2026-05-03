@@ -3423,9 +3423,7 @@ public partial class MainWindow : Window
 
     private void ClearSelection()
     {
-        _activeSelectionBox = null;
-        Editor.SetCommittedSelection(null);
-        UpdateSelectionInfo();
+        ExitSelectionMode();
         SetStatus("Selezione rimossa.");
     }
 
@@ -3443,14 +3441,30 @@ public partial class MainWindow : Window
             ClearCellsAfterDocumentReplace,
             RefreshView,
             SetStatus);
-        _activeSelectionBox = null;
-        Editor.SetCommittedSelection(null);
-        UpdateSelectionInfo();
+        ExitSelectionMode();
     }
 
     private void RemoveSelectedArea()
     {
         SelectionController.RemoveSelectedArea(_document, _activeSelectionBox, () => PushUndo(), RefreshView, SetStatus);
+        ExitSelectionMode();
+    }
+
+    /// <summary>
+    /// Azzera la selezione corrente e disattiva la toolbar selection mode.
+    /// Da chiamare dopo ogni azione che consuma la selezione (Ritaglia, Cancella, Deseleziona).
+    /// La modalità rimane attiva solo mentre l'utente sta disegnando una selezione.
+    /// </summary>
+    private void ExitSelectionMode()
+    {
+        _activeSelectionBox = null;
+        Editor.SetCommittedSelection(null);
+        UpdateSelectionInfo();
+        if (_toolbarSelectionModeEnabled)
+        {
+            _toolbarSelectionModeEnabled = false;
+            EnterSelectionCanvas(false);
+        }
     }
 
     private void ClearCellsAfterDocumentReplace()
