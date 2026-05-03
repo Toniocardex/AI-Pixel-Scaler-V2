@@ -18,10 +18,20 @@
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
     <Style Selector="TextBlock.group-label">
-      <Setter Property="Foreground" Value="#3d4666"/>
+      <Setter Property="Foreground" Value="#7a86b0"/>
       <Setter Property="FontSize" Value="9"/>
       <Setter Property="FontWeight" Value="Bold"/>
       <Setter Property="LetterSpacing" Value="1.5"/>
+    </Style>
+    <!-- Preset attivo: stato visibile sul pulsante corrispondente -->
+    <Style Selector="Button.preset-active">
+      <Setter Property="Background" Value="#2d4a2d"/>
+      <Setter Property="Foreground" Value="#a8e0a8"/>
+      <Setter Property="BorderBrush" Value="#5fa05f"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="Button.preset-active:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#3a5e3a"/>
     </Style>
     <Style Selector="Border.studio-section">
       <Setter Property="Background" Value="#0a0c14"/>
@@ -141,7 +151,8 @@
             <TextBlock Classes="section-title" Text="① Quantize — Prepara palette"/>
             <TextBlock Classes="studio-hint"
                        Text="Unifica le variazioni cromatiche AI in una palette pulita prima di rimuovere lo sfondo. Il colore chiave viene aggiornato automaticamente dopo l'applicazione."/>
-            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita nella pipeline"/>
+            <CheckBox x:Name="ChkSpriteQuantize" Content="Abilita nella pipeline"
+                      ToolTip.Tip="Inserisce la quantizzazione come step della pipeline cleanup. Disattiva se vuoi solo applicarla manualmente con il pulsante 'Applica'."/>
             <Grid ColumnDefinitions="*,6,48,8,*">
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Colori max"/>
               <TextBox x:Name="TxtSpriteQuantizeColors" Grid.Column="2" Text="16"
@@ -218,7 +229,8 @@
             </Grid>
 
             <Button x:Name="BtnSpriteBackgroundIsolation" Classes="secondary"
-                    Content="Rimuovi sfondo" HorizontalAlignment="Stretch"/>
+                    Content="Rimuovi sfondo" HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Esegue la rimozione del colore chiave secondo la modalità selezionata (Flood o Globale) con tolleranza e protezione bordi impostate."/>
           </StackPanel>
         </Border>
 
@@ -268,7 +280,8 @@
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
                          Text="Blob min (px)"
                          ToolTip.Tip="Rimuove componenti connesse opache con area strettamente minore di N px. Default 2 = elimina solo pixel singoli isolati. Aumenta con cautela: valori alti cancellano dettagli fini."/>
-              <TextBox x:Name="TxtSpriteMinIsland" Grid.Column="2" Text="2"/>
+              <TextBox x:Name="TxtSpriteMinIsland" Grid.Column="2" Text="2"
+                       ToolTip.Tip="Soglia min in pixel. Default 2 = solo pixel singoli isolati. Aumenta con cautela: ≥3 può cancellare dettagli fini."/>
             </Grid>
             <Button x:Name="BtnSpriteIslandCleanup" Classes="secondary" HorizontalAlignment="Stretch"
                     Content="Island Cleanup"
@@ -282,7 +295,8 @@
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
                          Text="Vicini min uguali"
                          ToolTip.Tip="Se un pixel ha meno di N vicini 8-connessi con lo stesso colore, viene sostituito con il colore più frequente intorno. Default 1 = rimuove solo pixel completamente isolati per colore. Aumenta per effetto più aggressivo."/>
-              <TextBox x:Name="TxtSpriteMajorityMinNeighbors" Grid.Column="2" Text="1"/>
+              <TextBox x:Name="TxtSpriteMajorityMinNeighbors" Grid.Column="2" Text="1"
+                       ToolTip.Tip="Soglia min vicini identici (su 8). Default 1 = rimappa solo pixel completamente isolati per colore. Aumenta per effetto più aggressivo (rischio perdita dettaglio)."/>
             </Grid>
             <Button x:Name="BtnMajorityDenoise" Classes="secondary" HorizontalAlignment="Stretch"
                     Content="Majority Denoise"
@@ -292,8 +306,8 @@
 
             <!-- Pipeline: opzioni integrate nel cleanup automatico -->
             <TextBlock Classes="group-label" Text="PIPELINE"/>
-            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Majority vote nella pipeline"
-                      ToolTip.Tip="Attiva il Majority Denoise durante il cleanup automatico (Run Cleanup / Pipeline). Usa 'Vicini min uguali' come soglia."/>
+            <CheckBox x:Name="ChkSpriteMajorityDenoise" Content="Denoise nella pipeline"
+                      ToolTip.Tip="Attiva Island Cleanup + Majority Denoise durante il cleanup automatico (Quick cleanup / Applica pipeline). Usa 'Blob min' e 'Vicini min uguali' come soglie."/>
           </StackPanel>
         </Border>
 
@@ -310,7 +324,8 @@
               <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
                          Text="Iterazioni"
                          ToolTip.Tip="Numero di passaggi per Erodi/Dilata/Apri/Chiudi. 1 = modifica 1px di bordo per passaggio."/>
-              <TextBox x:Name="TxtMorphIterations" Grid.Column="2" Text="1"/>
+              <TextBox x:Name="TxtMorphIterations" Grid.Column="2" Text="1"
+                       ToolTip.Tip="Numero di passaggi consecutivi delle operazioni morfologiche. 1 modifica 1px di bordo per passaggio."/>
             </Grid>
             <Grid ColumnDefinitions="*,4,*,4,*,4,*">
               <Button x:Name="BtnMorphErode"  Grid.Column="0" Classes="secondary" HorizontalAlignment="Stretch"
@@ -434,11 +449,13 @@
         <Grid ColumnDefinitions="*,6,*">
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Classes="studio-hint" Text="Righe"/>
-            <TextBox x:Name="TxtSpriteRows" Text="2"/>
+            <TextBox x:Name="TxtSpriteRows" Text="2"
+                     ToolTip.Tip="Numero di righe nella griglia di slicing."/>
           </StackPanel>
           <StackPanel Grid.Column="2" Spacing="2">
             <TextBlock Classes="studio-hint" Text="Colonne"/>
-            <TextBox x:Name="TxtSpriteCols" Text="2"/>
+            <TextBox x:Name="TxtSpriteCols" Text="2"
+                     ToolTip.Tip="Numero di colonne nella griglia di slicing."/>
           </StackPanel>
         </Grid>
         <TextBlock x:Name="TxtSpriteCellsSummary" Classes="studio-hint" Text="Nessun frame rilevato."/>
@@ -505,7 +522,8 @@
           </Button>
           <TextBlock x:Name="TxtSpritePasteBufferStatus" Classes="studio-hint" Text="Buffer: vuoto"/>
           <Button x:Name="BtnSpritePasteExit" Classes="secondary"
-                  Content="Esci da atlas" HorizontalAlignment="Stretch"/>
+                  Content="Esci da atlas" HorizontalAlignment="Stretch"
+                  ToolTip.Tip="Termina la modalità Atlas e torna alla normale visualizzazione del documento."/>
         </StackPanel>
       </StackPanel>
     </Border>
@@ -517,11 +535,13 @@
         <Grid ColumnDefinitions="*,6,*">
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Classes="studio-hint" Text="Larghezza (px)"/>
-            <TextBox x:Name="TxtSpriteResizeW" Text="64" PlaceholderText="px"/>
+            <TextBox x:Name="TxtSpriteResizeW" Text="64" PlaceholderText="px"
+                     ToolTip.Tip="Larghezza target in pixel del ridimensionamento nearest-neighbor."/>
           </StackPanel>
           <StackPanel Grid.Column="2" Spacing="2">
             <TextBlock Classes="studio-hint" Text="Altezza (px)"/>
-            <TextBox x:Name="TxtSpriteResizeH" Text="64" PlaceholderText="px"/>
+            <TextBox x:Name="TxtSpriteResizeH" Text="64" PlaceholderText="px"
+                     ToolTip.Tip="Altezza target in pixel del ridimensionamento nearest-neighbor."/>
           </StackPanel>
         </Grid>
         <Button x:Name="BtnSpriteResizeNearest" Classes="secondary" HorizontalAlignment="Stretch"

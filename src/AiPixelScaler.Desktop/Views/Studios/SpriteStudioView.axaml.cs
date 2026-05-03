@@ -208,8 +208,9 @@ public partial class SpriteStudioView : UserControl
     }
 
     /// <summary>
-    /// Mostra o nasconde la badge del preset attivo sopra la sezione Filtri Sprite.
-    /// Passa <c>null</c> per nasconderla (stato Personalizzato / nessun preset).
+    /// Mostra o nasconde la badge del preset attivo sopra la sezione Filtri Sprite e
+    /// applica la classe <c>preset-active</c> al pulsante corrispondente per feedback visivo.
+    /// Passa <c>null</c> per stato Personalizzato (nessun pulsante evidenziato).
     /// </summary>
     public void SetPresetBadge(string? presetName)
     {
@@ -221,6 +222,34 @@ public partial class SpriteStudioView : UserControl
         {
             TxtPresetBadge.Text = presetName;
             PresetBadgeBorder.IsVisible = true;
+        }
+        UpdatePresetButtonHighlight(presetName);
+    }
+
+    /// <summary>
+    /// Marca il pulsante preset corrispondente con la classe <c>preset-active</c>.
+    /// Lookup case-insensitive sul prefisso (badge label allineato a button content).
+    /// </summary>
+    private void UpdatePresetButtonHighlight(string? activePresetName)
+    {
+        SetPresetActive(BtnSpriteDefault,    Matches(activePresetName, "Default"));
+        SetPresetActive(BtnSpriteSafe,       Matches(activePresetName, "Sicuro"));
+        SetPresetActive(BtnSpriteAggressive, Matches(activePresetName, "Aggressivo"));
+
+        static bool Matches(string? a, string b)
+            => a is not null && a.StartsWith(b, StringComparison.OrdinalIgnoreCase);
+
+        static void SetPresetActive(Button btn, bool active)
+        {
+            const string cls = "preset-active";
+            if (active)
+            {
+                if (!btn.Classes.Contains(cls)) btn.Classes.Add(cls);
+            }
+            else
+            {
+                btn.Classes.Remove(cls);
+            }
         }
     }
 

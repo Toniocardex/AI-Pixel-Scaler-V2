@@ -1328,24 +1328,16 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Posizione slider normalizzata [0,1] → zoom effettivo: prima metà <c>[zoom_min → 1]</c>,
-    /// seconda metà <c>[1 → zoom_max]</c>; dentro ogni metà scala logaritmica (più risoluzione vicino al 100%).
+    /// Posizione slider normalizzata [0,1] → zoom: curva log uniforme (standard Photoshop/Figma).
+    /// Ogni step di slider corrisponde alla stessa variazione percentuale di zoom; velocità coerente
+    /// su tutto il range. Il 100% non è al centro: con range 5%–6400% si trova a t01≈0.418.
     /// </summary>
     private static double WorkspaceZoomFromSliderPosition(double t01)
     {
         t01 = Math.Clamp(t01, 0.0, 1.0);
         var lnMin = Math.Log(WorkspaceZoomSliderMin);
         var lnMax = Math.Log(WorkspaceZoomSliderMax);
-        if (t01 <= 0.5)
-        {
-            var u = t01 / 0.5;
-            var lnZ = lnMin * (1.0 - u);
-            return Math.Exp(lnZ);
-        }
-
-        var v = (t01 - 0.5) / 0.5;
-        var lnZHi = lnMax * v;
-        return Math.Exp(lnZHi);
+        return Math.Exp(lnMin + t01 * (lnMax - lnMin));
     }
 
     /// <summary>Inversa di <see cref="WorkspaceZoomFromSliderPosition"/>.</summary>
@@ -1354,15 +1346,7 @@ public partial class MainWindow : Window
         zoom = Math.Clamp(zoom, WorkspaceZoomSliderMin, WorkspaceZoomSliderMax);
         var lnMin = Math.Log(WorkspaceZoomSliderMin);
         var lnMax = Math.Log(WorkspaceZoomSliderMax);
-        var lnZ = Math.Log(zoom);
-        if (zoom <= 1.0)
-        {
-            var u = 1.0 - lnZ / lnMin;
-            return 0.5 * Math.Clamp(u, 0.0, 1.0);
-        }
-
-        var v = lnZ / lnMax;
-        return 0.5 + 0.5 * Math.Clamp(v, 0.0, 1.0);
+        return Math.Clamp((Math.Log(zoom) - lnMin) / (lnMax - lnMin), 0.0, 1.0);
     }
 
     private void UpdateWorkspaceZoomSlider()
@@ -1383,6 +1367,17 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Detent zoom standard (potenze di 2): allineati ai detent della rotella in EditorSurface.</summary>
+    private static readonly double[] WorkspaceZoomDetents =
+        { 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0 };
+
+    private static double SnapZoomToDetent(double z, double tolerancePct = 0.04)
+    {
+        foreach (var d in WorkspaceZoomDetents)
+            if (Math.Abs(z - d) / d <= tolerancePct) return d;
+        return z;
+    }
+
     private void OnWorkspaceZoomSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
         if (_workspaceZoomSliderSync) return;
@@ -1390,7 +1385,7 @@ public partial class MainWindow : Window
         var t01 = span > 0
             ? (SliderWorkspaceZoom.Value - SliderWorkspaceZoom.Minimum) / span
             : 0.5;
-        var zoom = WorkspaceZoomFromSliderPosition(t01);
+        var zoom = SnapZoomToDetent(WorkspaceZoomFromSliderPosition(t01));
         var w = Editor.Bounds.Width;
         var h = Editor.Bounds.Height;
         var sx = w > 0 ? w * 0.5 : 0;

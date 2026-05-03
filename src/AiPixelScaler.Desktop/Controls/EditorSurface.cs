@@ -982,24 +982,80 @@ public class EditorSurface : Control
 
     // ─── Input: pointer ───────────────────────────────────────────────────────
 
+    /// <summary>Detent zoom standard (potenze di 2): snap se entro <see cref="ZoomDetentTolerancePct"/>.</summary>
+    private static readonly double[] ZoomDetents =
+        { 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0 };
+
+    private const double ZoomDetentTolerancePct = 0.04;
+    private const double WheelZoomFactor = 1.41421356237; // √2: due step di rotella ⇒ ×2
+    private const double WheelPanStepPx = 60.0;
+
+    private static double SnapZoomToDetent(double z)
+    {
+        foreach (var d in ZoomDetents)
+            if (Math.Abs(z - d) / d <= ZoomDetentTolerancePct) return d;
+        return z;
+    }
+
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
-        var delta = e.Delta.Y;
-        if (delta == 0) return;
+        var deltaY = e.Delta.Y;
+        if (deltaY == 0) return;
+
+        var ctrl  = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
         // Ctrl + rotella in modalità gomma → ridimensiona il quadrato gomma
-        if (IsEraserMode && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        if (IsEraserMode && ctrl)
         {
-            EraserSize = Math.Clamp(EraserSize + (delta > 0 ? 1 : -1), 1, 64);
+            EraserSize = Math.Clamp(EraserSize + (deltaY > 0 ? 1 : -1), 1, 64);
             e.Handled = true;
             return;
         }
 
-        var p = e.GetPosition(this);
-        var factor  = delta > 0 ? 1.1 : 1 / 1.1;
-        SetZoomTowardScreenPoint(Zoom * factor, p.X, p.Y);
+        if (ctrl)
+        {
+            // Ctrl + rotella → zoom verso cursore (√2, con snap a detent)
+            var p = e.GetPosition(this);
+            var factor = deltaY > 0 ? WheelZoomFactor : 1.0 / WheelZoomFactor;
+            SetZoomTowardScreenPoint(SnapZoomToDetent(Zoom * factor), p.X, p.Y);
+        }
+        else if (shift)
+        {
+            // Shift + rotella → pan orizzontale
+            PanByWheel(deltaY * WheelPanStepPx, 0);
+        }
+        else
+        {
+            // Rotella sola → pan verticale
+            PanByWheel(0, deltaY * WheelPanStepPx);
+        }
+
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Pan da rotella con clamp ai bordi del world. Convenzione: <c>delta > 0</c> sposta verso l'alto/sinistra
+    /// (PanY/PanX positivi), coerente con scroll up = contenuto giù.
+    /// </summary>
+    private void PanByWheel(double dx, double dy)
+    {
+        if (!TryGetPanWorldSize(out var ww, out var wh)) return;
+        var vw = Bounds.Width;
+        var vh = Bounds.Height;
+        if (vw <= 0 || vh <= 0) return;
+
+        var z = Math.Max(Zoom, 0.0001);
+        var iw = ww * z;
+        var ih = wh * z;
+        var panMinX = Math.Min(0, vw - iw);
+        var panMaxX = Math.Max(0, vw - iw);
+        var panMinY = Math.Min(0, vh - ih);
+        var panMaxY = Math.Max(0, vh - ih);
+
+        if (dx != 0) PanX = Math.Clamp(PanX + dx, panMinX, panMaxX);
+        if (dy != 0) PanY = Math.Clamp(PanY + dy, panMinY, panMaxY);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

@@ -384,7 +384,7 @@
                        VerticalAlignment="Center" FontSize="11" MinWidth="44" TextAlignment="Right"/>
             <Slider x:Name="SliderWorkspaceZoom" Width="168" Minimum="0" Maximum="1000"
                     Value="500" VerticalAlignment="Center"
-                    ToolTip.Tip="Scala zoom logaritmica verso il 100%: met� corsa da 5% a 100%, met� da 100% a 6400%. Ancoraggio al centro viewport."/>
+                    ToolTip.Tip="Zoom logaritmico uniforme [5%, 6400%]. Snap automatico a 6.25/12.5/25/50/100/200/400/800/1600/3200/6400%.&#x0a;Scorciatoie sul canvas: Ctrl+rotella = zoom verso cursore (×√2 per step), rotella = pan verticale, Shift+rotella = pan orizzontale."/>
           </StackPanel>
           <ScrollBar x:Name="EditorScrollH" Grid.Column="1"
                      Orientation="Horizontal" Height="14" VerticalAlignment="Center"
