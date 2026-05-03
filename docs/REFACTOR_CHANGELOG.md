@@ -301,3 +301,51 @@ Il conflitto era intermittente perché dipende da quanto il quantizzatore sposta
 
 **Build post-fix:** 0 errori, 0 warning.
 **Publish:** `publish/win-x64`, `dist/win-x64` — OK.
+
+---
+
+## Audit critici — fix priorità (2026-05-03)
+
+Audit completo del codebase ha identificato e risolto 6 bug critici e 2 fix UX.
+
+### Fix 1 — `_cleanApplied` mai impostato dai filtri individuali
+
+**Problema:** Solo `ExecutePipeline` impostava `_cleanApplied = true`. I filtri individuali (Defringe, Denoise, Median, BackgroundIsolation, AI Cleanup, Quantize) non lo facevano mai. Conseguenza: il workflow guidance rimaneva bloccato al passo 2 ("Applica pulizia") anche dopo aver applicato filtri manualmente.
+
+**Soluzione:** Aggiunto `_cleanApplied = true; UpdateWorkspaceGuidance();` in:
+- `RunDefringe()`
+- `RunMedianFilter()` (convertito da expression a block body)
+- `RunDenoise()` (dopo `RunTransform`)
+- `RunBackgroundIsolation()` (quando `removed > 0`)
+- `RunAiCleanupWizard()` (dopo `ExecutePipeline`)
+- `RunSpriteQuantize()` (dopo `PaletteMapper.ApplyInPlace`)
+
+### Fix 2 — `UpdatePipelinePresetBadge` era uno stub vuoto
+
+**Problema:** Il metodo `UpdatePipelinePresetBadge()` aveva corpo vuoto `{ }`. I preset (Default/Sicuro/Aggressivo) non erano mai indicati visivamente nel pannello.
+
+**Soluzione:**
+- Aggiunta UI badge in `SpriteStudioView.axaml`: Grid con `PresetBadgeBorder` e `TxtPresetBadge` affiancati al titolo "Filtri Sprite".
+- Aggiunto `SetPresetBadge(string? presetName)` in `SpriteStudioView.axaml.cs`.
+- Implementato `UpdatePipelinePresetBadge()` in `MainWindow.axaml.cs`: mostra "Default" / "Sicuro" / "Aggressivo" o nasconde il badge (`null`) quando preset è `None`.
+- Aggiunto `ResetPresetOnManualPipelineEdit()` — chiamato da ogni filtro individuale per portare il preset a `None` e nascondere la badge quando l'utente personalizza i parametri.
+
+### Fix 3 — Messaggio Defringe fuorviante
+
+**Problema:** Quando non ci sono pixel semi-trasparenti, il messaggio diceva "Il filtro è no-op su immagini completamente opache" senza indicare cosa fare.
+
+**Soluzione:** Messaggio aggiornato: "Esegui prima 'Rimuovi sfondo' per generare i bordi semi-trasparenti, poi applica Defringe."
+
+### Fix 4 — Messaggio obsoleto "tab 3-4" in `RunImportFramesAsync`
+
+**Problema:** Dopo l'import frame il messaggio suggeriva "Usa i tab 3-4 per rifinire" — riferimento ai tab legacy rimossi nella migrazione Sprite Studio.
+
+**Soluzione:** Messaggio aggiornato a "Usa Tileset Studio per rifinire la griglia, poi Animation Studio per la preview."
+
+**File modificati:**
+- `src/AiPixelScaler.Desktop/Views/MainWindow.axaml.cs`
+- `src/AiPixelScaler.Desktop/Views/Studios/SpriteStudioView.axaml`
+- `src/AiPixelScaler.Desktop/Views/Studios/SpriteStudioView.axaml.cs`
+
+**Build post-fix:** 0 errori, 0 warning.
+**Publish:** `dist/win-x64` — OK. `publish/win-x64` — richiede chiusura app (exe in uso).

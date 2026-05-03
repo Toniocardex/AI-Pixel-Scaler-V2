@@ -161,6 +161,23 @@ public partial class SpriteStudioView : UserControl
         }
     }
 
+    /// <summary>
+    /// Mostra o nasconde la badge del preset attivo sopra la sezione Filtri Sprite.
+    /// Passa <c>null</c> per nasconderla (stato Personalizzato / nessun preset).
+    /// </summary>
+    public void SetPresetBadge(string? presetName)
+    {
+        if (presetName is null)
+        {
+            PresetBadgeBorder.IsVisible = false;
+        }
+        else
+        {
+            TxtPresetBadge.Text = presetName;
+            PresetBadgeBorder.IsVisible = true;
+        }
+    }
+
     private void Request(SpriteStudioAction action) => ActionRequested?.Invoke(this, action);
 }
 

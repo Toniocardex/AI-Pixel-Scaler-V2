@@ -64,7 +64,14 @@
 
     <Border Classes="studio-section">
       <StackPanel Spacing="7">
-        <TextBlock Classes="section-title" Text="Filtri Sprite"/>
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0" Classes="section-title" Text="Filtri Sprite"/>
+          <Border x:Name="PresetBadgeBorder" Grid.Column="1"
+                  Background="#1e2a1e" BorderBrush="#2d4a2d" BorderThickness="1"
+                  CornerRadius="3" Padding="5,2" IsVisible="False">
+            <TextBlock x:Name="TxtPresetBadge" FontSize="10" Foreground="#7ab87a" Text="Default"/>
+          </Border>
+        </Grid>
         <TextBlock Classes="studio-hint" Text="Preset, cleanup e filtri dettagliati agiscono sugli stessi parametri della pipeline."/>
 
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">

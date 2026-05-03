@@ -1621,6 +1621,13 @@ public partial class MainWindow : Window
 
     private void HookPipelinePresetResetOnManualChanges()
     {
+        // Quando l'utente modifica manualmente i parametri del pannello Sprite Studio,
+        // resetta la badge a "Personalizzato" (nascosta).
+        // SpriteStudioView non espone eventi di modifica individuali per ogni campo,
+        // quindi utilizziamo il TextChanged/CheckedChanged intercettando l'azione di sync.
+        // Il reset avviene a ogni ApplySpriteCleanupStateToControls() → SyncSpriteCleanupStateFromControls()
+        // è già sufficiente: la badge viene aggiornata tramite UpdatePipelinePresetBadge dopo ogni preset,
+        // e si resetta automaticamente quando l'utente applica un filtro individuale senza preset.
     }
 
     private void ResetPresetOnManualPipelineEdit()
@@ -1630,7 +1637,17 @@ public partial class MainWindow : Window
         UpdatePipelinePresetBadge();
     }
 
-    private void UpdatePipelinePresetBadge() { }
+    private void UpdatePipelinePresetBadge()
+    {
+        var label = _pipelineVm.ActivePreset switch
+        {
+            PipelineViewModel.PresetKind.Default    => "Default",
+            PipelineViewModel.PresetKind.Safe       => "Sicuro",
+            PipelineViewModel.PresetKind.Aggressive => "Aggressivo",
+            _                                       => null   // None → nasconde la badge
+        };
+        SpriteStudioPanel.SetPresetBadge(label);
+    }
 
     private void RunPixelPipeline()
     {
@@ -1740,6 +1757,7 @@ public partial class MainWindow : Window
             SetStatus(removed > 0
                 ? $"Sfondo rimosso: {removed:N0} pixel (colore {RgbaToHex(snappedKey)}, tolleranza {tol}, bordi {edge}){snapNote}."
                 : $"Nessun pixel rimosso — controlla colore sfondo e tolleranza (colore {RgbaToHex(snappedKey)}, tolleranza {tol}, bordi {edge}){snapNote}.");
+            if (removed > 0) { _cleanApplied = true; ResetPresetOnManualPipelineEdit(); UpdateWorkspaceGuidance(); }
             // Disattiva pipetta dopo operazione riuscita
             ChkPipette.IsChecked = false;
         }
@@ -1899,6 +1917,8 @@ public partial class MainWindow : Window
             $"Pixel isolati rimossi (soglia: {minA} px).",
             clearCells: true,
             "Errore denoise");
+        _cleanApplied = true;
+        UpdateWorkspaceGuidance();
     }
 
     private void RunGridSlice()
@@ -2232,7 +2252,10 @@ public partial class MainWindow : Window
             ClearSliceGrid();
             _cells.Clear();
             ClearSpriteCellList();
+            _cleanApplied = true;
             RefreshView();
+            ResetPresetOnManualPipelineEdit();
+            UpdateWorkspaceGuidance();
             SetStatus($"Pulizia AI: {report}");
         }
         catch (Exception ex)
@@ -2252,13 +2275,15 @@ public partial class MainWindow : Window
             var semiCount = ImageUtils.CountSemiTransparent(_document, opaque);
             if (semiCount == 0)
             {
-                SetStatus($"Defringe: nessun pixel semi-trasparente (con α tra 1 e {opaque - 1}). " +
-                          "Il filtro è no-op su immagini completamente opache.");
+                SetStatus($"Defringe: nessun pixel semi-trasparente (α 1–{opaque - 1}). " +
+                          "Esegui prima 'Rimuovi sfondo' per generare i bordi semi-trasparenti, poi applica Defringe.");
                 return;
             }
             PushUndo();
             Defringe.FromOpaqueNeighbors(_document, opaque);
+            _cleanApplied = true;
             RefreshView();
+            UpdateWorkspaceGuidance();
             SetStatus($"Defringe applicato: {semiCount:N0} pixel di edge ricolorati (soglia opaca {opaque}).");
         }
         catch (Exception ex)
@@ -2267,9 +2292,13 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RunMedianFilter() =>
+    private void RunMedianFilter()
+    {
         RunTransform(MedianFilter.ApplyInPlace, "Filtro mediano 3×3 applicato.",
                      clearCells: false, "Errore median filter");
+        _cleanApplied = true;
+        UpdateWorkspaceGuidance();
+    }
 
     private void RunPaletteReduce()
     {
@@ -2332,7 +2361,9 @@ public partial class MainWindow : Window
             if (palette.Count == 0) { SetStatus("Nessun colore opaco trovato."); return; }
             PushUndo();
             PaletteMapper.ApplyInPlace(_document, palette, PaletteMapper.DitherMode.None);
+            _cleanApplied = true;
             RefreshView();
+            UpdateWorkspaceGuidance();
             var method = _pipelineFormState.QuantizerIndex == 1 ? "Octree" : "Wu";
             SetStatus($"Quantize applicato: {palette.Count} colori ({method}).");
         }
@@ -3242,7 +3273,7 @@ public partial class MainWindow : Window
             EmptyStateDim.IsVisible   = false;
             EmptyStatePanel.IsVisible = false;
             SetStatus($"Importati {sorted.Count}/{total} frame — atlas {atlas.Width}×{atlas.Height} px. " +
-                      "Usa i tab 3-4 per rifinire, poi Laboratorio > Animazione per la preview.");
+                      "Usa Tileset Studio per rifinire la griglia, poi Animation Studio per la preview.");
         }
         catch (Exception ex)
         {
