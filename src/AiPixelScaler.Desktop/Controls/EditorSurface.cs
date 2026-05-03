@@ -173,6 +173,8 @@ public class EditorSurface : Control
     private static readonly SolidColorBrush InfoFgBrush         = new(Avalonia.Media.Color.FromArgb(255, 255, 255, 255));
     private static readonly SolidColorBrush EraserBrush         = new(Avalonia.Media.Color.FromArgb(50, 255, 80, 80));
     private static readonly SolidColorBrush LightGridBrush      = new(Avalonia.Media.Color.FromArgb(60,  255, 255, 255));
+    // Secondo passaggio griglia: ~33 % nero → visibile su sfondi chiari (bianco, verde, blu, magenta).
+    private static readonly SolidColorBrush DarkGridBrush       = new(Avalonia.Media.Color.FromArgb(85,  0,   0,   0));
     private static readonly SolidColorBrush SliceGridBrush      = new(Avalonia.Media.Color.FromArgb(220, 255, 180, 0));
     private static readonly SolidColorBrush AlignMajorBrush     = new(Avalonia.Media.Color.FromArgb(210, 140, 200, 255));
     private static readonly SolidColorBrush AlignGutterBrush    = new(Avalonia.Media.Color.FromArgb(160, 255, 140, 200));
@@ -212,6 +214,7 @@ public class EditorSurface : Control
     // ─── Zoom-cached pens (rebuilt only when zoom changes) ────────────────────
     private double _cachedPenZoom = double.NaN;
     private Pen _lightGridPen     = null!;
+    private Pen _darkGridPen      = null!;
     private Pen _sliceGridPen     = null!;
     private Pen _alignMajorPen    = null!;
     private Pen _alignGutterPen   = null!;
@@ -730,6 +733,7 @@ public class EditorSurface : Control
         var t  = 1.0  / Math.Max(zoom, 0.0001);
         var t5 = 1.5  * t;
         _lightGridPen    = new Pen(LightGridBrush,     t);
+        _darkGridPen     = new Pen(DarkGridBrush,      t);
         _sliceGridPen    = new Pen(SliceGridBrush,     t5);
         _alignMajorPen   = new Pen(AlignMajorBrush,   1.25 * t);
         _alignGutterPen  = new Pen(AlignGutterBrush,  1.25 * t * 0.85)
@@ -873,7 +877,7 @@ public class EditorSurface : Control
         if (ShowGrid)
         {
             using (context.PushTransform(m))
-                DrawLightGrid(context, worldW, worldH, WorldGridSize, _lightGridPen);
+                DrawLightGrid(context, worldW, worldH, WorldGridSize, _lightGridPen, _darkGridPen);
         }
 
         if (SnapToGrid && SnapGridSize > 0)
@@ -1649,13 +1653,24 @@ public class EditorSurface : Control
         }
     }
 
-    private static void DrawLightGrid(DrawingContext ctx, int worldW, int worldH, int step, Pen pen)
+    /// <param name="lightPen">Passaggio chiaro (visibile su sfondi scuri e checker).</param>
+    /// <param name="darkPen">Passaggio scuro (visibile su sfondi chiari: bianco, verde, blu, magenta).</param>
+    private static void DrawLightGrid(DrawingContext ctx, int worldW, int worldH, int step,
+                                      Pen lightPen, Pen? darkPen = null)
     {
         if (step < 1) return;
         for (var x = 0; x <= worldW; x += step)
-            ctx.DrawLine(pen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
+        {
+            if (darkPen is not null)
+                ctx.DrawLine(darkPen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
+            ctx.DrawLine(lightPen, new Avalonia.Point(x, 0), new Avalonia.Point(x, worldH));
+        }
         for (var y = 0; y <= worldH; y += step)
-            ctx.DrawLine(pen, new Avalonia.Point(0, y), new Avalonia.Point(worldW, y));
+        {
+            if (darkPen is not null)
+                ctx.DrawLine(darkPen, new Avalonia.Point(0, y), new Avalonia.Point(worldW, y));
+            ctx.DrawLine(lightPen, new Avalonia.Point(0, y), new Avalonia.Point(worldW, y));
+        }
     }
 
     /// <summary>
