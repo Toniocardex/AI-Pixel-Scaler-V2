@@ -36,8 +36,11 @@ internal sealed class NewCanvasDialog : Window
         // --- Sfondo ---
         _cbBg = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0 };
         _cbBg.Items.Add(new ComboBoxItem { Content = "Trasparente" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Bianco  (#FFFFFF)" });
-        _cbBg.Items.Add(new ComboBoxItem { Content = "Nero    (#000000)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Bianco           (#FFFFFF)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Nero             (#000000)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Chroma magenta   (#FF00FF)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Chroma green screen (#00FF00)" });
+        _cbBg.Items.Add(new ComboBoxItem { Content = "Chroma blue screen  (#0000FF)" });
         var rowBg = MakeRow("Sfondo", _cbBg);
 
         // --- Pulsanti ---
@@ -95,6 +98,9 @@ internal sealed class NewCanvasDialog : Window
         {
             1 => "#FFFFFF",
             2 => "#000000",
+            3 => "#FF00FF",
+            4 => "#00FF00",
+            5 => "#0000FF",
             _ => null   // null = trasparente
         };
 

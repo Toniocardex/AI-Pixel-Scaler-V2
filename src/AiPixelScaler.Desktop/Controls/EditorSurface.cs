@@ -106,6 +106,13 @@ public class EditorSurface : Control
     public static readonly StyledProperty<bool> IsCellClickModeProperty =
         AvaloniaProperty.Register<EditorSurface, bool>(nameof(IsCellClickMode), false);
 
+    /// <summary>
+    /// Se <c>true</c> (default) disegna un bordo sottile attorno al documento,
+    /// rendendo visibili i limiti del foglio di lavoro anche su canvas trasparenti.
+    /// </summary>
+    public static readonly StyledProperty<bool> ShowDocumentBorderProperty =
+        AvaloniaProperty.Register<EditorSurface, bool>(nameof(ShowDocumentBorder), true);
+
     // ─── Private state ────────────────────────────────────────────────────────
 
     private readonly Viewport2D _viewport = new();
@@ -179,6 +186,7 @@ public class EditorSurface : Control
     private static readonly SolidColorBrush SnapDotBrush        = new(Avalonia.Media.Color.FromArgb(220, 255, 165, 0));
     private static readonly SolidColorBrush SnapGuideBrush      = new(Avalonia.Media.Color.FromArgb(110, 255, 165, 0));
     private static readonly SolidColorBrush TilePreviewBrush    = new(Avalonia.Media.Color.FromArgb(180, 255, 200, 0));
+    private static readonly SolidColorBrush DocBorderBrush      = new(Avalonia.Media.Color.FromArgb(140, 175, 180, 205));
     private static readonly SolidColorBrush FloatingBrush       = new(Avalonia.Media.Color.FromArgb(255, 255, 220, 80));
     private static readonly SolidColorBrush EraserOutlineBrush  = new(Avalonia.Media.Color.FromArgb(220, 255, 80,  80));
 
@@ -214,6 +222,7 @@ public class EditorSurface : Control
     private Pen _selCommPen       = null!;
     private Pen _eraserOutPen     = null!;
     private Pen _tilePreviewPen   = null!;
+    private Pen _docBorderPen     = null!;
     private Pen _floatingPen      = null!;
     private Pen _selSnapGuidePen  = null!;
 
@@ -408,6 +417,16 @@ public class EditorSurface : Control
     {
         get => GetValue(IsCellClickModeProperty);
         set => SetValue(IsCellClickModeProperty, value);
+    }
+
+    /// <summary>
+    /// Bordo di riferimento attorno al documento (default: <c>true</c>).
+    /// Visibile sempre, indispensabile su canvas trasparenti.
+    /// </summary>
+    public bool ShowDocumentBorder
+    {
+        get => GetValue(ShowDocumentBorderProperty);
+        set => SetValue(ShowDocumentBorderProperty, value);
     }
 
     /// <summary>
@@ -727,6 +746,7 @@ public class EditorSurface : Control
         _eraserOutPen    = new Pen(EraserOutlineBrush, t5)
             { LineCap = PenLineCap.Square, LineJoin = PenLineJoin.Miter };
         _tilePreviewPen  = new Pen(TilePreviewBrush,  t5);
+        _docBorderPen    = new Pen(DocBorderBrush,    t);
         _floatingPen     = new Pen(FloatingBrush,     1.2 * t)
             { DashStyle = new DashStyle([3.0, 3.0], 0) };
         _selSnapGuidePen = new Pen(SnapGuideBrush,    0.8 * t);
@@ -838,6 +858,15 @@ public class EditorSurface : Control
                 }
                 context.DrawRectangle(_floatingPen, new Rect(_floatingX, _floatingY, _floatingW, _floatingH));
             }
+        }
+
+        // ── Bordo documento ───────────────────────────────────────────────────
+        // Disegna sempre il contorno del foglio di lavoro, indispensabile su canvas
+        // trasparenti dove i pixel non forniscono riferimenti visivi.
+        if (ShowDocumentBorder && !inWorkbench && !IsTilePreviewMode)
+        {
+            using (context.PushTransform(m))
+                context.DrawRectangle(_docBorderPen, new Rect(0, 0, worldW, worldH));
         }
 
         if (ShowGrid)
