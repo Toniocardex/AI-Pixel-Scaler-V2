@@ -14,6 +14,12 @@ public enum SpriteStudioAction
     ApplyBackgroundIsolation,
     ApplyGlobalChromaKey,           // scansione globale: rimuove isole interne non connesse al bordo
     ApplyDenoise,
+    MorphologyErode,                // morfologia: erode bordo opaco di 1px per iterazione
+    MorphologyDilate,               // morfologia: dilata bordo opaco di 1px (edge padding)
+    MorphologyOpen,                 // morfologia: erode poi dilata (rimuove protrusioni/pixel isolati)
+    MorphologyClose,                // morfologia: dilata poi erode (chiude buchi sottili)
+    RemoveIsolatedIslands,          // anomaly: rimuove componenti connesse < minSize px
+    RemoveColorOutliers,            // anomaly: rimuove pixel con colore troppo distante dai vicini
     SelectArea,
     SelectAll,
     ClearSelection,

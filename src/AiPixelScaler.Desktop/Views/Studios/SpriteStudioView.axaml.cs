@@ -80,6 +80,12 @@ public partial class SpriteStudioView : UserControl
         BtnSpritePasteSrc.Click += (_, _) => Request(SpriteStudioAction.PasteSource);
         BtnSpritePasteCopy.Click += (_, _) => Request(SpriteStudioAction.CopyPasteSelection);
         BtnSpritePasteExit.Click += (_, _) => Request(SpriteStudioAction.ExitFloatingPaste);
+        BtnMorphErode.Click  += (_, _) => Request(SpriteStudioAction.MorphologyErode);
+        BtnMorphDilate.Click += (_, _) => Request(SpriteStudioAction.MorphologyDilate);
+        BtnMorphOpen.Click   += (_, _) => Request(SpriteStudioAction.MorphologyOpen);
+        BtnMorphClose.Click  += (_, _) => Request(SpriteStudioAction.MorphologyClose);
+        BtnRemoveIslands.Click  += (_, _) => Request(SpriteStudioAction.RemoveIsolatedIslands);
+        BtnRemoveOutliers.Click += (_, _) => Request(SpriteStudioAction.RemoveColorOutliers);
         BtnSpriteQuantizeApply.Click += (_, _) => Request(SpriteStudioAction.ApplyQuantize);
         BtnSpriteAnalyzePalette.Click += (_, _) => Request(SpriteStudioAction.AnalyzePalette);
         BtnSpriteResizeNearest.Click += (_, _) => Request(SpriteStudioAction.ResizeNearest);
@@ -264,6 +270,15 @@ public partial class SpriteStudioView : UserControl
 
         PaletteSwatchPanel.IsVisible = true;
     }
+
+    /// <summary>Iterazioni per le operazioni morfologiche (Erode/Dilate/Open/Close).</summary>
+    public string MorphIterationsText => TxtMorphIterations.Text ?? "1";
+
+    /// <summary>Dimensione minima cluster da mantenere per RemoveIsolatedIslands.</summary>
+    public string AnomalyMinIslandText => TxtAnomalyMinIsland.Text ?? "4";
+
+    /// <summary>Tolleranza RGB per RemoveColorOutliers.</summary>
+    public string AnomalyOutlierTolText => TxtAnomalyOutlierTol.Text ?? "20";
 
     /// <summary>
     /// True se la modalità selezionata è Global Chroma-Key, false se Flood (bordo).

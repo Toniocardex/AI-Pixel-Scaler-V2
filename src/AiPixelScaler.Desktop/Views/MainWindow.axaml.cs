@@ -364,6 +364,24 @@ public partial class MainWindow : Window
                 ApplySpriteCleanupStateToControls();
                 RunGlobalChromaKey();
                 break;
+            case SpriteStudioAction.MorphologyErode:
+                RunMorphology(MorphOp.Erode);
+                break;
+            case SpriteStudioAction.MorphologyDilate:
+                RunMorphology(MorphOp.Dilate);
+                break;
+            case SpriteStudioAction.MorphologyOpen:
+                RunMorphology(MorphOp.Open);
+                break;
+            case SpriteStudioAction.MorphologyClose:
+                RunMorphology(MorphOp.Close);
+                break;
+            case SpriteStudioAction.RemoveIsolatedIslands:
+                RunRemoveIsolatedIslands();
+                break;
+            case SpriteStudioAction.RemoveColorOutliers:
+                RunRemoveColorOutliers();
+                break;
             case SpriteStudioAction.ActivatePipetteForBackground:
                 ActivatePipette(0);
                 break;
@@ -1887,6 +1905,98 @@ public partial class MainWindow : Window
             }
         }
         catch (Exception ex) { SetStatus($"Errore Global Chroma-Key: {ex.Message}"); }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Morfologia + Anomaly Detection
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private enum MorphOp { Erode, Dilate, Open, Close }
+
+    private void RunMorphology(MorphOp op)
+    {
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        var iter = Math.Clamp(InputParsing.ParseInt(SpriteStudioPanel.MorphIterationsText, 1), 1, 10);
+        try
+        {
+            PushUndo();
+            string msg;
+            switch (op)
+            {
+                case MorphOp.Erode:
+                {
+                    var removed = Morphology.Erode(_document, iter);
+                    msg = $"Erode ({iter}×): {removed:N0} px rimossi dal bordo opaco.";
+                    break;
+                }
+                case MorphOp.Dilate:
+                {
+                    var added = Morphology.Dilate(_document, iter);
+                    msg = $"Dilate ({iter}×): {added:N0} px aggiunti (edge padding).";
+                    break;
+                }
+                case MorphOp.Open:
+                {
+                    var (eroded, dilated) = Morphology.Open(_document, iter);
+                    msg = $"Open ({iter}×): {eroded:N0} px erosi, {dilated:N0} px dilatati — protrusioni rimosse.";
+                    break;
+                }
+                default: // Close
+                {
+                    var (dilated, eroded) = Morphology.Close(_document, iter);
+                    msg = $"Close ({iter}×): {dilated:N0} px dilatati, {eroded:N0} px erosi — buchi chiusi.";
+                    break;
+                }
+            }
+            RefreshView();
+            _cleanApplied = true;
+            SetStatus(msg);
+        }
+        catch (Exception ex) { SetStatus($"Errore morfologia: {ex.Message}"); }
+    }
+
+    private void RunRemoveIsolatedIslands()
+    {
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        var minSize = Math.Max(1, InputParsing.ParseInt(SpriteStudioPanel.AnomalyMinIslandText, 4));
+        try
+        {
+            PushUndo();
+            var removed = AnomalyDetector.RemoveIsolatedIslands(_document, minSize);
+            RefreshView();
+            if (removed > 0)
+            {
+                _cleanApplied = true;
+                SetStatus($"Isole isolate: {removed:N0} px rimossi (cluster < {minSize} px).");
+            }
+            else
+            {
+                SetStatus($"Nessuna isola isolata trovata (soglia {minSize} px). Prova ad abbassare il valore.");
+            }
+        }
+        catch (Exception ex) { SetStatus($"Errore rimozione isole: {ex.Message}"); }
+    }
+
+    private void RunRemoveColorOutliers()
+    {
+        if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
+        var tol = Math.Max(1.0, InputParsing.ParseInt(SpriteStudioPanel.AnomalyOutlierTolText, 20));
+        try
+        {
+            PushUndo();
+            var removed = AnomalyDetector.RemoveColorOutliers(_document, tol);
+            RefreshView();
+            if (removed > 0)
+            {
+                _cleanApplied = true;
+                SetStatus($"Outlier colore: {removed:N0} px rimossi (tolleranza Oklab ≈{tol:F0} RGB).");
+            }
+            else
+            {
+                SetStatus($"Nessun outlier trovato (tolleranza {tol:F0}). Prova ad alzare la soglia.");
+            }
+        }
+        catch (Exception ex) { SetStatus($"Errore outlier detection: {ex.Message}"); }
     }
 
     private async Task ExportTiledMapJsonAsync()

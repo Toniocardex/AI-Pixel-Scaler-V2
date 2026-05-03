@@ -149,6 +149,64 @@
 
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
+            <TextBlock Classes="section-title" Text="Morfologia &amp; Anomalie"/>
+            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
+                       Text="Post-processing sul canale alpha. Applicare dopo rimozione sfondo."/>
+
+            <!-- Iterazioni -->
+            <Grid ColumnDefinitions="*,6,48">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Iterazioni"/>
+              <TextBox x:Name="TxtMorphIterations" Grid.Column="2" Text="1"
+                       ToolTip.Tip="Numero di volte che l'operazione morfologica viene ripetuta. 1 = 1px per bordo."/>
+            </Grid>
+
+            <!-- Pulsanti morfologici -->
+            <Grid ColumnDefinitions="*,4,*,4,*,4,*">
+              <Button x:Name="BtnMorphErode" Grid.Column="0" Classes="secondary"
+                      Content="Erodi" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Erode: rimuove 1px di bordo opaco per iterazione. Utile per eliminare la frangia residua dopo rimozione sfondo."/>
+              <Button x:Name="BtnMorphDilate" Grid.Column="2" Classes="secondary"
+                      Content="Dilata" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Dilate: espande il bordo opaco di 1px per iterazione (edge padding). Previene artefatti nel bilinear filtering di Unity/Godot."/>
+              <Button x:Name="BtnMorphOpen" Grid.Column="4" Classes="secondary"
+                      Content="Apri" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Open = Erode + Dilate: rimuove protrusioni sottili e pixel opachi isolati senza ridurre la forma complessiva."/>
+              <Button x:Name="BtnMorphClose" Grid.Column="6" Classes="secondary"
+                      Content="Chiudi" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Close = Dilate + Erode: chiude buchi sottili all'interno dello sprite senza espandere il bordo esterno."/>
+            </Grid>
+
+            <!-- Anomaly detection -->
+            <TextBlock Classes="section-title" Text="Anomaly Detection" Margin="0,5,0,0"/>
+            <TextBlock Classes="studio-hint" TextWrapping="Wrap"
+                       Text="Rileva e rimuove pixel che non appartengono allo sprite per colore o isolamento."/>
+            <Grid ColumnDefinitions="*,6,48">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Isole min (px)"
+                         ToolTip.Tip="Rimuovi isole: dimensione minima (esclusa) di un cluster opaco per essere mantenuto. Cluster &lt; N px → rimossi."/>
+              <TextBox x:Name="TxtAnomalyMinIsland" Grid.Column="2" Text="4"
+                       ToolTip.Tip="Default 4: rimuove cluster 1-3px. Aumenta per rimuovere residui più grandi."/>
+            </Grid>
+            <Grid ColumnDefinitions="*,6,48">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center"
+                         Text="Tol. outlier"
+                         ToolTip.Tip="Color outlier: soglia RGB [0-255] sotto la quale un pixel è 'simile' al vicino. Pixel senza vicini simili → rimossi."/>
+              <TextBox x:Name="TxtAnomalyOutlierTol" Grid.Column="2" Text="20"
+                       ToolTip.Tip="Default 20. Abbassa a 10-15 per pixel art quantizzata; alza a 30-40 per immagini AI non quantizzate."/>
+            </Grid>
+            <Grid ColumnDefinitions="*,6,*">
+              <Button x:Name="BtnRemoveIslands" Grid.Column="0" Classes="secondary"
+                      Content="Isole" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Rimuove componenti connesse di pixel opachi con meno di N pixel (8-connectivity BFS)."/>
+              <Button x:Name="BtnRemoveOutliers" Grid.Column="2" Classes="secondary"
+                      Content="Outlier" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Rimuove pixel opachi il cui colore Oklab è troppo distante da tutti i vicini opachi. Individua pixel 'fuori posto' senza dipendere dalla dimensione del cluster."/>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
+          <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="Quantize"/>
             <TextBlock Classes="studio-hint"
                        Text="⚠ Applica prima della rimozione sfondo: rimappa tutti i pixel alla palette ridotta e aggiorna automaticamente il colore chiave."
