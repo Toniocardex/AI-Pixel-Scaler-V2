@@ -77,20 +77,26 @@
         <Border Background="#090b12" BorderBrush="#1d2333" BorderThickness="1" CornerRadius="4" Padding="7">
           <StackPanel Spacing="5">
             <TextBlock Classes="section-title" Text="Rimozione sfondo"/>
-            <TextBlock Classes="studio-hint" Text="Isola solo lo sfondo connesso all'esterno, proteggendo i dettagli interni dello sprite."/>
-            <Grid ColumnDefinitions="*,6,22,6,64">
-              <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="0" Text="#00FF00" PlaceholderText="sfondo"/>
-              <Button x:Name="BtnSpriteBgPipette" Grid.Column="2" Width="22" Height="22" Padding="0"
+            <TextBlock Classes="studio-hint" Text="Flood fill dal bordo: rimuove lo sfondo connesso all'esterno senza toccare l'interno. Usa ◉ per campionare il colore (5×5 px)."/>
+            <Grid ColumnDefinitions="Auto,4,*,6,22,6,64">
+              <TextBlock Grid.Column="0" Classes="studio-hint" VerticalAlignment="Center" Text="Colore"/>
+              <TextBox x:Name="TxtSpriteBackgroundHex" Grid.Column="2" Text="#00FF00" PlaceholderText="#RRGGBB"/>
+              <Button x:Name="BtnSpriteBgPipette" Grid.Column="4" Width="22" Height="22" Padding="0"
                       Content="◉" FontSize="11"
-                      ToolTip.Tip="Preleva colore sfondo dall'immagine con il contagocce"/>
-              <TextBox x:Name="TxtSpriteBackgroundTol" Grid.Column="4" Text="10"/>
+                      ToolTip.Tip="Campiona colore sfondo dall'immagine (area 5×5 px, auto-disattiva dopo il pick). Poi premi 'Rimuovi sfondo'."/>
+              <TextBox x:Name="TxtSpriteBackgroundTol" Grid.Column="6" Text="10"
+                       ToolTip.Tip="Tolleranza colore [0-255]. Aumenta se lo sfondo non è completamente uniforme (es. JPEG: 15-30)."/>
             </Grid>
             <Grid ColumnDefinitions="*,6,64">
-              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Protezione bordi"/>
-              <TextBox x:Name="TxtSpriteBackgroundEdge" Grid.Column="2" Text="48"/>
+              <TextBlock Grid.Column="0" Classes="studio-hint" Text="Protezione bordi (Sobel)"
+                         ToolTip.Tip="Soglia Sobel [0-500]. Valori più bassi = protezione meno aggressiva. 0 = disabilitata. Default 100 ignora artefatti JPEG ma blocca bordi sprite."/>
+              <TextBox x:Name="TxtSpriteBackgroundEdge" Grid.Column="2" Text="100"
+                       ToolTip.Tip="100 = default. Prova 50 o 0 se il flood si blocca su sfondo uniforme."/>
             </Grid>
-            <CheckBox x:Name="ChkSpriteAlphaThreshold" Content="Binarizza alpha"/>
-            <TextBox x:Name="TxtSpriteAlphaThreshold" Text="128"/>
+            <CheckBox x:Name="ChkSpriteAlphaThreshold" Content="Binarizza alpha dopo rimozione"
+                      ToolTip.Tip="Azzera i pixel semi-trasparenti residui (alpha &lt; soglia) dopo il flood fill. Utile per immagini già con canale alpha parziale."/>
+            <TextBox x:Name="TxtSpriteAlphaThreshold" Text="128"
+                     ToolTip.Tip="Soglia alpha [1-254]. Pixel con alpha &lt; soglia → trasparenti; alpha ≥ soglia → opachi."/>
             <Button x:Name="BtnSpriteBackgroundIsolation" Classes="secondary" Content="Rimuovi sfondo" HorizontalAlignment="Stretch"/>
           </StackPanel>
         </Border>

@@ -349,3 +349,78 @@ Audit completo del codebase ha identificato e risolto 6 bug critici e 2 fix UX.
 
 **Build post-fix:** 0 errori, 0 warning.
 **Publish:** `dist/win-x64` — OK. `publish/win-x64` — richiede chiusura app (exe in uso).
+
+---
+
+## Rimozione sfondo — rework completo pipeline (2026-05-03)
+
+Analisi sistematica di tutte le root cause dell'inaffidabilità della rimozione sfondo.
+8 bug identificati e risolti, con aggiornamento algoritmo core, UI e messaggi diagnostici.
+
+### Root cause 1 — Pipetta campionava 1 pixel solo
+
+**Problema:** `_document[e.X, e.Y]` leggeva esattamente 1 pixel. Bastava cliccare su un pixel JPEG compresso, anti-aliased o con variazione minima rispetto al colore dominante per ottenere un colore errato, rendendo tutto il flood fail.
+
+**Soluzione:** `OnEditorImagePixelPicked` ora chiama `BackgroundIsolation.SampleRegionColor(_document, e.X, e.Y, radius: 2)` — campiona l'area 5×5 attorno al click e restituisce il colore più frequente tra i pixel opachi (alpha ≥ 128). Eliminato il problema di campionamento su pixel devianti.
+
+### Root cause 2 — Edge threshold Sobel default 48 troppo basso
+
+**Problema:** Artefatti JPEG all'interno dello sfondo producono gradienti Sobel di 20-80. Con soglia 48, questi artefatti venivano marcati come "bordo forte" e bloccavano il flood fill su aree che dovevano essere rimosse. Lo sfondo appariva "bucato" in zone casuali.
+
+**Soluzione:** Soglia default portata da 48 a 100 in `Options.EdgeThreshold`, nel campo `_backgroundIsolationEdgeThreshold` (default "100") e nel TextBox UI `TxtSpriteBackgroundEdge`. Artefatti JPEG (gradiente <80) passano, bordi sprite reali (gradiente 200-1440) vengono bloccati. ToolTip aggiornato con guida pratica.
+
+### Root cause 3 — Solo 4-connectivity (nessun diagonale)
+
+**Problema:** Il flood fill propagava solo in 4 direzioni (N/S/E/O). Angoli di sfondo raggiungibili solo in diagonale non venivano rimossi, lasciando pixel isolati agli angoli dello sprite.
+
+**Soluzione:** Aggiunto `Use8Connectivity = true` (default) a `Options`. La propagazione ora include i 4 vicini diagonali, eliminando gli angoli isolati.
+
+### Root cause 4 — Calibrazione Oklab asimmetrica
+
+**Problema:** La calibrazione campionava solo `key ± tolInt` su TUTTI i canali simultaneamente. Per colori saturi (es. #00FF00), lo shift +tolInt sul canale G clipa a 255, producendo una distanza Oklab molto piccola. La tolleranza effettiva era sistematicamente sottostimata per colori saturati.
+
+**Soluzione:** La calibrazione ora campiona 8 punti: 6 assi allineati (±R, ±G, ±B) + 2 diagonali principali. Prende il massimo tra tutte le distanze Oklab², garantendo che il raggio di tolleranza copra correttamente qualsiasi direzione nello spazio colore.
+
+### Root cause 5 — SnapKeyToBorderColor scansionava solo 1px di bordo
+
+**Problema:** Dopo un primo run di background removal, i pixel del bordo esterno diventano trasparenti (A=0). `SnapKeyToBorderColor` scansionava solo il perimetro esterno e non trovava pixel opachi → snap non operava → colore non corretto.
+
+**Soluzione:** `SnapKeyToBorderColor` ora scansiona `borderDepth=3` pixel di profondità dal perimetro (prima solo 1). Ridotto anche `maxRgbDistancePerChannel` da 40 a 32 per snap più conservativo.
+
+### Root cause 6 — "Binarizza alpha" non applicata in RunBackgroundIsolation
+
+**Problema:** `ChkSpriteAlphaThreshold` e `TxtSpriteAlphaThreshold` esistevano nel pannello ma erano collegati solo al full pipeline (`ExecutePipeline`). L'utente attivava il checkbox aspettandosi un effetto, ma non succedeva nulla.
+
+**Soluzione:** Dopo il flood fill (quando `removed > 0`), se `_pipelineFormState.EnableAlphaThreshold` è attivo, `RunBackgroundIsolation` chiama `AlphaThreshold.ApplyInPlace(_document, alphaThr)`. Lo stato barra riporta "+ alpha binarizzata".
+
+### Root cause 7 — Pipetta non si disattivava dopo il campionamento
+
+**Problema:** La pipetta rimaneva attiva dopo il pick del colore. Navigando sul canvas (click/drag per pan) si rischiava di ri-campionare accidentalmente un pixel diverso, cambiando il colore senza volerlo.
+
+**Soluzione:** `OnEditorImagePixelPicked` ora chiama `ChkPipette.IsChecked = false` dopo il campionamento. Auto-disattivazione immediata; l'utente deve ri-attivarla esplicitamente per un secondo campionamento.
+
+### Root cause 8 — Messaggio di errore non diagnostico
+
+**Problema:** "Nessun pixel rimosso — controlla colore sfondo e tolleranza" non dava informazioni su COSA controllare. L'utente non sapeva come procedere.
+
+**Soluzione:** Messaggio di fallimento ora include suggerimenti contestuali:
+- Se `tol < 5`: "Aumenta tolleranza (prova 15-30)"
+- Se `edge > 80`: "Riduci protezione bordi (prova 50-0) se il flood è bloccato su sfondo uniforme"
+- Sempre: "Usa ◉ per campionare il colore esatto dallo sfondo"
+
+### Nuovo metodo: `BackgroundIsolation.SampleRegionColor`
+
+Metodo pubblico in Core:
+```
+SampleRegionColor(Image<Rgba32> image, int cx, int cy, int radius = 2)
+```
+Restituisce il colore più frequente (mode) tra i pixel opachi in un'area `(2r+1)×(2r+1)`.
+Uso raccomandato nella pipetta per qualsiasi campionamento colore.
+
+**File modificati:**
+- `src/AiPixelScaler.Core/Pipeline/Imaging/BackgroundIsolation.cs`
+- `src/AiPixelScaler.Desktop/Views/MainWindow.axaml.cs`
+- `src/AiPixelScaler.Desktop/Views/Studios/SpriteStudioView.axaml`
+
+**Build post-fix:** 0 errori, 0 warning.
+**Publish:** `publish/win-x64`, `dist/win-x64` — OK.

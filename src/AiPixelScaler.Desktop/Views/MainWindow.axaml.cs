@@ -71,7 +71,7 @@ public partial class MainWindow : Window
         DefringeOpaque: "250");
     private string _backgroundIsolationHex = "#00FF00";
     private string _backgroundIsolationTolerance = "10";
-    private string _backgroundIsolationEdgeThreshold = "48";
+    private string _backgroundIsolationEdgeThreshold = "100"; // soglia Sobel: 100 ignora artefatti JPEG (<80), blocca bordi sprite (200+)
     private string _quickColorsAfterText = "-";
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
@@ -1036,8 +1036,14 @@ public partial class MainWindow : Window
     private void OnEditorImagePixelPicked(object? sender, ImagePixelPickedEventArgs e)
     {
         if (_document is null) return;
-        var p = _document[e.X, e.Y];
-        var hx = RgbaToHex(p);
+
+        // Campiona il colore dominante in un'area 5×5 attorno al punto cliccato
+        // (raggio 2 = 5×5 px). Questo elimina il problema di campionare pixel
+        // anti-aliased, compressi o con colore deviante rispetto all'area circostante.
+        // Pixel trasparenti / semi-trasparenti (alpha < 128) vengono ignorati.
+        var sampled = BackgroundIsolation.SampleRegionColor(_document, e.X, e.Y, radius: 2);
+        var hx = RgbaToHex(sampled);
+
         switch (CmbPipetteTarget.SelectedIndex)
         {
             case 0:
@@ -1062,7 +1068,13 @@ public partial class MainWindow : Window
                 }
                 break;
         }
-        SetStatus($"Pipetta: {hx}  pixel ({e.X},{e.Y})  A={p.A}");
+
+        // Auto-disattiva la pipetta dopo aver campionato.
+        // Impedisce ri-pick accidentale durante la navigazione canvas.
+        ChkPipette.IsChecked = false;
+
+        // Feedback: mostra colore campionato con le coordinate originali del click
+        SetStatus($"Pipetta: {hx}  centro ({e.X},{e.Y})  campione 5×5 px  A={sampled.A}");
     }
 
     private static string RgbaToHex(Rgba32 p) => $"#{p.R:X2}{p.G:X2}{p.B:X2}";
@@ -1720,17 +1732,16 @@ public partial class MainWindow : Window
     {
         if (!InputParsing.TryParseHexRgb(_backgroundIsolationHex, out var key))
         {
-            SetStatus("Rimuovi sfondo: colore sfondo non valido.");
+            SetStatus("Rimuovi sfondo: colore sfondo non valido. Usa ◉ per campionare dall'immagine.");
             return;
         }
-        var tol = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationTolerance, 10));
-        var edge = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationEdgeThreshold, 48));
+        var tol  = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationTolerance, 10));
+        var edge = Math.Max(0, InputParsing.ParseInt(_backgroundIsolationEdgeThreshold, 100));
         if (_document is null) { SetStatus("Nessuna immagine aperta."); return; }
         try
         {
-            // Auto-snap: corregge il colore chiave al pixel di bordo più vicino.
-            // Gestisce il caso in cui Quantize abbia rimappato i colori dopo la pipetta:
-            // il colore campionato prima del quantize potrebbe non esistere più nell'immagine.
+            // Auto-snap: corregge il colore chiave al pixel di bordo più vicino (3px profondità).
+            // Gestisce il caso in cui Quantize abbia rimappato i colori dopo la pipetta.
             var snappedKey = BackgroundIsolation.SnapKeyToBorderColor(_document, key);
             var snapped = snappedKey != key;
             if (snapped)
@@ -1746,20 +1757,49 @@ public partial class MainWindow : Window
             var removed = BackgroundIsolation.ApplyInPlace(
                 _document,
                 new BackgroundIsolation.Options(
-                    BackgroundColor: snappedKey,
-                    ColorTolerance: tol,
-                    EdgeThreshold: edge,
-                    UseOklab: true,
-                    ProtectStrongEdges: true));
+                    BackgroundColor:  snappedKey,
+                    ColorTolerance:   tol,
+                    EdgeThreshold:    edge,
+                    UseOklab:         true,
+                    ProtectStrongEdges: true,
+                    Use8Connectivity: true));
+
+            // ── Alpha binarization post-flood (opzionale) ──────────────────────
+            // Se "Binarizza alpha" è attiva nel pannello, azzera i pixel semi-trasparenti
+            // residui (fringe da operazioni precedenti o immagini con alpha channel misto).
+            var alphaApplied = false;
+            if (_pipelineFormState.EnableAlphaThreshold && removed > 0)
+            {
+                var alphaThr = (byte)Math.Clamp(InputParsing.ParseInt(_pipelineFormState.AlphaThreshold, 128), 1, 254);
+                AlphaThreshold.ApplyInPlace(_document, alphaThr);
+                alphaApplied = true;
+            }
+
             ClearSliceGrid(); _cells.Clear(); ClearSpriteCellList();
             RefreshView();
-            var snapNote = snapped ? $" [colore corretto da {RgbaToHex(key)} dopo quantize]" : string.Empty;
-            SetStatus(removed > 0
-                ? $"Sfondo rimosso: {removed:N0} pixel (colore {RgbaToHex(snappedKey)}, tolleranza {tol}, bordi {edge}){snapNote}."
-                : $"Nessun pixel rimosso — controlla colore sfondo e tolleranza (colore {RgbaToHex(snappedKey)}, tolleranza {tol}, bordi {edge}){snapNote}.");
-            if (removed > 0) { _cleanApplied = true; ResetPresetOnManualPipelineEdit(); UpdateWorkspaceGuidance(); }
-            // Disattiva pipetta dopo operazione riuscita
-            ChkPipette.IsChecked = false;
+
+            var snapNote  = snapped     ? $" [colore auto-corretto da {RgbaToHex(key)}]"  : string.Empty;
+            var alphaNote = alphaApplied ? " + alpha binarizzata"                          : string.Empty;
+
+            if (removed > 0)
+            {
+                SetStatus($"Sfondo rimosso: {removed:N0} px — colore {RgbaToHex(snappedKey)}, tol {tol}, bordi {edge}{snapNote}{alphaNote}.");
+                _cleanApplied = true;
+                ResetPresetOnManualPipelineEdit();
+                UpdateWorkspaceGuidance();
+            }
+            else
+            {
+                // Diagnostica dettagliata: aiuta l'utente a capire perché il flood ha fallito.
+                var hints = new System.Text.StringBuilder();
+                hints.Append($"Nessun pixel rimosso — colore {RgbaToHex(snappedKey)}, tol {tol}, bordi {edge}{snapNote}. ");
+                if (tol < 5)
+                    hints.Append("Aumenta tolleranza (prova 15-30). ");
+                if (edge > 80)
+                    hints.Append("Riduci protezione bordi (prova 50-0) se il flood è bloccato su sfondo uniforme. ");
+                hints.Append("Usa ◉ per campionare il colore esatto dallo sfondo, poi riprova.");
+                SetStatus(hints.ToString());
+            }
         }
         catch (Exception ex) { SetStatus($"Errore rimozione sfondo: {ex.Message}"); }
     }
