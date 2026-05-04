@@ -86,6 +86,9 @@ public class EditorSurface : Control
     public static readonly StyledProperty<bool> IsEraserModeProperty =
         AvaloniaProperty.Register<EditorSurface, bool>(nameof(IsEraserMode), false);
 
+    public static readonly StyledProperty<bool> IsRestorePencilModeProperty =
+        AvaloniaProperty.Register<EditorSurface, bool>(nameof(IsRestorePencilMode), false);
+
     public static readonly StyledProperty<int> EraserSizeProperty =
         AvaloniaProperty.Register<EditorSurface, int>(nameof(EraserSize), 1);
 
@@ -151,6 +154,10 @@ public class EditorSurface : Control
     private Avalonia.Point _eraserCurScreen;
     private int _lastEraserX = int.MinValue;
     private int _lastEraserY = int.MinValue;
+    private bool _restorePencilDragging;
+    private Avalonia.Point _restorePencilCurScreen;
+    private int _lastRestorePencilX = int.MinValue;
+    private int _lastRestorePencilY = int.MinValue;
 
     // Frame edit mode (workbench)
     private List<AxisAlignedBox> _frameCells = [];
@@ -172,6 +179,7 @@ public class EditorSurface : Control
     private static readonly SolidColorBrush InfoBgBrush         = new(Avalonia.Media.Color.FromArgb(190, 8, 8, 18));
     private static readonly SolidColorBrush InfoFgBrush         = new(Avalonia.Media.Color.FromArgb(255, 255, 255, 255));
     private static readonly SolidColorBrush EraserBrush         = new(Avalonia.Media.Color.FromArgb(50, 255, 80, 80));
+    private static readonly SolidColorBrush RestorePencilBrush  = new(Avalonia.Media.Color.FromArgb(55, 120, 170, 255));
     private static readonly SolidColorBrush LightGridBrush      = new(Avalonia.Media.Color.FromArgb(60,  255, 255, 255));
     // Secondo passaggio griglia: ~33 % nero → visibile su sfondi chiari (bianco, verde, blu, magenta).
     private static readonly SolidColorBrush DarkGridBrush       = new(Avalonia.Media.Color.FromArgb(85,  0,   0,   0));
@@ -192,6 +200,7 @@ public class EditorSurface : Control
     private static readonly SolidColorBrush DocBorderBrush      = new(Avalonia.Media.Color.FromArgb(220, 255, 165, 0));
     private static readonly SolidColorBrush FloatingBrush       = new(Avalonia.Media.Color.FromArgb(255, 255, 220, 80));
     private static readonly SolidColorBrush EraserOutlineBrush  = new(Avalonia.Media.Color.FromArgb(220, 255, 80,  80));
+    private static readonly SolidColorBrush RestorePencilOutlineBrush = new(Avalonia.Media.Color.FromArgb(230, 120, 170, 255));
 
     private static readonly Avalonia.Media.Color[] CellPalette =
     [
@@ -225,6 +234,7 @@ public class EditorSurface : Control
     private Pen _selDragPen       = null!;
     private Pen _selCommPen       = null!;
     private Pen _eraserOutPen     = null!;
+    private Pen _restorePencilOutPen = null!;
     private Pen _tilePreviewPen   = null!;
     private Pen _docBorderPen     = null!;
     private Pen _floatingPen      = null!;
@@ -372,7 +382,19 @@ public class EditorSurface : Control
         {
             if (IsEraserMode == value) return;
             SetValue(IsEraserModeProperty, value);
-            Cursor = value ? new Cursor(StandardCursorType.Cross) : null;
+            UpdateToolCursor();
+        }
+    }
+
+    /// <summary>Modalita' matita ripristino: ridipinge solo pixel trasparenti.</summary>
+    public bool IsRestorePencilMode
+    {
+        get => GetValue(IsRestorePencilModeProperty);
+        set
+        {
+            if (IsRestorePencilMode == value) return;
+            SetValue(IsRestorePencilModeProperty, value);
+            UpdateToolCursor();
         }
     }
 
@@ -486,9 +508,14 @@ public class EditorSurface : Control
             if (_isPipetteMode == value) return;
             _isPipetteMode = value;
             _pipetteArmed = false;
-            Cursor = value ? new Cursor(StandardCursorType.Cross) : null;
+            UpdateToolCursor();
         }
     }
+
+    private void UpdateToolCursor() =>
+        Cursor = IsEraserMode || IsRestorePencilMode || IsPipetteMode
+            ? new Cursor(StandardCursorType.Cross)
+            : null;
 
     public bool IsSelectionMode
     {
@@ -520,6 +547,12 @@ public class EditorSurface : Control
 
     /// <summary>Fired al rilascio del mouse dopo una passata di gomma.</summary>
     public event EventHandler? EraserStrokeEnded;
+
+    /// <summary>Fired continuamente durante il drag della matita ripristino.</summary>
+    public event EventHandler<EraserStrokeEventArgs>? RestorePencilStroke;
+
+    /// <summary>Fired al rilascio del mouse dopo una passata di matita ripristino.</summary>
+    public event EventHandler? RestorePencilStrokeEnded;
 
     // ─── Image helpers ────────────────────────────────────────────────────────
 
@@ -750,6 +783,8 @@ public class EditorSurface : Control
             { LineCap = PenLineCap.Square, DashStyle = new DashStyle([4.0, 3.0], 0) };
         _eraserOutPen    = new Pen(EraserOutlineBrush, t5)
             { LineCap = PenLineCap.Square, LineJoin = PenLineJoin.Miter };
+        _restorePencilOutPen = new Pen(RestorePencilOutlineBrush, t5)
+            { LineCap = PenLineCap.Square, LineJoin = PenLineJoin.Miter };
         _tilePreviewPen  = new Pen(TilePreviewBrush,  t5);
         _docBorderPen    = new Pen(DocBorderBrush,    t5);
         _floatingPen     = new Pen(FloatingBrush,     1.2 * t)
@@ -769,7 +804,7 @@ public class EditorSurface : Control
         AlignGridOffsetXProperty, AlignGridOffsetYProperty,
         AlignGridCellWidthProperty, AlignGridCellHeightProperty,
         AlignGridSpacingXProperty, AlignGridSpacingYProperty,
-        IsEraserModeProperty, EraserSizeProperty,
+        IsEraserModeProperty, IsRestorePencilModeProperty, EraserSizeProperty,
         IsFrameEditModeProperty, FrameSnapRadiusProperty, FrameSnapEnabledProperty,
         IsTilePreviewModeProperty, IsCellClickModeProperty,
     ];
@@ -980,6 +1015,18 @@ public class EditorSurface : Control
                 }
             }
         }
+        if (IsRestorePencilMode && (IsPointerOver || _restorePencilDragging))
+        {
+            if (TryGetEraserBox(_restorePencilCurScreen, worldW, worldH, out var xMin, out var yMin, out var xMax, out var yMax))
+            {
+                using (context.PushTransform(m))
+                {
+                    var rect = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+                    context.FillRectangle(RestorePencilBrush, rect);
+                    context.DrawRectangle(_restorePencilOutPen, rect);
+                }
+            }
+        }
     }
 
     // ─── Selection info label ─────────────────────────────────────────────────
@@ -1041,7 +1088,7 @@ public class EditorSurface : Control
         var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
         // Ctrl + rotella in modalità gomma → ridimensiona il quadrato gomma
-        if (IsEraserMode && ctrl)
+        if ((IsEraserMode || IsRestorePencilMode) && ctrl)
         {
             EraserSize = Math.Clamp(EraserSize + (deltaY > 0 ? 1 : -1), 1, 64);
             e.Handled = true;
@@ -1107,6 +1154,7 @@ public class EditorSurface : Control
 
         if (TryBeginFloatingDrag(pos, e)) return;
         if (IsEraserMode       && HandleEraserPress(pos, e))     return;
+        if (IsRestorePencilMode && HandleRestorePencilPress(pos, e)) return;
         if (IsFrameEditMode    && HandleFrameEditPress(pos, e))   return;
         if (IsCellClickMode    && HandleCellClickPress(pos, e))   return;
         if (IsSelectionMode    && HandleSelectionPress(pos, e))   return;
@@ -1118,7 +1166,7 @@ public class EditorSurface : Control
 
     private bool TryBeginFloatingDrag(Avalonia.Point pos, PointerPressedEventArgs e)
     {
-        if (_floatingOverlayBitmap is null || IsEraserMode || IsPipetteMode
+        if (_floatingOverlayBitmap is null || IsEraserMode || IsRestorePencilMode || IsPipetteMode
             || IsSelectionMode || IsCellClickMode || IsTilePreviewMode
             || (IsFrameEditMode && _frameCells.Count > 0)) return false;
 
@@ -1137,6 +1185,13 @@ public class EditorSurface : Control
     {
         _eraserDragging = true; _eraserCurScreen = pos;
         e.Pointer.Capture(this); FireEraserStroke(pos); e.Handled = true;
+        return true;
+    }
+
+    private bool HandleRestorePencilPress(Avalonia.Point pos, PointerPressedEventArgs e)
+    {
+        _restorePencilDragging = true; _restorePencilCurScreen = pos;
+        e.Pointer.Capture(this); FireRestorePencilStroke(pos); e.Handled = true;
         return true;
     }
 
@@ -1226,6 +1281,17 @@ public class EditorSurface : Control
             InvalidateVisual();
             return;
         }
+        if (_restorePencilDragging)
+        {
+            _restorePencilDragging = false;
+            _restorePencilCurScreen = pos;
+            _lastRestorePencilX = int.MinValue;
+            _lastRestorePencilY = int.MinValue;
+            e.Pointer.Capture(null);
+            RestorePencilStrokeEnded?.Invoke(this, EventArgs.Empty);
+            InvalidateVisual();
+            return;
+        }
         if (_frameDragging)
         {
             _frameDragging = false;
@@ -1306,6 +1372,13 @@ public class EditorSurface : Control
             InvalidateVisual();
             return;
         }
+        if (_restorePencilDragging)
+        {
+            _restorePencilCurScreen = pos;
+            FireRestorePencilStroke(pos);
+            InvalidateVisual();
+            return;
+        }
         if (_frameDragging && _selectedFrameIndex >= 0)
         {
             // delta in pixel-immagine
@@ -1352,6 +1425,12 @@ public class EditorSurface : Control
             InvalidateVisual();
             return;
         }
+        if (IsRestorePencilMode)
+        {
+            _restorePencilCurScreen = pos;
+            InvalidateVisual();
+            return;
+        }
         if (_panning)
         {
             var d = pos - _lastPointer;
@@ -1378,6 +1457,24 @@ public class EditorSurface : Control
             _lastEraserY = iy;
             if (TryGetEraserBox(screenPos, bmp.PixelSize.Width, bmp.PixelSize.Height, out var xMin, out var yMin, out _, out _))
                 EraserStroke?.Invoke(this, new EraserStrokeEventArgs(xMin, yMin, EraserSize));
+        }
+    }
+
+    private void FireRestorePencilStroke(Avalonia.Point screenPos)
+    {
+        var bmp = Bitmap;
+        if (bmp is null || bmp.PixelSize.Width == 0) return;
+        var (wx, wy) = ScreenToImageFloat(screenPos, PanX, PanY, Zoom);
+        var ix = (int)Math.Floor(wx);
+        var iy = (int)Math.Floor(wy);
+        if (ix >= 0 && iy >= 0 && ix < bmp.PixelSize.Width && iy < bmp.PixelSize.Height)
+        {
+            if (ix == _lastRestorePencilX && iy == _lastRestorePencilY)
+                return;
+            _lastRestorePencilX = ix;
+            _lastRestorePencilY = iy;
+            if (TryGetEraserBox(screenPos, bmp.PixelSize.Width, bmp.PixelSize.Height, out var xMin, out var yMin, out _, out _))
+                RestorePencilStroke?.Invoke(this, new EraserStrokeEventArgs(xMin, yMin, EraserSize));
         }
     }
 

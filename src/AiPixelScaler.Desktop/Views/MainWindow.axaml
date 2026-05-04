@@ -219,23 +219,31 @@
           </StackPanel>
         </ToggleButton>
 
-        <!-- Dimensione gomma: input + preset rapidi pixel art -->
+        <ToggleButton x:Name="ChkRestorePencil" Classes="tool-toggle"
+                      ToolTip.Tip="Matita Ripristino: ridipinge solo pixel trasparenti usando il colore campionato con il contagocce">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Path Data="{StaticResource IconPencil}" Classes="tool-icon"/>
+            <TextBlock Text="Ripristina" VerticalAlignment="Center"/>
+          </StackPanel>
+        </ToggleButton>
+
+        <!-- Dimensione brush: input + preset rapidi pixel art condivisi da gomma e ripristino -->
         <StackPanel x:Name="EraserSizePanel" Orientation="Horizontal" Spacing="3"
                     IsEnabled="False" VerticalAlignment="Center">
           <TextBlock Text="Dim." VerticalAlignment="Center" FontSize="11" Opacity="0.7" Margin="4,0,0,0"/>
           <NumericUpDown x:Name="TxtEraserSize" Classes="toolbar"
                          Value="1" Minimum="1" Maximum="64" Increment="1" FormatString="0"
                          Width="52"
-                         ToolTip.Tip="Lato del quadrato gomma in pixel&#10;Ctrl + rotella del mouse sul canvas per cambiare rapidamente"/>
+                         ToolTip.Tip="Lato del quadrato brush in pixel&#10;Con Gomma o Ripristina attivi: Ctrl + rotella sul canvas per cambiare rapidamente"/>
           <TextBlock Text="px" VerticalAlignment="Center" FontSize="11" Opacity="0.7"/>
           <Button x:Name="BtnEraserSize1" Content="1" Width="22" Height="22" Padding="0"
-                  FontSize="10" ToolTip.Tip="Gomma 1×1 px (singolo pixel)"/>
+                  FontSize="10" ToolTip.Tip="Brush 1×1 px (singolo pixel)"/>
           <Button x:Name="BtnEraserSize2" Content="2" Width="22" Height="22" Padding="0"
-                  FontSize="10" ToolTip.Tip="Gomma 2×2 px"/>
+                  FontSize="10" ToolTip.Tip="Brush 2×2 px"/>
           <Button x:Name="BtnEraserSize4" Content="4" Width="22" Height="22" Padding="0"
-                  FontSize="10" ToolTip.Tip="Gomma 4×4 px"/>
+                  FontSize="10" ToolTip.Tip="Brush 4×4 px"/>
           <Button x:Name="BtnEraserSize8" Content="8" Width="22" Height="22" Padding="0"
-                  FontSize="10" ToolTip.Tip="Gomma 8×8 px"/>
+                  FontSize="10" ToolTip.Tip="Brush 8×8 px"/>
         </StackPanel>
 
         <!-- Pipette tool -->

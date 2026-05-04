@@ -135,6 +135,9 @@ Il pulsante **"Nuovo"** in Sprite Studio apre `NewCanvasDialog` per creare un fo
 **Bordo documento (`ShowDocumentBorder`):**
 Proprieta' `StyledProperty<bool>` con default `true`. Disegna un bordo arancione (`rgba(255,165,0,220)`, stesso colore di `SnapDotBrush`) attorno ai limiti esatti del documento dopo il rendering del bitmap. Indispensabile su canvas trasparenti dove i pixel non forniscono riferimento visivo. Il bordo scala con lo zoom (spessore `1.5 / zoom` px). Disattivato in modalita' workbench e tile preview (questi hanno gia' i propri overlay).
 
+**Matita Ripristino palette-aware (2026-05-04):**
+La toolbar espone un brush `Ripristina` che condivide dimensione e preset con la gomma (default 1 px). Il colore attivo viene aggiornato dalla pipetta e viene applicato solo ai pixel completamente trasparenti (`A == 0`), lasciando invariati tutti i pixel visibili. La logica pura vive in `RestorePencil.ApplyInPlace`, mentre `MainWindow` gestisce undo per passata e aggiornamento dirty-region.
+
 **Griglia a doppio passaggio:**
 `DrawLightGrid` accetta ora un secondo parametro `Pen? darkPen`. In `Render`, la griglia viene tracciata con due pass sovrapposti:
 - `DarkGridBrush = rgba(0,0,0, 85)` — 33 % nero: visibile su sfondi chiari (bianco, verde, blu, magenta).
@@ -156,4 +159,3 @@ I vincoli su formule (AABB, pivot, cinematica, nearest-neighbor, ecc.) sono in [
 - Flusso consigliato: `.\scripts\ai-pixel-scaler-flow.ps1` oppure `.\ai-pixel-scaler-flow.cmd` dalla root; con `-Publish` o `ai-pixel-scaler-flow.cmd publish` per eseguibile in `dist/win-x64`.
 
 *Per la mappatura con l’altra app, vedi [STRUCTURE.md](STRUCTURE.md).*
-

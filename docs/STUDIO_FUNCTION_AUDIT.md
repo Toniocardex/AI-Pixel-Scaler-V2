@@ -18,6 +18,7 @@ Nota implementativa corrente: **Sprite Studio chiuso al 100%** (2026-05-02). **T
 | Snap magnetico | Toolbar | `Editor.SnapToGrid`, `SnapGridSize` | griglia, selection, editor | Shell | keep | Comune a Sprite e Tileset. |
 | Centra canvas | Toolbar | `RunCenterCanvas` | viewport editor | Shell | keep | Navigazione viewport comune. |
 | Gomma | Toolbar | `OnEraserStroke` | `_document`, undo, editor region update | Sprite | keep | Editing pixel/sprite statico. |
+| Matita Ripristino | Toolbar | `OnRestorePencilStroke` | colore pipetta, `_document`, undo, editor region update | Sprite | keep | Ripristina solo pixel trasparenti (`A == 0`) con il colore campionato; brush condiviso con gomma, default 1 px. |
 | Contagocce | Toolbar + picker inline | `UpdatePipetteMode`, `ActivatePipette` | pipeline color inputs | Sprite | keep | Campionamento colore per pulizia/palette. |
 | Workflow rapido | Sprite tab | `RunWorkspaceGuideActionAsync`, `AdvanceWorkflowStepAsync` | workflow state, document, cells | Sprite | keep | Guida il flusso sprite base. |
 | Quick process | Pipeline panel | `RunQuickProcess` / `PipelineExecutionService` | `PipelineViewModel`, `_cleanApplied` | Sprite | keep | Pulizia sprite base. |

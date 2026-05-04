@@ -80,6 +80,7 @@ public partial class MainWindow : Window
     /// Viene azzerata dopo ogni utilizzo (one-shot).
     /// </summary>
     private (int X, int Y)? _lastPipettePoint;
+    private Rgba32? _activeRestoreColor;
     private string _quickColorsAfterText = "-";
     private bool _isApplyingPipelinePreset;
     private readonly WorkflowShellViewModel _workflowShell = new();
@@ -204,12 +205,28 @@ public partial class MainWindow : Window
         {
             var on = ChkEraser.IsChecked == true;
             Editor.IsEraserMode        = on;
-            EraserSizePanel.IsEnabled  = on;
+            EraserSizePanel.IsEnabled  = IsPixelBrushToolActive();
             // Modalità mutualmente esclusive
             if (on)
             {
                 ChkPipette.IsChecked    = false;
+                ChkRestorePencil.IsChecked = false;
                 SetManualSpriteCropMode(false);
+            }
+        };
+
+        ChkRestorePencil.IsCheckedChanged += (_, _) =>
+        {
+            var on = ChkRestorePencil.IsChecked == true;
+            Editor.IsRestorePencilMode = on;
+            EraserSizePanel.IsEnabled = IsPixelBrushToolActive();
+            if (on)
+            {
+                ChkPipette.IsChecked = false;
+                ChkEraser.IsChecked = false;
+                SetManualSpriteCropMode(false);
+                if (_activeRestoreColor is null)
+                    SetStatus("Matita Ripristino attiva: campiona prima un colore con Contagocce.");
             }
         };
 
@@ -232,6 +249,8 @@ public partial class MainWindow : Window
 
         Editor.EraserStroke += OnEraserStroke;
         Editor.EraserStrokeEnded += OnEraserStrokeEnded;
+        Editor.RestorePencilStroke += OnRestorePencilStroke;
+        Editor.RestorePencilStrokeEnded += OnRestorePencilStrokeEnded;
         ChkPipette.IsCheckedChanged += (_, _) => UpdatePipetteMode();
         Editor.ImagePixelPicked += OnEditorImagePixelPicked;
         Editor.ImageSelectionCompleted += OnEditorImageSelectionCompleted;
@@ -1058,6 +1077,8 @@ public partial class MainWindow : Window
             SetManualSpriteCropMode(false);
             _toolbarSelectionModeEnabled = false;
             Editor.IsSelectionMode = false;
+            ChkRestorePencil.IsChecked = false;
+            ChkEraser.IsChecked = false;
         }
         Editor.IsPipetteMode = on;
         PipetteHintBar.IsVisible = on;
@@ -1071,7 +1092,11 @@ public partial class MainWindow : Window
         _manualSpriteCropMode = on;
         SpriteStudioPanel.IsManualCropEnabled = on;
         if (on)
+        {
             ChkPipette.IsChecked = false;
+            ChkEraser.IsChecked = false;
+            ChkRestorePencil.IsChecked = false;
+        }
         ApplyEditorSelectionMode();
     }
 
@@ -1150,6 +1175,7 @@ public partial class MainWindow : Window
         // Pixel trasparenti / semi-trasparenti (alpha < 128) vengono ignorati.
         var sampled = BackgroundIsolation.SampleRegionColor(_document, e.X, e.Y, radius: 1);
         var hx = RgbaToHex(sampled);
+        _activeRestoreColor = new Rgba32(sampled.R, sampled.G, sampled.B, 255);
 
         switch (CmbPipetteTarget.SelectedIndex)
         {
@@ -1185,7 +1211,7 @@ public partial class MainWindow : Window
         ChkPipette.IsChecked = false;
 
         // Feedback: mostra colore campionato con le coordinate originali del click
-        SetStatus($"Pipetta: {hx}  centro ({e.X},{e.Y})  campione 5×5 px  A={sampled.A}");
+        SetStatus($"Pipetta: {hx}  centro ({e.X},{e.Y})  campione 3x3 px  A={sampled.A}. Colore pronto per Ripristina.");
     }
 
     private static string RgbaToHex(Rgba32 p) => $"#{p.R:X2}{p.G:X2}{p.B:X2}";
@@ -2093,12 +2119,16 @@ public partial class MainWindow : Window
 
         _lastUserRoi = null;
         _frameDragInitialOffset = null;
+        _activeRestoreColor = null;
 
         _toolbarSelectionModeEnabled = false;
         ChkPipette.IsChecked = false;
         ChkEraser.IsChecked = false;
+        ChkRestorePencil.IsChecked = false;
+        TxtEraserSize.Value = 1;
         SetManualSpriteCropMode(false);
         Editor.IsPipetteMode = false;
+        Editor.IsRestorePencilMode = false;
         PipetteHintBar.IsVisible = false;
         Editor.IsEraserMode = false;
         ClearFloatingPasteSession();
@@ -3051,6 +3081,103 @@ public partial class MainWindow : Window
         _eraserDirtyMaxY = int.MinValue;
     }
 
+    private bool IsPixelBrushToolActive() =>
+        ChkEraser.IsChecked == true || ChkRestorePencil.IsChecked == true;
+
+    private bool _restorePencilUndoPushed;
+    private int _restorePencilDirtyMinX = int.MaxValue;
+    private int _restorePencilDirtyMaxX = int.MinValue;
+    private int _restorePencilDirtyMinY = int.MaxValue;
+    private int _restorePencilDirtyMaxY = int.MinValue;
+    private long _restorePencilLastFlushTicks;
+
+    private void OnRestorePencilStroke(object? sender, AiPixelScaler.Desktop.Controls.EraserStrokeEventArgs e)
+    {
+        if (_document is null) return;
+        if (_activeRestoreColor is null)
+        {
+            SetStatus("Campiona prima un colore con Contagocce.");
+            return;
+        }
+
+        var side = e.SideLength;
+        var imgW = _document.Width;
+        var imgH = _document.Height;
+        var xMin = Math.Clamp(e.ImageX, 0, imgW);
+        var yMin = Math.Clamp(e.ImageY, 0, imgH);
+        var xMax = Math.Clamp(e.ImageX + side, 0, imgW);
+        var yMax = Math.Clamp(e.ImageY + side, 0, imgH);
+        if (xMin >= xMax || yMin >= yMax) return;
+
+        if (!HasTransparentPixel(_document, xMin, yMin, xMax, yMax))
+            return;
+
+        if (!_restorePencilUndoPushed)
+        {
+            PushUndo();
+            _restorePencilUndoPushed = true;
+        }
+
+        var changed = RestorePencil.ApplyInPlace(_document, e.ImageX, e.ImageY, side, _activeRestoreColor.Value);
+        if (changed == 0)
+            return;
+
+        _restorePencilDirtyMinX = Math.Min(_restorePencilDirtyMinX, xMin);
+        _restorePencilDirtyMaxX = Math.Max(_restorePencilDirtyMaxX, xMax);
+        _restorePencilDirtyMinY = Math.Min(_restorePencilDirtyMinY, yMin);
+        _restorePencilDirtyMaxY = Math.Max(_restorePencilDirtyMaxY, yMax);
+
+        var now = Environment.TickCount64;
+        if (now - _restorePencilLastFlushTicks >= 16 && HasDirtyRestorePencilRegion())
+        {
+            Editor.UpdateBitmapRegion(_document, _restorePencilDirtyMinX, _restorePencilDirtyMinY, _restorePencilDirtyMaxX, _restorePencilDirtyMaxY);
+            _restorePencilLastFlushTicks = now;
+            ClearDirtyRestorePencilRegion();
+        }
+    }
+
+    private void OnRestorePencilStrokeEnded(object? sender, EventArgs e)
+    {
+        if (_document is not null && HasDirtyRestorePencilRegion())
+            Editor.UpdateBitmapRegion(_document, _restorePencilDirtyMinX, _restorePencilDirtyMinY, _restorePencilDirtyMaxX, _restorePencilDirtyMaxY);
+
+        ClearDirtyRestorePencilRegion();
+        _restorePencilUndoPushed = false;
+    }
+
+    private static bool HasTransparentPixel(Image<Rgba32> image, int xMin, int yMin, int xMax, int yMax)
+    {
+        var found = false;
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var py = yMin; py < yMax && !found; py++)
+            {
+                var row = accessor.GetRowSpan(py);
+                for (var px = xMin; px < xMax; px++)
+                {
+                    if (row[px].A != 0)
+                        continue;
+
+                    found = true;
+                    break;
+                }
+            }
+        });
+
+        return found;
+    }
+
+    private bool HasDirtyRestorePencilRegion() =>
+        _restorePencilDirtyMinX < _restorePencilDirtyMaxX && _restorePencilDirtyMinY < _restorePencilDirtyMaxY;
+
+    private void ClearDirtyRestorePencilRegion()
+    {
+        _restorePencilDirtyMinX = int.MaxValue;
+        _restorePencilDirtyMaxX = int.MinValue;
+        _restorePencilDirtyMinY = int.MaxValue;
+        _restorePencilDirtyMaxY = int.MinValue;
+    }
+
     // ─── Atlas pulito (clone griglia + manual paste) ─────────────────────────
 
     private Image<Rgba32>?   _pasteSource;          // copia readonly dell'atlas originale
@@ -3658,7 +3785,11 @@ public partial class MainWindow : Window
             // Disattiva modalità conflittuali
             SetManualSpriteCropMode(false);
             ChkPipette.IsChecked    = false;
+            ChkEraser.IsChecked     = false;
+            ChkRestorePencil.IsChecked = false;
             Editor.IsPipetteMode    = false;
+            Editor.IsEraserMode     = false;
+            Editor.IsRestorePencilMode = false;
             // Attiva strumento selezione
             ApplyEditorSelectionMode();
             // Mostra la selezione committed (se presente)
